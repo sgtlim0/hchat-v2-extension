@@ -34,26 +34,77 @@ export async function getCurrentPageContent(): Promise<PageContent> {
 }
 
 export async function getYouTubeTranscript(videoId: string): Promise<string> {
-  // Fetch YouTube page and extract captions
+  // Extract captions from the YouTube tab via executeScript
+  // This avoids CORS issues and bot detection by reading from the already-loaded page
   try {
-    const res = await fetch(`https://www.youtube.com/watch?v=${videoId}`)
-    const html = await res.text()
-    const captionsMatch = html.match(/"captionTracks":\[(.*?)\]/)
-    if (!captionsMatch) return ''
-    const tracks = JSON.parse('[' + captionsMatch[1] + ']')
-    const track = tracks.find((t: {languageCode:string}) => t.languageCode === 'ko') ?? tracks[0]
-    if (!track?.baseUrl) return ''
-    const xmlRes = await fetch(track.baseUrl)
-    const xml = await xmlRes.text()
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+    if (!tab?.id) return ''
+
+    // Step 1: Extract caption track URL from YouTube's player data
+    const captionResults = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: (preferLang: string) => {
+        try {
+          // Try ytInitialPlayerResponse (available on page load)
+          const scripts = document.querySelectorAll('script')
+          for (const s of scripts) {
+            const text = s.textContent ?? ''
+            const match = text.match(/ytInitialPlayerResponse\s*=\s*(\{.+?\});/)
+            if (match) {
+              const data = JSON.parse(match[1])
+              const tracks = data?.captions?.playerCaptionsTracklistRenderer?.captionTracks
+              if (tracks?.length) {
+                const track = tracks.find((t: { languageCode: string }) => t.languageCode === preferLang) ?? tracks[0]
+                return track?.baseUrl ?? null
+              }
+            }
+          }
+          // Fallback: try to find captionTracks in page source
+          const html = document.documentElement.innerHTML
+          const captionsMatch = html.match(/"captionTracks":\[(.*?)\]/)
+          if (captionsMatch) {
+            const tracks = JSON.parse('[' + captionsMatch[1] + ']')
+            const track = tracks.find((t: { languageCode: string }) => t.languageCode === preferLang) ?? tracks[0]
+            return track?.baseUrl ?? null
+          }
+          return null
+        } catch {
+          return null
+        }
+      },
+      args: ['ko'],
+    })
+
+    const captionUrl = captionResults?.[0]?.result
+    if (!captionUrl) return ''
+
+    // Step 2: Fetch the caption XML from the YouTube tab (same origin, no CORS)
+    const xmlResults = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: async (url: string) => {
+        try {
+          const res = await fetch(url)
+          return await res.text()
+        } catch {
+          return ''
+        }
+      },
+      args: [captionUrl],
+    })
+
+    const xml = xmlResults?.[0]?.result ?? ''
+    if (!xml) return ''
+
     return xml
       .replace(/<[^>]+>/g, '')
       .replace(/&amp;/g, '&')
       .replace(/&lt;/g, '<')
       .replace(/&gt;/g, '>')
       .replace(/&#39;/g, "'")
+      .replace(/&quot;/g, '"')
       .replace(/\n+/g, ' ')
       .trim()
-      .slice(0, 6000)
+      .slice(0, 8000)
   } catch {
     return ''
   }

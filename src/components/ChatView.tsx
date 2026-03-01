@@ -447,7 +447,7 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
 
     // Build page context system prompt if enabled
     let systemPrompt: string | undefined
-    if (contextEnabled && pageCtx && Date.now() - pageCtx.ts < 60_000) {
+    if (contextEnabled && pageCtx && Date.now() - pageCtx.ts < 300_000) {
       const { buildPageSystemPrompt } = await import('../lib/pageContext')
       systemPrompt = buildPageSystemPrompt(pageCtx)
     }

@@ -30,7 +30,7 @@ export function App() {
   const { config, loaded } = useConfig()
   const [tab, setTab] = useState<Tab>('chat')
   const [loadConvId, setLoadConvId] = useState<string | undefined>()
-  const [contextEnabled, setContextEnabled] = useState(false)
+  const [contextEnabled, setContextEnabled] = useState(true)
   const [showSearch, setShowSearch] = useState(false)
   const chatNewRef = useRef<() => void>()
   const chatStopRef = useRef<() => void>()

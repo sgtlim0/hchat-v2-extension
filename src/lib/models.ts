@@ -12,8 +12,8 @@ export interface ModelDef {
 }
 
 export const MODELS: ModelDef[] = [
-  { id: 'us.anthropic.claude-sonnet-4-6-v1:0', provider: 'claude', label: 'Claude Sonnet 4.6 (권장)', shortLabel: 'Sonnet 4.6', emoji: '🟣' },
-  { id: 'us.anthropic.claude-opus-4-6-v1:0', provider: 'claude', label: 'Claude Opus 4.6 (최고 성능)', shortLabel: 'Opus 4.6', emoji: '🟣' },
+  { id: 'us.anthropic.claude-sonnet-4-20250514-v1:0', provider: 'claude', label: 'Claude Sonnet 4 (권장)', shortLabel: 'Sonnet 4', emoji: '🟣' },
+  { id: 'us.anthropic.claude-opus-4-20250514-v1:0', provider: 'claude', label: 'Claude Opus 4 (최고 성능)', shortLabel: 'Opus 4', emoji: '🟣' },
   { id: 'us.anthropic.claude-haiku-4-5-20251001-v1:0', provider: 'claude', label: 'Claude Haiku 4.5 (빠름)', shortLabel: 'Haiku 4.5', emoji: '🟣' },
 ]
 

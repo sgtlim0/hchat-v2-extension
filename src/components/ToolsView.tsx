@@ -110,7 +110,7 @@ export function ToolsView({ config }: Props) {
     setResult('')
     setLoading(true)
     // OCR uses vision via Bedrock Claude Sonnet
-    const model = 'us.anthropic.claude-sonnet-4-6-v1:0'
+    const model = 'us.anthropic.claude-sonnet-4-20250514-v1:0'
     try {
       await streamChatLive({
         aws: config.aws,

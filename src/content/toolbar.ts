@@ -271,7 +271,7 @@ async function runAction(actionId: string, selectedText: string, x: number, y: n
   const result = await chrome.storage.local.get('hchat:config')
   const cfg = result['hchat:config']
   const aws = cfg?.aws ?? {}
-  const model = cfg?.defaultModel ?? 'us.anthropic.claude-sonnet-4-6-v1:0'
+  const model = cfg?.defaultModel ?? 'us.anthropic.claude-sonnet-4-20250514-v1:0'
 
   if (!aws.accessKeyId || !aws.secretAccessKey) {
     body.innerHTML = '❌ AWS 자격증명을 설정해주세요. 확장 아이콘 → 설정'

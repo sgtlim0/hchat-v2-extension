@@ -5,8 +5,29 @@ import './toolbar'
 
 // ── Page context tracking ──────────────────────
 function extractMainContent(): string {
-  const el = document.querySelector('article') ?? document.querySelector('main') ?? document.body
-  return el.innerText.replace(/\n{3,}/g, '\n\n').trim().slice(0, 6000)
+  // Try semantic elements first, then fall back to body
+  const candidates = [
+    document.querySelector('article'),
+    document.querySelector('[role="main"]'),
+    document.querySelector('main'),
+    document.querySelector('#content'),
+    document.querySelector('.content'),
+  ].filter(Boolean) as HTMLElement[]
+
+  // Pick the candidate with the most text, or fall back to body
+  let best = document.body
+  let bestLen = 0
+  for (const el of candidates) {
+    const len = el.innerText?.length ?? 0
+    if (len > bestLen) { best = el; bestLen = len }
+  }
+
+  const text = best.innerText?.replace(/\n{3,}/g, '\n\n').trim() ?? ''
+  // If semantic elements gave too little, use body
+  if (text.length < 100) {
+    return document.body.innerText.replace(/\n{3,}/g, '\n\n').trim().slice(0, 8000)
+  }
+  return text.slice(0, 8000)
 }
 
 function detectPageType(url: string): string {

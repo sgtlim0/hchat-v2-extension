@@ -3,13 +3,13 @@ import { useChat } from '../hooks/useChat'
 import { ModelSelector } from './ModelSelector'
 import { PersonaSelector } from './PersonaSelector'
 import { PromptLibrary, type Prompt } from '../lib/promptLibrary'
-import { fileToBase64 } from '../lib/pageReader'
+import { fileToBase64, getCurrentPageContent } from '../lib/pageReader'
 import { exportConversation, downloadBlob, copyConversationAsMarkdown, type ExportFormat } from '../lib/exportChat'
 import { TTS } from '../lib/tts'
 import { STT } from '../lib/stt'
 import { generateSummary, saveSummary, loadSummary, type Summary } from '../lib/summarize'
 import { ChatHistory } from '../lib/chatHistory'
-import { type PageContext } from '../lib/pageContext'
+import { type PageContext, buildPageSystemPrompt } from '../lib/pageContext'
 import type { Config } from '../hooks/useConfig'
 import type { ChatMessage } from '../lib/chatHistory'
 import type { AgentStep } from '../lib/agent'
@@ -446,10 +446,20 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
     if (textareaRef.current) textareaRef.current.style.height = 'auto'
 
     // Build page context system prompt if enabled
+    // Use executeScript for fresh, reliable page content extraction
     let systemPrompt: string | undefined
-    if (contextEnabled && pageCtx && Date.now() - pageCtx.ts < 300_000) {
-      const { buildPageSystemPrompt } = await import('../lib/pageContext')
-      systemPrompt = buildPageSystemPrompt(pageCtx)
+    if (contextEnabled) {
+      try {
+        const page = await getCurrentPageContent()
+        if (page.text && page.text.length > 20) {
+          systemPrompt = buildPageSystemPrompt({
+            url: page.url,
+            title: page.title,
+            text: page.text,
+            ts: Date.now(),
+          })
+        }
+      } catch { /* content script not available or no active tab */ }
     }
 
     await sendMessage(text, { imageBase64: attachment?.base64, systemPrompt })

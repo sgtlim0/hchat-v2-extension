@@ -1,0 +1,110 @@
+import { useState, useEffect, useRef } from 'react'
+import { searchMessages, highlightMatch, type SearchResult } from '../lib/messageSearch'
+
+interface Props {
+  open: boolean
+  onClose: () => void
+  onSelect: (convId: string) => void
+}
+
+export function MessageSearchModal({ open, onClose, onSelect }: Props) {
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState<SearchResult[]>([])
+  const [loading, setLoading] = useState(false)
+  const [selectedIdx, setSelectedIdx] = useState(0)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>()
+
+  useEffect(() => {
+    if (open) {
+      setQuery('')
+      setResults([])
+      setSelectedIdx(0)
+      setTimeout(() => inputRef.current?.focus(), 50)
+    }
+  }, [open])
+
+  useEffect(() => {
+    if (!query.trim()) { setResults([]); return }
+    clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(async () => {
+      setLoading(true)
+      const r = await searchMessages(query, 30)
+      setResults(r)
+      setSelectedIdx(0)
+      setLoading(false)
+    }, 300)
+    return () => clearTimeout(debounceRef.current)
+  }, [query])
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') { onClose(); return }
+    if (e.key === 'ArrowDown') { e.preventDefault(); setSelectedIdx((i) => Math.min(i + 1, results.length - 1)) }
+    if (e.key === 'ArrowUp') { e.preventDefault(); setSelectedIdx((i) => Math.max(i - 1, 0)) }
+    if (e.key === 'Enter' && results[selectedIdx]) {
+      onSelect(results[selectedIdx].convId)
+      onClose()
+    }
+  }
+
+  const rel = (ts: number) => {
+    const d = Date.now() - ts
+    if (d < 3600000) return `${Math.floor(d / 60000)}분 전`
+    if (d < 86400000) return `${Math.floor(d / 3600000)}시간 전`
+    return new Date(ts).toLocaleDateString('ko-KR')
+  }
+
+  if (!open) return null
+
+  return (
+    <div className="search-modal-overlay" onClick={onClose}>
+      <div className="search-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="search-modal-input-row">
+          <span className="search-modal-icon">🔍</span>
+          <input
+            ref={inputRef}
+            className="search-modal-input"
+            placeholder="모든 대화에서 메시지 검색..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={handleKeyDown}
+          />
+          {loading && <span className="spinner-sm" />}
+          <kbd className="search-modal-kbd">ESC</kbd>
+        </div>
+
+        <div className="search-modal-results">
+          {results.length === 0 && query.trim() && !loading && (
+            <div className="search-modal-empty">검색 결과가 없습니다</div>
+          )}
+          {results.map((r, i) => (
+            <div
+              key={`${r.convId}-${r.message.id}`}
+              className={`search-result-item ${i === selectedIdx ? 'selected' : ''}`}
+              onClick={() => { onSelect(r.convId); onClose() }}
+              onMouseEnter={() => setSelectedIdx(i)}
+            >
+              <div className="search-result-header">
+                <span className="search-result-role">{r.message.role === 'user' ? '나' : 'AI'}</span>
+                <span className="search-result-conv">{r.convTitle}</span>
+                <span className="search-result-time">{rel(r.message.ts)}</span>
+              </div>
+              <div
+                className="search-result-snippet"
+                dangerouslySetInnerHTML={{ __html: highlightMatch(r.matchSnippet, query) }}
+              />
+            </div>
+          ))}
+        </div>
+
+        {results.length > 0 && (
+          <div className="search-modal-footer">
+            <span>↑↓ 이동</span>
+            <span>Enter 선택</span>
+            <span>ESC 닫기</span>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

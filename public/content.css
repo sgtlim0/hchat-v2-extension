@@ -1,0 +1,7 @@
+/* Content script styles — toolbar styles are injected inline via toolbar.ts */
+.hchat-highlight { border-radius: 2px; padding: 0 1px; }
+.hchat-highlight-yellow { background: rgba(250,204,21,0.3); }
+.hchat-highlight-green { background: rgba(52,211,153,0.3); }
+.hchat-highlight-blue { background: rgba(96,165,250,0.3); }
+.hchat-highlight-pink { background: rgba(244,114,182,0.3); }
+.hchat-highlight-orange { background: rgba(251,146,60,0.3); }

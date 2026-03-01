@@ -45,28 +45,37 @@ export async function getYouTubeTranscript(videoId: string): Promise<string> {
       target: { tabId: tab.id },
       func: (preferLang: string) => {
         try {
-          // Try ytInitialPlayerResponse (available on page load)
-          const scripts = document.querySelectorAll('script')
-          for (const s of scripts) {
-            const text = s.textContent ?? ''
-            const match = text.match(/ytInitialPlayerResponse\s*=\s*(\{.+?\});/)
-            if (match) {
-              const data = JSON.parse(match[1])
-              const tracks = data?.captions?.playerCaptionsTracklistRenderer?.captionTracks
-              if (tracks?.length) {
-                const track = tracks.find((t: { languageCode: string }) => t.languageCode === preferLang) ?? tracks[0]
-                return track?.baseUrl ?? null
-              }
+          // Method 1: Global variable (most reliable, works on initial load)
+          const playerResp = (window as any).ytInitialPlayerResponse
+          if (playerResp) {
+            const tracks = playerResp?.captions?.playerCaptionsTracklistRenderer?.captionTracks
+            if (tracks?.length) {
+              const track = tracks.find((t: { languageCode: string }) => t.languageCode === preferLang) ?? tracks[0]
+              if (track?.baseUrl) return track.baseUrl
             }
           }
-          // Fallback: try to find captionTracks in page source
-          const html = document.documentElement.innerHTML
-          const captionsMatch = html.match(/"captionTracks":\[(.*?)\]/)
-          if (captionsMatch) {
-            const tracks = JSON.parse('[' + captionsMatch[1] + ']')
-            const track = tracks.find((t: { languageCode: string }) => t.languageCode === preferLang) ?? tracks[0]
-            return track?.baseUrl ?? null
+
+          // Method 2: ytplayer.config (works after SPA navigation)
+          const ytplayer = (window as any).ytplayer?.config?.args
+          if (ytplayer) {
+            const raw = ytplayer.raw_player_response ?? ytplayer.player_response
+            const data = typeof raw === 'string' ? JSON.parse(raw) : raw
+            const tracks = data?.captions?.playerCaptionsTracklistRenderer?.captionTracks
+            if (tracks?.length) {
+              const track = tracks.find((t: { languageCode: string }) => t.languageCode === preferLang) ?? tracks[0]
+              if (track?.baseUrl) return track.baseUrl
+            }
           }
+
+          // Method 3: Search in page source (fallback)
+          const html = document.documentElement.innerHTML
+          const captionsMatch = html.match(/"captionTracks":(\[.*?\])/)
+          if (captionsMatch) {
+            const tracks = JSON.parse(captionsMatch[1])
+            const track = tracks.find((t: { languageCode: string }) => t.languageCode === preferLang) ?? tracks[0]
+            if (track?.baseUrl) return track.baseUrl
+          }
+
           return null
         } catch {
           return null

@@ -21,7 +21,7 @@ export interface Config {
 
 const DEFAULTS: Config = {
   aws: { accessKeyId: '', secretAccessKey: '', region: 'us-east-1' },
-  defaultModel: 'us.anthropic.claude-sonnet-4-6-20250514-v1:0',
+  defaultModel: 'us.anthropic.claude-sonnet-4-6-v1:0',
   theme: 'dark',
   language: 'ko',
   enableContentScript: true,

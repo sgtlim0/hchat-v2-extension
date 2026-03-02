@@ -10,7 +10,7 @@ const COLOR_MAP: Record<HighlightColor, string> = {
   purple: '#a78bfa',
 }
 
-export function BookmarksView() {
+export default function BookmarksView() {
   const { t } = useLocale()
   const [highlights, setHighlights] = useState<Highlight[]>([])
   const [searchQuery, setSearchQuery] = useState('')

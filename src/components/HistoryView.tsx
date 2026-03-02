@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useLocale } from '../i18n'
 import { ChatHistory } from '../lib/chatHistory'
 import { Tags, type TagDef } from '../lib/tags'
+import { Folders, type Folder } from '../lib/folders'
 import { MODELS } from '../lib/models'
 import { importFromFile, getSourceLabel } from '../lib/importChat'
 
@@ -10,15 +11,19 @@ interface Props {
   activeId?: string
 }
 
-type IndexItem = { id: string; title: string; updatedAt: number; pinned?: boolean; model: string; tags?: string[] }
+type IndexItem = { id: string; title: string; updatedAt: number; pinned?: boolean; model: string; tags?: string[]; folderId?: string }
 
-export function HistoryView({ onSelect, activeId }: Props) {
+export default function HistoryView({ onSelect, activeId }: Props) {
   const { t, locale } = useLocale()
   const [index, setIndex] = useState<IndexItem[]>([])
   const [allTags, setAllTags] = useState<TagDef[]>([])
+  const [folders, setFolders] = useState<Folder[]>([])
+  const [selectedFolder, setSelectedFolder] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [selectedTag, setSelectedTag] = useState<string | null>(null)
   const [tagInput, setTagInput] = useState<{ convId: string; value: string } | null>(null)
+  const [folderInput, setFolderInput] = useState('')
+  const [showFolderCreate, setShowFolderCreate] = useState(false)
   const [importStatus, setImportStatus] = useState<string | null>(null)
   const importRef = useRef<HTMLInputElement>(null)
 
@@ -40,13 +45,15 @@ export function HistoryView({ onSelect, activeId }: Props) {
   const load = () => {
     ChatHistory.listIndex().then(setIndex)
     Tags.list().then(setAllTags)
+    Folders.list().then(setFolders)
   }
   useEffect(() => { load() }, [])
 
   const filtered = index.filter((c) => {
     const matchesSearch = !search || c.title.toLowerCase().includes(search.toLowerCase())
     const matchesTag = !selectedTag || (c.tags ?? []).includes(selectedTag)
-    return matchesSearch && matchesTag
+    const matchesFolder = selectedFolder === null || c.folderId === selectedFolder
+    return matchesSearch && matchesTag && matchesFolder
   })
 
   const pinned = filtered.filter((c) => c.pinned)
@@ -92,6 +99,34 @@ export function HistoryView({ onSelect, activeId }: Props) {
     load()
   }
 
+  const handleCreateFolder = async () => {
+    const name = folderInput.trim()
+    if (!name) return
+    await Folders.create(name)
+    setFolderInput('')
+    setShowFolderCreate(false)
+    load()
+  }
+
+  const handleDeleteFolder = async (e: React.MouseEvent, folderId: string) => {
+    e.stopPropagation()
+    if (!confirm(t('folders.deleteConfirm'))) return
+    // Unassign conversations from this folder
+    const convs = index.filter((c) => c.folderId === folderId)
+    for (const c of convs) {
+      await ChatHistory.setFolder(c.id, undefined)
+    }
+    await Folders.delete(folderId)
+    if (selectedFolder === folderId) setSelectedFolder(null)
+    load()
+  }
+
+  const handleMoveToFolder = async (e: React.MouseEvent, convId: string, folderId: string | undefined) => {
+    e.stopPropagation()
+    await ChatHistory.setFolder(convId, folderId)
+    load()
+  }
+
   const ConvItem = ({ c }: { c: IndexItem }) => (
     <div
       className={`history-item ${c.id === activeId ? 'active' : ''}`}
@@ -102,6 +137,11 @@ export function HistoryView({ onSelect, activeId }: Props) {
         <div className="history-title">{c.title}</div>
         <div className="history-meta-row">
           <span className="history-meta">{rel(c.updatedAt)}</span>
+          {c.folderId && folders.find((f) => f.id === c.folderId) && (
+            <span style={{ fontSize: 9, color: folders.find((f) => f.id === c.folderId)!.color, opacity: 0.8 }}>
+              📁 {folders.find((f) => f.id === c.folderId)!.name}
+            </span>
+          )}
           {(c.tags ?? []).map((tag) => (
             <span key={tag} className="conv-tag" onClick={(e) => { e.stopPropagation(); setSelectedTag(tag) }}>
               {tag}
@@ -115,6 +155,19 @@ export function HistoryView({ onSelect, activeId }: Props) {
           {c.pinned ? '📌' : '📍'}
         </button>
         <button className="icon-btn btn-xs" onClick={(e) => { e.stopPropagation(); setTagInput({ convId: c.id, value: '' }) }} title={t('history.addTag')}>🏷️</button>
+        {folders.length > 0 && (
+          <select
+            className="select select-sm"
+            style={{ fontSize: 9, padding: '1px 2px', width: 24, opacity: 0.7 }}
+            value={c.folderId ?? ''}
+            title={t('folders.moveToFolder')}
+            onClick={(e) => e.stopPropagation()}
+            onChange={(e) => handleMoveToFolder(e as unknown as React.MouseEvent, c.id, e.target.value || undefined)}
+          >
+            <option value="">📁</option>
+            {folders.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+          </select>
+        )}
         <button className="icon-btn btn-xs" onClick={(e) => handleDelete(e, c.id)} title={t('common.delete')}>🗑</button>
       </div>
     </div>
@@ -130,6 +183,53 @@ export function HistoryView({ onSelect, activeId }: Props) {
         </div>
         {importStatus && (
           <div style={{ fontSize: 10, color: 'var(--accent)', marginTop: 4, fontFamily: 'var(--mono)' }}>{importStatus}</div>
+        )}
+
+        {/* Folder bar */}
+        {(folders.length > 0 || showFolderCreate) && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
+            <button
+              className={`filter-chip ${selectedFolder === null ? 'active' : ''}`}
+              onClick={() => setSelectedFolder(null)}
+            >{t('common.all')}</button>
+            <button
+              className={`filter-chip ${selectedFolder === '' ? 'active' : ''}`}
+              onClick={() => setSelectedFolder(selectedFolder === '' ? null : '')}
+              style={selectedFolder === '' ? { borderColor: 'var(--text3)' } : undefined}
+            >{t('folders.unfiled')}</button>
+            {folders.map((f) => (
+              <button
+                key={f.id}
+                className={`filter-chip ${selectedFolder === f.id ? 'active' : ''}`}
+                onClick={() => setSelectedFolder(selectedFolder === f.id ? null : f.id)}
+                style={{ borderColor: selectedFolder === f.id ? f.color : undefined, color: selectedFolder === f.id ? f.color : undefined }}
+              >
+                📁 {f.name}
+                <span style={{ cursor: 'pointer', marginLeft: 4, opacity: 0.5, fontSize: 9 }} onClick={(e) => handleDeleteFolder(e, f.id)}>×</span>
+              </button>
+            ))}
+            {showFolderCreate ? (
+              <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                <input
+                  className="input input-sm"
+                  style={{ width: 100, fontSize: 10, padding: '2px 6px' }}
+                  placeholder={t('folders.namePlaceholder')}
+                  value={folderInput}
+                  onChange={(e) => setFolderInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleCreateFolder(); if (e.key === 'Escape') setShowFolderCreate(false) }}
+                  autoFocus
+                />
+                <button className="btn btn-ghost btn-xs" onClick={() => setShowFolderCreate(false)}>×</button>
+              </div>
+            ) : (
+              <button className="filter-chip" onClick={() => setShowFolderCreate(true)} style={{ opacity: 0.6 }}>+ {t('folders.create')}</button>
+            )}
+          </div>
+        )}
+        {folders.length === 0 && !showFolderCreate && (
+          <button className="btn btn-ghost btn-xs" style={{ marginTop: 4, fontSize: 10 }} onClick={() => setShowFolderCreate(true)}>
+            📁 {t('folders.create')}
+          </button>
         )}
 
         {/* Tag filter chips */}

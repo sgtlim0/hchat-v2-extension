@@ -1,18 +1,19 @@
-import { useState, useCallback, useRef, useMemo, useEffect } from 'react'
+import { useState, useCallback, useRef, useMemo, useEffect, lazy, Suspense } from 'react'
 import { useConfig } from '../hooks/useConfig'
 import { useShortcuts } from '../hooks/useShortcuts'
 import { useLocale } from '../i18n'
 import { ChatView } from '../components/ChatView'
 import { GroupChatView } from '../components/GroupChatView'
-import { ToolsView } from '../components/ToolsView'
-import { PromptLibraryView } from '../components/PromptLibraryView'
-import { HistoryView } from '../components/HistoryView'
-import { SettingsView } from '../components/SettingsView'
-import { BookmarksView } from '../components/BookmarksView'
-import { DebateView } from '../components/DebateView'
 import { MessageSearchModal } from '../components/MessageSearchModal'
 import type { ShortcutAction } from '../lib/shortcuts'
 import '../styles/global.css'
+
+const ToolsView = lazy(() => import('../components/ToolsView'))
+const PromptLibraryView = lazy(() => import('../components/PromptLibraryView'))
+const HistoryView = lazy(() => import('../components/HistoryView'))
+const SettingsView = lazy(() => import('../components/SettingsView'))
+const BookmarksView = lazy(() => import('../components/BookmarksView'))
+const DebateView = lazy(() => import('../components/DebateView'))
 
 type Tab = 'chat' | 'group' | 'tools' | 'debate' | 'prompts' | 'history' | 'bookmarks' | 'settings'
 
@@ -170,27 +171,29 @@ export function App() {
           />
         )}
         {tab === 'group' && <GroupChatView config={config} />}
-        {tab === 'tools' && <ToolsView config={config} />}
-        {tab === 'debate' && <DebateView config={config} />}
-        {tab === 'prompts' && (
-          <PromptLibraryView
-            onUsePrompt={(content) => {
-              setPendingPrompt(content)
-              setTab('chat')
-            }}
-          />
-        )}
-        {tab === 'history' && (
-          <HistoryView
-            activeId={loadConvId}
-            onSelect={(id) => {
-              setLoadConvId(id)
-              setTab('chat')
-            }}
-          />
-        )}
-        {tab === 'bookmarks' && <BookmarksView />}
-        {tab === 'settings' && <SettingsView />}
+        <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}><span className="spinner-sm" /></div>}>
+          {tab === 'tools' && <ToolsView config={config} />}
+          {tab === 'debate' && <DebateView config={config} />}
+          {tab === 'prompts' && (
+            <PromptLibraryView
+              onUsePrompt={(content) => {
+                setPendingPrompt(content)
+                setTab('chat')
+              }}
+            />
+          )}
+          {tab === 'history' && (
+            <HistoryView
+              activeId={loadConvId}
+              onSelect={(id) => {
+                setLoadConvId(id)
+                setTab('chat')
+              }}
+            />
+          )}
+          {tab === 'bookmarks' && <BookmarksView />}
+          {tab === 'settings' && <SettingsView />}
+        </Suspense>
       </div>
     </div>
   )

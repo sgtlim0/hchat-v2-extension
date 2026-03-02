@@ -477,6 +477,30 @@ const en = {
     hoursAgo: '{n}h ago',
     daysAgo: '{n}d ago',
   },
+  folders: {
+    create: 'Create Folder',
+    namePlaceholder: 'Folder name',
+    deleteConfirm: 'Delete this folder? Conversations will not be deleted.',
+    unfiled: 'Unfiled',
+    moveToFolder: 'Move to folder',
+  },
+  storage: {
+    title: 'Storage Management',
+    totalUsage: 'Total Usage',
+    conversations: 'Conversations',
+    bookmarks: 'Bookmarks',
+    usageData: 'Usage Data',
+    config: 'Config',
+    other: 'Other',
+    conversationCount: '{n} conversations stored',
+    cleanOrphans: 'Clean Orphan Data',
+    cleanOld: 'Delete Conversations Older Than 90 Days',
+    orphansRemoved: '{n} orphan entries cleaned',
+    noOrphans: 'No orphan data found',
+    noOldConversations: 'No conversations older than 90 days',
+    cleanOldConfirm: 'Delete {n} unpinned conversations older than 90 days ({size})?',
+    cleanOldSuccess: '{n} conversations deleted',
+  },
 } as const
 
 export default en

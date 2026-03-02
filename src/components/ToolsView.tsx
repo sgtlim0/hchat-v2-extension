@@ -15,7 +15,7 @@ type ToolId = 'summarize' | 'translate' | 'write' | 'youtube' | 'ocr' | 'grammar
 
 interface Props { config: Config }
 
-export function ToolsView({ config }: Props) {
+export default function ToolsView({ config }: Props) {
   const { t, locale } = useLocale()
   const { getProvider, hasAnyKey } = useProvider(config)
 

@@ -8,6 +8,73 @@ function isEn(): boolean {
   return getGlobalLocale() === 'en'
 }
 
+/** Safe math expression evaluator without eval/new Function */
+function safeEvalMath(expr: string): number {
+  const SAFE_PATTERN = /^[\d\s+\-*/().,%^]+$/
+  const cleaned = expr
+    .replace(/Math\.PI/g, String(Math.PI))
+    .replace(/Math\.E/g, String(Math.E))
+    .replace(/Math\.(sqrt|abs|ceil|floor|round|pow|log|sin|cos|tan|min|max)\(/g, (_m, fn) => `__${fn}(`)
+    .replace(/PI/g, String(Math.PI))
+
+  // After replacements, only allow numbers and operators
+  const checkExpr = cleaned.replace(/__\w+\(/g, '(')
+  if (!SAFE_PATTERN.test(checkExpr)) {
+    throw new Error('Unsafe expression')
+  }
+
+  // Tokenize and compute using shunting-yard
+  const MATH_FNS: Record<string, (...args: number[]) => number> = {
+    sqrt: Math.sqrt, abs: Math.abs, ceil: Math.ceil, floor: Math.floor,
+    round: Math.round, log: Math.log, sin: Math.sin, cos: Math.cos,
+    tan: Math.tan, min: Math.min, max: Math.max, pow: Math.pow,
+  }
+
+  const tokens = cleaned.match(/__\w+|\d+\.?\d*|[+\-*/()^,%]/g) ?? []
+  const output: number[] = []
+  const ops: string[] = []
+  const prec: Record<string, number> = { '+': 1, '-': 1, '*': 2, '/': 2, '%': 2, '^': 3 }
+
+  const applyOp = () => {
+    const op = ops.pop()!
+    if (op.startsWith('__')) {
+      const fn = MATH_FNS[op.slice(2)]
+      if (!fn) throw new Error(`Unknown function: ${op}`)
+      const a = output.pop()!
+      output.push(fn(a))
+    } else {
+      const b = output.pop()!, a = output.pop()!
+      switch (op) {
+        case '+': output.push(a + b); break
+        case '-': output.push(a - b); break
+        case '*': output.push(a * b); break
+        case '/': output.push(a / b); break
+        case '%': output.push(a % b); break
+        case '^': output.push(Math.pow(a, b)); break
+      }
+    }
+  }
+
+  for (const t of tokens) {
+    if (/^\d/.test(t)) {
+      output.push(parseFloat(t))
+    } else if (t.startsWith('__')) {
+      ops.push(t)
+    } else if (t === '(') {
+      ops.push(t)
+    } else if (t === ')') {
+      while (ops.length && ops[ops.length - 1] !== '(') applyOp()
+      ops.pop() // remove '('
+      if (ops.length && ops[ops.length - 1]?.startsWith('__')) applyOp()
+    } else if (prec[t]) {
+      while (ops.length && prec[ops[ops.length - 1]] >= prec[t]) applyOp()
+      ops.push(t)
+    }
+  }
+  while (ops.length) applyOp()
+  return output[0] ?? NaN
+}
+
 export const BUILTIN_TOOLS: Tool[] = [
   {
     name: 'web_search',
@@ -71,14 +138,8 @@ export const BUILTIN_TOOLS: Tool[] = [
     },
     execute: async (params) => {
       try {
-        // Only allow safe math expressions
         const expr = String(params.expression)
-        const safePattern = /^[\d\s+\-*/().,%^Math.PIEeNaN_a-zA-Z]+$/
-        if (!safePattern.test(expr)) {
-          return isEn() ? 'Unsafe expression. Only math calculations are allowed.' : '안전하지 않은 표현식입니다. 수학 계산만 가능합니다.'
-        }
-        const fn = new Function(`"use strict"; return (${expr})`)
-        const result = fn()
+        const result = safeEvalMath(expr)
         return String(result)
       } catch (err) {
         return `${isEn() ? 'Calculation error' : '계산 오류'}: ${String(err)}`

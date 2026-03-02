@@ -26,14 +26,15 @@ export interface Conversation {
   pinned?: boolean
   tags?: string[]
   personaId?: string
+  folderId?: string
 }
 
 const PREFIX = 'hchat:conv:'
 const INDEX_KEY = 'hchat:conv-index'
 
 export const ChatHistory = {
-  async listIndex(): Promise<{ id: string; title: string; updatedAt: number; pinned?: boolean; model: string; tags?: string[] }[]> {
-    return (await Storage.get<{id:string;title:string;updatedAt:number;pinned?:boolean;model:string;tags?:string[]}[]>(INDEX_KEY)) ?? []
+  async listIndex(): Promise<{ id: string; title: string; updatedAt: number; pinned?: boolean; model: string; tags?: string[]; folderId?: string }[]> {
+    return (await Storage.get<{id:string;title:string;updatedAt:number;pinned?:boolean;model:string;tags?:string[];folderId?:string}[]>(INDEX_KEY)) ?? []
   },
 
   async create(model: string): Promise<Conversation> {
@@ -114,6 +115,16 @@ export const ChatHistory = {
     await this.setTags(id, (conv.tags ?? []).filter((t) => t !== tag))
   },
 
+  async setFolder(id: string, folderId: string | undefined): Promise<void> {
+    const conv = await this.get(id)
+    if (!conv) return
+    conv.folderId = folderId
+    await Storage.set(PREFIX + id, conv)
+    const idx = await this.listIndex()
+    const i = idx.findIndex((c) => c.id === id)
+    if (i !== -1) { idx[i] = { ...idx[i], folderId }; await Storage.set(INDEX_KEY, idx) }
+  },
+
   async setPersona(id: string, personaId: string): Promise<void> {
     const conv = await this.get(id)
     if (!conv) return
@@ -191,7 +202,7 @@ export const ChatHistory = {
 
   async _addToIndex(conv: Conversation): Promise<void> {
     const idx = await this.listIndex()
-    idx.unshift({ id: conv.id, title: conv.title, updatedAt: conv.updatedAt, model: conv.model, tags: conv.tags })
+    idx.unshift({ id: conv.id, title: conv.title, updatedAt: conv.updatedAt, model: conv.model, tags: conv.tags, folderId: conv.folderId })
     await Storage.set(INDEX_KEY, idx.slice(0, 200))
   },
 

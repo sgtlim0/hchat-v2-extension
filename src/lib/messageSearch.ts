@@ -68,10 +68,11 @@ function buildSnippet(content: string, matchIdx: number, queryLen: number): stri
 /** Highlight query text in a snippet using HTML marks */
 export function highlightMatch(snippet: string, query: string): string {
   if (!query.trim()) return escapeHtml(snippet)
-  const escaped = escapeHtml(snippet)
-  const escapedQuery = escapeHtml(query)
-  const regex = new RegExp(`(${escapeRegex(escapedQuery)})`, 'gi')
-  return escaped.replace(regex, '<mark>$1</mark>')
+  // Mark matches with placeholders before escaping to prevent XSS
+  const regex = new RegExp(`(${escapeRegex(query)})`, 'gi')
+  const marked = snippet.replace(regex, '\x00$1\x01')
+  const escaped = escapeHtml(marked)
+  return escaped.replace(/\x00/g, '<mark>').replace(/\x01/g, '</mark>')
 }
 
 function escapeHtml(s: string): string {

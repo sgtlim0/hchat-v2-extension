@@ -321,10 +321,10 @@ async function runAction(actionId: string, selectedText: string, x: number, y: n
       port.onMessage.addListener((msg) => {
         if (msg.type === 'chunk') {
           text += msg.text
-          body.innerHTML = text + '<span class="hchat-cursor">▌</span>'
+          body.textContent = text + '▌'
           body.scrollTop = body.scrollHeight
         } else if (msg.type === 'done') {
-          body.innerHTML = text
+          body.textContent = text
           resolve()
         } else if (msg.type === 'error') {
           body.textContent = '❌ ' + msg.message

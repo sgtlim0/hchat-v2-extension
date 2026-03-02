@@ -13,7 +13,7 @@ const PROVIDER_COLORS: Record<ProviderType, string> = {
 
 interface Props { config: Config }
 
-export function DebateView({ config }: Props) {
+export default function DebateView({ config }: Props) {
   const { t } = useLocale()
   const { configuredModels, getProvider, getModel } = useProvider(config)
   const [selectedModels, setSelectedModels] = useState<string[]>([])

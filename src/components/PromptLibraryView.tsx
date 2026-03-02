@@ -9,7 +9,7 @@ interface Props {
 
 const CATEGORIES = ['전체', '읽기', '번역', '글쓰기', '코드', '분석', '설명']
 
-export function PromptLibraryView({ onUsePrompt }: Props) {
+export default function PromptLibraryView({ onUsePrompt }: Props) {
   const { t, locale } = useLocale()
   const [prompts, setPrompts] = useState<Prompt[]>([])
   const [category, setCategory] = useState('전체')

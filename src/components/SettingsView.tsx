@@ -4,10 +4,11 @@ import { useProvider } from '../hooks/useProvider'
 import { signRequest } from '../lib/aws-sigv4'
 import { DEFAULT_SHORTCUTS, loadShortcuts, type Shortcut } from '../lib/shortcuts'
 import { UsageView } from './UsageView'
+import { StorageManagement } from './StorageManagement'
 import type { ProviderType } from '../lib/providers/types'
 import { useLocale } from '../i18n'
 
-export function SettingsView() {
+export default function SettingsView() {
   const { t } = useLocale()
   const { config, update } = useConfig()
   const { allModels, providers } = useProvider(config)
@@ -311,6 +312,11 @@ export function SettingsView() {
 
       <div className="settings-section">
         <UsageView />
+      </div>
+
+      <div className="settings-section">
+        <div className="settings-section-title">{t('storage.title')}</div>
+        <StorageManagement />
       </div>
 
       <div className="settings-section">

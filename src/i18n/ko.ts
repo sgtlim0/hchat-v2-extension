@@ -477,6 +477,30 @@ const ko = {
     hoursAgo: '{n}시간 전',
     daysAgo: '{n}일 전',
   },
+  folders: {
+    create: '폴더 만들기',
+    namePlaceholder: '폴더 이름',
+    deleteConfirm: '이 폴더를 삭제할까요? 대화는 삭제되지 않습니다.',
+    unfiled: '미분류',
+    moveToFolder: '폴더로 이동',
+  },
+  storage: {
+    title: '스토리지 관리',
+    totalUsage: '총 사용량',
+    conversations: '대화',
+    bookmarks: '북마크',
+    usageData: '사용량 데이터',
+    config: '설정',
+    other: '기타',
+    conversationCount: '대화 {n}개 저장됨',
+    cleanOrphans: '고아 데이터 정리',
+    cleanOld: '90일 이전 대화 삭제',
+    orphansRemoved: '고아 데이터 {n}건 정리됨',
+    noOrphans: '정리할 고아 데이터 없음',
+    noOldConversations: '90일 이전 대화 없음',
+    cleanOldConfirm: '고정되지 않은 90일 이전 대화 {n}개({size})를 삭제할까요?',
+    cleanOldSuccess: '대화 {n}개 삭제됨',
+  },
 } as const
 
 export default ko

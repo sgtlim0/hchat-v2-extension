@@ -6,6 +6,7 @@ import { ChatView } from '../components/ChatView'
 import { GroupChatView } from '../components/GroupChatView'
 import { MessageSearchModal } from '../components/MessageSearchModal'
 import type { ShortcutAction } from '../lib/shortcuts'
+import ErrorBoundary from '../components/ErrorBoundary'
 import '../styles/global.css'
 
 const ToolsView = lazy(() => import('../components/ToolsView'))
@@ -171,29 +172,31 @@ export function App() {
           />
         )}
         {tab === 'group' && <GroupChatView config={config} />}
-        <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}><span className="spinner-sm" /></div>}>
-          {tab === 'tools' && <ToolsView config={config} />}
-          {tab === 'debate' && <DebateView config={config} />}
-          {tab === 'prompts' && (
-            <PromptLibraryView
-              onUsePrompt={(content) => {
-                setPendingPrompt(content)
-                setTab('chat')
-              }}
-            />
-          )}
-          {tab === 'history' && (
-            <HistoryView
-              activeId={loadConvId}
-              onSelect={(id) => {
-                setLoadConvId(id)
-                setTab('chat')
-              }}
-            />
-          )}
-          {tab === 'bookmarks' && <BookmarksView />}
-          {tab === 'settings' && <SettingsView />}
-        </Suspense>
+        <ErrorBoundary>
+          <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}><span className="spinner-sm" /></div>}>
+            {tab === 'tools' && <ToolsView config={config} />}
+            {tab === 'debate' && <DebateView config={config} />}
+            {tab === 'prompts' && (
+              <PromptLibraryView
+                onUsePrompt={(content) => {
+                  setPendingPrompt(content)
+                  setTab('chat')
+                }}
+              />
+            )}
+            {tab === 'history' && (
+              <HistoryView
+                activeId={loadConvId}
+                onSelect={(id) => {
+                  setLoadConvId(id)
+                  setTab('chat')
+                }}
+              />
+            )}
+            {tab === 'bookmarks' && <BookmarksView />}
+            {tab === 'settings' && <SettingsView />}
+          </Suspense>
+        </ErrorBoundary>
       </div>
     </div>
   )

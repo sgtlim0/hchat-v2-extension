@@ -437,6 +437,24 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
   }
 
+  const needsPageContext = (text: string): boolean =>
+    /이\s*페이지|현재\s*페이지|this\s*page|페이지\s*(요약|번역|설명|분석|정리)|웹\s*페이지/i.test(text)
+
+  const buildPageContextPrompt = async (): Promise<string | undefined> => {
+    try {
+      const page = await getCurrentPageContent()
+      if (page.text && page.text.length > 20) {
+        return buildPageSystemPrompt({
+          url: page.url,
+          title: page.title,
+          text: page.text,
+          ts: Date.now(),
+        })
+      }
+    } catch { /* content script not available or no active tab */ }
+    return undefined
+  }
+
   const handleSend = async () => {
     const text = input.trim()
     if (!text || isLoading) return
@@ -445,21 +463,10 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
     setShowPrompts(false)
     if (textareaRef.current) textareaRef.current.style.height = 'auto'
 
-    // Build page context system prompt if enabled
-    // Use executeScript for fresh, reliable page content extraction
+    // Build page context system prompt if enabled or if message references the page
     let systemPrompt: string | undefined
-    if (contextEnabled) {
-      try {
-        const page = await getCurrentPageContent()
-        if (page.text && page.text.length > 20) {
-          systemPrompt = buildPageSystemPrompt({
-            url: page.url,
-            title: page.title,
-            text: page.text,
-            ts: Date.now(),
-          })
-        }
-      } catch { /* content script not available or no active tab */ }
+    if (contextEnabled || needsPageContext(text)) {
+      systemPrompt = await buildPageContextPrompt()
     }
 
     await sendMessage(text, { imageBase64: attachment?.base64, systemPrompt })
@@ -595,7 +602,10 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
             <p>Claude, GPT, Gemini와 함께 무엇이든 해결하세요</p>
             <div className="suggestions-grid">
               {SUGGESTIONS.map((s) => (
-                <button key={s.text} className="suggestion-card" onClick={() => sendMessage(s.text)}>
+                <button key={s.text} className="suggestion-card" onClick={async () => {
+                  const systemPrompt = needsPageContext(s.text) ? await buildPageContextPrompt() : undefined
+                  sendMessage(s.text, { systemPrompt })
+                }}>
                   <span className="s-icon">{s.icon}</span>
                   <span className="s-text">{s.text}</span>
                 </button>

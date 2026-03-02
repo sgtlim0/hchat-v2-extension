@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { detectLanguage } from '../CodeBlock'
+import { detectLanguage } from '../../../lib/detectLanguage'
 
 vi.mock('../../../i18n', () => ({
   useLocale: vi.fn(() => ({

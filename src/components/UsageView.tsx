@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Usage, formatCost, formatTokens, exportUsageAsCSV, type UsageSummary, type UsageFeature } from '../lib/usage'
 import { downloadBlob } from '../lib/exportChat'
 import { useLocale } from '../i18n'
@@ -25,7 +25,7 @@ export function UsageView() {
   const [featureBreakdown, setFeatureBreakdown] = useState<Record<string, number>>({})
   const [days, setDays] = useState(30)
 
-  const load = async () => {
+  const load = useCallback(async () => {
     const s = await Usage.getSummary(days)
     setSummary(s)
 
@@ -41,9 +41,9 @@ export function UsageView() {
       breakdown[f] = (breakdown[f] ?? 0) + r.requests
     }
     setFeatureBreakdown(breakdown)
-  }
+  }, [days])
 
-  useEffect(() => { load() }, [days])
+  useEffect(() => { load() }, [load])
 
   const handleClear = async () => {
     if (!confirm(t('usage.clearConfirm'))) return

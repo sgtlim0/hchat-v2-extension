@@ -183,7 +183,7 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
       }
     }, 300)
     return () => clearTimeout(timer)
-  }, [input, isLoading, sendMessage]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [input, isLoading, sendMessage])
 
   const handleEdit = useCallback((msgId: string, newContent: string) => {
     editAndResend(msgId, newContent)

@@ -1,4 +1,5 @@
-export { CodeBlock, detectLanguage } from './CodeBlock'
+export { CodeBlock } from './CodeBlock'
+export { detectLanguage } from '../../lib/detectLanguage'
 export { MD } from './MarkdownRenderer'
 export { SearchSources } from './SearchSources'
 export { AgentStepsView } from './AgentStepsView'

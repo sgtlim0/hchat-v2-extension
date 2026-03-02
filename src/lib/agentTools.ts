@@ -10,15 +10,23 @@ function isEn(): boolean {
 
 /** Safe math expression evaluator without eval/new Function */
 function safeEvalMath(expr: string): number {
-  const SAFE_PATTERN = /^[\d\s+\-*/().,%^]+$/
-  const cleaned = expr
-    .replace(/Math\.PI/g, String(Math.PI))
-    .replace(/Math\.E/g, String(Math.E))
-    .replace(/Math\.(sqrt|abs|ceil|floor|round|pow|log|sin|cos|tan|min|max)\(/g, (_m, fn) => `__${fn}(`)
-    .replace(/PI/g, String(Math.PI))
+  // Reject dangerous characters upfront
+  if (/[\\`${}|&;><\[\]!~?:=]/.test(expr)) {
+    throw new Error('Forbidden characters in expression')
+  }
 
-  // After replacements, only allow numbers and operators
-  const checkExpr = cleaned.replace(/__\w+\(/g, '(')
+  const MATH_FUNCTIONS = new Set(['sqrt', 'abs', 'ceil', 'floor', 'round', 'pow', 'log', 'sin', 'cos', 'tan', 'min', 'max'])
+  const cleaned = expr
+    .replace(/Math\.(PI|E)/g, (_, c) => c === 'PI' ? String(Math.PI) : String(Math.E))
+    .replace(/Math\.(\w+)/g, (_m, fn) => {
+      if (!MATH_FUNCTIONS.has(fn)) throw new Error(`Unknown Math function: ${fn}`)
+      return `__${fn}`
+    })
+    .replace(/\bPI\b/g, String(Math.PI))
+
+  // After replacements, only allow safe characters
+  const SAFE_PATTERN = /^[\d\s+\-*/().,%^_a-z]+$/i
+  const checkExpr = cleaned.replace(/__\w+/g, '')
   if (!SAFE_PATTERN.test(checkExpr)) {
     throw new Error('Unsafe expression')
   }
@@ -30,9 +38,10 @@ function safeEvalMath(expr: string): number {
     tan: Math.tan, min: Math.min, max: Math.max, pow: Math.pow,
   }
 
-  const tokens = cleaned.match(/__\w+|\d+\.?\d*|[+\-*/()^,%]/g) ?? []
+  const tokens = cleaned.match(/__\w+|\d+\.?\d*|[+\-*/()^,%,]/g) ?? []
   const output: number[] = []
   const ops: string[] = []
+  const argCounts: number[] = [] // track argument counts for multi-arg functions
   const prec: Record<string, number> = { '+': 1, '-': 1, '*': 2, '/': 2, '%': 2, '^': 3 }
 
   const applyOp = () => {
@@ -40,8 +49,10 @@ function safeEvalMath(expr: string): number {
     if (op.startsWith('__')) {
       const fn = MATH_FNS[op.slice(2)]
       if (!fn) throw new Error(`Unknown function: ${op}`)
-      const a = output.pop()!
-      output.push(fn(a))
+      const argc = argCounts.pop() ?? 1
+      const args: number[] = []
+      for (let i = 0; i < argc; i++) args.unshift(output.pop()!)
+      output.push(fn(...args))
     } else {
       const b = output.pop()!, a = output.pop()!
       switch (op) {
@@ -60,8 +71,12 @@ function safeEvalMath(expr: string): number {
       output.push(parseFloat(t))
     } else if (t.startsWith('__')) {
       ops.push(t)
+      argCounts.push(1)
     } else if (t === '(') {
       ops.push(t)
+    } else if (t === ',') {
+      while (ops.length && ops[ops.length - 1] !== '(') applyOp()
+      if (argCounts.length > 0) argCounts[argCounts.length - 1]++
     } else if (t === ')') {
       while (ops.length && ops[ops.length - 1] !== '(') applyOp()
       ops.pop() // remove '('

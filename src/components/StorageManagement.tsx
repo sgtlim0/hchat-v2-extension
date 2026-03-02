@@ -8,7 +8,11 @@ export function StorageManagement() {
   const [cleanupMsg, setCleanupMsg] = useState('')
 
   const load = () => analyzeStorage().then(setBreakdown)
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    let mounted = true
+    analyzeStorage().then((data) => { if (mounted) setBreakdown(data) })
+    return () => { mounted = false }
+  }, [])
 
   const handleCleanOrphans = async () => {
     const count = await cleanupOrphans()

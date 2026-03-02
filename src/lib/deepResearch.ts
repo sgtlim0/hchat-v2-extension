@@ -52,7 +52,7 @@ function parseQueries(text: string): string[] {
 
   // Fallback: extract numbered lines
   const lines = text.split('\n')
-    .map((l) => l.replace(/^\d+[\.\)]\s*/, '').replace(/^[-*]\s*/, '').trim())
+    .map((l) => l.replace(/^\d+[.)]\s*/, '').replace(/^[-*]\s*/, '').trim())
     .filter((l) => l.length > 5 && l.length < 200)
 
   return lines.slice(0, 5)

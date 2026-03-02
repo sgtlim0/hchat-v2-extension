@@ -72,6 +72,7 @@ export function highlightMatch(snippet: string, query: string): string {
   const regex = new RegExp(`(${escapeRegex(query)})`, 'gi')
   const marked = snippet.replace(regex, '\x00$1\x01')
   const escaped = escapeHtml(marked)
+  // eslint-disable-next-line no-control-regex -- intentional NUL/SOH markers for safe HTML injection
   return escaped.replace(/\x00/g, '<mark>').replace(/\x01/g, '</mark>')
 }
 

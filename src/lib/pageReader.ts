@@ -1,5 +1,7 @@
 // lib/pageReader.ts  –  현재 탭 내용 추출
 
+/* eslint-disable @typescript-eslint/no-explicit-any -- YouTube globals and Chrome MAIN world have no type defs */
+
 export interface PageContent {
   url: string
   title: string

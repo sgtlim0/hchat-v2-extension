@@ -11,7 +11,7 @@ function isEn(): boolean {
 /** Safe math expression evaluator without eval/new Function */
 function safeEvalMath(expr: string): number {
   // Reject dangerous characters upfront
-  if (/[\\`${}|&;><\[\]!~?:=]/.test(expr)) {
+  if (/[\\`${}|&;><[\]!~?:=]/.test(expr)) {
     throw new Error('Forbidden characters in expression')
   }
 

@@ -18,8 +18,11 @@ import GrammarTool from './tools/GrammarTool'
 import OcrTool from './tools/OcrTool'
 import BatchOcrTool from './tools/BatchOcrTool'
 import DataAnalysisTool from './tools/DataAnalysisTool'
+import ImageGenTool from './tools/ImageGenTool'
+import DocWriteTool from './tools/DocWriteTool'
+import DocTranslateTool from './tools/DocTranslateTool'
 
-type ToolId = 'summarize' | 'multitab' | 'translate' | 'write' | 'youtube' | 'ocr' | 'batchOcr' | 'grammar' | 'comments' | 'pdf' | 'insight' | 'dataAnalysis'
+type ToolId = 'summarize' | 'multitab' | 'translate' | 'write' | 'docWrite' | 'youtube' | 'ocr' | 'batchOcr' | 'grammar' | 'comments' | 'pdf' | 'insight' | 'dataAnalysis' | 'imageGen' | 'docTranslate'
 
 interface Props { config: Config }
 
@@ -34,12 +37,15 @@ export default function ToolsView({ config }: Props) {
     { id: 'comments', icon: '💬' },
     { id: 'insight', icon: '📊' },
     { id: 'pdf', icon: '📑' },
+    { id: 'docTranslate', icon: '📄' },
     { id: 'translate', icon: '🌐' },
     { id: 'write', icon: '✏️' },
+    { id: 'docWrite', icon: '📝' },
     { id: 'grammar', icon: '✅' },
     { id: 'ocr', icon: '🔍' },
     { id: 'batchOcr', icon: '📸' },
     { id: 'dataAnalysis', icon: '📊' },
+    { id: 'imageGen', icon: '🎨' },
   ]
 
   const LANGS = locale === 'en' ? en.tools.langs : ko.tools.langs
@@ -78,6 +84,17 @@ export default function ToolsView({ config }: Props) {
     } finally {
       setLoading(false)
     }
+  }
+
+  const runStreamDirect = async (prompt: string, model?: string): Promise<string> => {
+    const m = model ?? activeModel
+    const provider = getProvider(m)
+    if (!provider?.isConfigured()) throw new Error(t('common.setApiKeyFirst'))
+    let fullText = ''
+    const gen = provider.stream({ model: m, messages: [{ role: 'user', content: prompt }] })
+    for await (const chunk of gen) { fullText += chunk }
+    Usage.track(m, provider.type, prompt, fullText, 'tool').catch(() => {})
+    return fullText
   }
 
   const runVisionStream = async (imageBase64: string, prompt: string) => {
@@ -167,10 +184,13 @@ export default function ToolsView({ config }: Props) {
       case 'pdf': return <PdfTool {...commonProps} />
       case 'translate': return <TranslateTool {...commonProps} langs={LANGS} />
       case 'write': return <WriteTool {...commonProps} />
+      case 'docWrite': return <DocWriteTool {...commonProps} runStreamDirect={runStreamDirect} />
       case 'grammar': return <GrammarTool {...commonProps} />
       case 'ocr': return <OcrTool {...commonProps} runVisionStream={runVisionStream} />
       case 'batchOcr': return <BatchOcrTool {...commonProps} runVisionDirect={runVisionDirect} />
       case 'dataAnalysis': return <DataAnalysisTool {...commonProps} />
+      case 'imageGen': return <ImageGenTool {...commonProps} config={config} />
+      case 'docTranslate': return <DocTranslateTool {...commonProps} runStreamDirect={runStreamDirect} />
     }
   }
 

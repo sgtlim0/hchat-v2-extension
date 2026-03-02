@@ -2422,3 +2422,14 @@ kbd {
   background: var(--accent-dim);
   color: var(--accent);
 }
+
+/* ═══ Image Gen Tool ═══ */
+.image-gen-preview { max-width: 100%; border-radius: 8px; margin: 8px 0; }
+.image-gen-options { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+.image-gen-option { padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border1); cursor: pointer; font-size: 12px; background: var(--bg1); transition: all 0.15s; color: var(--text1); }
+.image-gen-option:hover { border-color: var(--border2); background: var(--bg2); }
+.image-gen-option.active { border-color: var(--accent); background: rgba(52, 211, 153, 0.1); color: var(--accent); }
+.image-gen-history { display: flex; gap: 8px; overflow-x: auto; padding: 8px 0; }
+.image-gen-thumb { width: 60px; height: 60px; border-radius: 6px; object-fit: cover; cursor: pointer; border: 2px solid transparent; transition: border-color 0.15s; }
+.image-gen-thumb:hover { border-color: var(--border2); }
+.image-gen-thumb.active { border-color: var(--accent); }

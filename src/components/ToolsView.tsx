@@ -1,16 +1,22 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { useProvider } from '../hooks/useProvider'
-import { getCurrentPageContent, getYouTubeTranscript, fileToBase64, truncate, getAllTabsContent } from '../lib/pageReader'
-import { WRITING_ACTIONS, buildWritingPrompt, type WritingAction } from '../lib/writingTools'
-import { extractComments, buildCommentAnalysisPrompt } from '../lib/commentAnalyzer'
-import { extractPdfText, formatFileSize } from '../lib/pdfParser'
-import { generateInsightReport, type ReportProgress } from '../lib/insightReport'
 import { Usage } from '../lib/usage'
-import { parseDataFile, dataToMarkdownTable, generateAnalysisPrompt, type ParsedData, type AnalysisType, DataAnalysisError } from '../lib/dataAnalysis'
 import type { Config } from '../hooks/useConfig'
 import { useLocale } from '../i18n'
 import ko from '../i18n/ko'
 import en from '../i18n/en'
+
+import SummarizeTool from './tools/SummarizeTool'
+import MultiTabTool from './tools/MultiTabTool'
+import YouTubeTool from './tools/YouTubeTool'
+import CommentsTool from './tools/CommentsTool'
+import InsightTool from './tools/InsightTool'
+import PdfTool from './tools/PdfTool'
+import TranslateTool from './tools/TranslateTool'
+import WriteTool from './tools/WriteTool'
+import GrammarTool from './tools/GrammarTool'
+import OcrTool from './tools/OcrTool'
+import DataAnalysisTool from './tools/DataAnalysisTool'
 
 type ToolId = 'summarize' | 'multitab' | 'translate' | 'write' | 'youtube' | 'ocr' | 'grammar' | 'comments' | 'pdf' | 'insight' | 'dataAnalysis'
 
@@ -38,18 +44,7 @@ export default function ToolsView({ config }: Props) {
   const [activeTool, setActiveTool] = useState<ToolId | null>(null)
   const [result, setResult] = useState('')
   const [loading, setLoading] = useState(false)
-  const [inputText, setInputText] = useState('')
-  const [selectedLang, setSelectedLang] = useState(LANGS[0])
-  const [selectedAction, setSelectedAction] = useState<WritingAction>('paraphrase')
-  const [imgBase64, setImgBase64] = useState('')
   const [toast, setToast] = useState('')
-  const [pdfText, setPdfText] = useState('')
-  const [pdfFileName, setPdfFileName] = useState('')
-  const [pdfQuestion, setPdfQuestion] = useState('')
-  const [reportProgress, setReportProgress] = useState<ReportProgress | null>(null)
-  const [parsedData, setParsedData] = useState<ParsedData | null>(null)
-  const [analysisType, setAnalysisType] = useState<AnalysisType>('summary')
-  const abortRef = useRef<AbortController | null>(null)
 
   const activeModel = config.defaultModel
 
@@ -83,29 +78,7 @@ export default function ToolsView({ config }: Props) {
     }
   }
 
-  const handleDataFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    e.target.value = ''
-    setResult('')
-    setParsedData(null)
-    try {
-      const data = await parseDataFile(file)
-      setParsedData(data)
-    } catch (err) {
-      if (err instanceof DataAnalysisError) setResult('❌ ' + err.message)
-      else setResult('❌ ' + String(err))
-    }
-  }
-
-  const handleDataAnalysis = async () => {
-    if (!parsedData) return
-    const prompt = generateAnalysisPrompt(parsedData, analysisType, locale)
-    await runStream(prompt)
-  }
-
   const runVisionStream = async (imageBase64: string, prompt: string) => {
-    // Prefer vision-capable model
     const visionModel = 'us.anthropic.claude-sonnet-4-6'
     const provider = getProvider(visionModel)
     if (!provider?.isConfigured()) { setResult(t('tools.bedrockKeyRequired')); return }
@@ -135,160 +108,7 @@ export default function ToolsView({ config }: Props) {
     }
   }
 
-  const handleSummarize = async () => {
-    setLoading(true)
-    try {
-      const page = await getCurrentPageContent()
-      if (!page.text) { setResult(t('tools.noPageContent')); setLoading(false); return }
-      await runStream(`${t('aiPrompts.summarizePage')}\n\n제목: ${page.title}\nURL: ${page.url}\n\n내용:\n${truncate(page.text)}`)
-    } catch (err) {
-      setResult('❌ ' + String(err))
-      setLoading(false)
-    }
-  }
-
-  const handleMultiTab = async () => {
-    setLoading(true)
-    setResult('')
-    try {
-      const tabs = await getAllTabsContent(10)
-      if (tabs.length === 0) { setResult(t('tools.noTabs')); setLoading(false); return }
-      const tabSummaries = tabs.map((tab, i) =>
-        `--- ${t('tools.tabLabel')} ${i + 1}: ${tab.title} ---\nURL: ${tab.url}\n${truncate(tab.text, 2000)}`
-      ).join('\n\n')
-      await runStream(`${t('aiPrompts.multiTabSummarize', { count: tabs.length })}\n\n${tabSummaries}`)
-    } catch (err) {
-      setResult('❌ ' + String(err))
-      setLoading(false)
-    }
-  }
-
-  const handleYouTube = async () => {
-    setLoading(true)
-    setResult('')
-    try {
-      const page = await getCurrentPageContent()
-      if (!page.isYouTube) { setResult(t('tools.notYouTube')); setLoading(false); return }
-      const transcript = await getYouTubeTranscript(page.youtubeId!)
-      if (!transcript) { setResult(t('tools.noSubtitles')); setLoading(false); return }
-      await runStream(`${t('aiPrompts.summarizeYoutube')}\n\n제목: ${page.title}\n\n자막:\n${transcript}`)
-    } catch (err) {
-      setResult('❌ ' + String(err))
-      setLoading(false)
-    }
-  }
-
-  const handleTranslate = async () => {
-    if (!inputText.trim()) { setResult(t('tools.noText')); return }
-    await runStream(t('aiPrompts.translateTo', { lang: selectedLang }) + `\n\n${inputText}`)
-  }
-
-  const handleWrite = async () => {
-    if (!inputText.trim()) { setResult(t('tools.noInputText')); return }
-    await runStream(buildWritingPrompt(selectedAction, inputText))
-  }
-
-  const handleGrammar = async () => {
-    if (!inputText.trim()) { setResult(t('tools.noGrammarText')); return }
-    await runStream(t('aiPrompts.grammarCheck') + `\n\n${inputText}`)
-  }
-
-  const handleOCR = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const b64 = await fileToBase64(file)
-    setImgBase64(b64)
-    e.target.value = ''
-  }
-
-  const handleOCRRun = async () => {
-    if (!imgBase64) return
-    await runVisionStream(imgBase64, t('aiPrompts.ocrExtract'))
-  }
-
-  const handleComments = async () => {
-    setLoading(true)
-    setResult('')
-    try {
-      const page = await getCurrentPageContent()
-      if (!page.isYouTube) { setResult(t('tools.notYouTube')); setLoading(false); return }
-      const comments = await extractComments(200)
-      if (comments.length === 0) {
-        setResult(t('tools.noComments'))
-        setLoading(false)
-        return
-      }
-      const prompt = buildCommentAnalysisPrompt(comments, page.title)
-      await runStream(prompt)
-    } catch (err) {
-      setResult('❌ ' + String(err))
-      setLoading(false)
-    }
-  }
-
-  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    e.target.value = ''
-    setPdfText('')
-    setPdfFileName(file.name)
-    setResult('')
-    setLoading(true)
-    try {
-      const text = await extractPdfText(file)
-      setPdfText(text)
-      setResult(t('tools.pdfLoaded', { size: formatFileSize(file.size), chars: text.length.toLocaleString() }))
-    } catch (err) {
-      setResult('❌ ' + String(err))
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handlePdfChat = async () => {
-    if (!pdfText || !pdfQuestion.trim()) return
-    await runStream(t('aiPrompts.pdfChat', { pdfContent: pdfText.slice(0, 12000), question: pdfQuestion.trim() }) + ' ' + t('aiPrompts.respondInLang'))
-    setPdfQuestion('')
-  }
-
-  const handleInsightReport = async () => {
-    setLoading(true)
-    setResult('')
-    setReportProgress({ stage: t('tools.starting'), percent: 0 })
-    abortRef.current = new AbortController()
-    try {
-      const provider = getProvider(activeModel)
-      if (!provider?.isConfigured()) {
-        setResult(t('common.setApiKeyFirst'))
-        setLoading(false)
-        setReportProgress(null)
-        return
-      }
-      const report = await generateInsightReport(
-        provider,
-        activeModel,
-        (p) => setReportProgress(p),
-        (chunk) => setResult((r) => r + chunk),
-        abortRef.current.signal,
-      )
-      setResult(report.fullMarkdown)
-      setReportProgress(null)
-    } catch (err) {
-      if (!String(err).includes('abort')) {
-        setResult('❌ ' + String(err))
-      }
-      setReportProgress(null)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleInsightStop = () => {
-    abortRef.current?.abort()
-    setLoading(false)
-    setReportProgress(null)
-  }
-
+  // --- Tool Grid (no active tool) ---
   if (!activeTool) {
     return (
       <div>
@@ -308,7 +128,25 @@ export default function ToolsView({ config }: Props) {
     )
   }
 
-  const tool = TOOLS.find((tool) => tool.id === activeTool)!
+  // --- Active Tool View ---
+  const tool = TOOLS.find((t) => t.id === activeTool)!
+  const commonProps = { loading, setLoading, setResult, runStream, showToast, t, locale }
+
+  const renderToolPanel = () => {
+    switch (activeTool) {
+      case 'summarize': return <SummarizeTool {...commonProps} />
+      case 'multitab': return <MultiTabTool {...commonProps} />
+      case 'youtube': return <YouTubeTool {...commonProps} />
+      case 'comments': return <CommentsTool {...commonProps} />
+      case 'insight': return <InsightTool {...commonProps} result={result} getProvider={getProvider} activeModel={activeModel} />
+      case 'pdf': return <PdfTool {...commonProps} />
+      case 'translate': return <TranslateTool {...commonProps} langs={LANGS} />
+      case 'write': return <WriteTool {...commonProps} />
+      case 'grammar': return <GrammarTool {...commonProps} />
+      case 'ocr': return <OcrTool {...commonProps} runVisionStream={runVisionStream} />
+      case 'dataAnalysis': return <DataAnalysisTool {...commonProps} />
+    }
+  }
 
   return (
     <div className="tool-view">
@@ -317,239 +155,8 @@ export default function ToolsView({ config }: Props) {
         <span className="tool-view-title">{tool.icon} {t(`tools.${tool.id}.title`)}</span>
       </div>
 
-      {/* Tool-specific UI */}
-      {activeTool === 'summarize' && (
-        <div className="gap-2">
-          <p style={{ fontSize: 12, color: 'var(--text2)' }}>{t('tools.summarizeDesc')}</p>
-          <button className="btn btn-primary" onClick={handleSummarize} disabled={loading}>
-            {loading ? <><span className="spinner" /> {t('tools.summarizing')}</> : t('tools.summarizeAction')}
-          </button>
-        </div>
-      )}
+      {renderToolPanel()}
 
-      {activeTool === 'multitab' && (
-        <div className="gap-2">
-          <p style={{ fontSize: 12, color: 'var(--text2)' }}>{t('tools.multitabDesc')}</p>
-          <button className="btn btn-primary" onClick={handleMultiTab} disabled={loading}>
-            {loading ? <><span className="spinner" /> {t('tools.summarizing')}</> : t('tools.multitabAction')}
-          </button>
-        </div>
-      )}
-
-      {activeTool === 'youtube' && (
-        <div className="gap-2">
-          <p style={{ fontSize: 12, color: 'var(--text2)' }}>{t('tools.youtubeDesc')}</p>
-          <button className="btn btn-primary" onClick={handleYouTube} disabled={loading}>
-            {loading ? <><span className="spinner" /> {t('tools.analyzing')}</> : t('tools.youtubeAction')}
-          </button>
-        </div>
-      )}
-
-      {activeTool === 'translate' && (
-        <div className="gap-2">
-          <div className="field">
-            <label className="field-label">{t('tools.translateTo')}</label>
-            <select className="select" value={selectedLang} onChange={(e) => setSelectedLang(e.target.value)}>
-              {LANGS.map((l) => <option key={l}>{l}</option>)}
-            </select>
-          </div>
-          <div className="field">
-            <label className="field-label">{t('tools.sourceText')}</label>
-            <textarea className="textarea" rows={5} value={inputText} onChange={(e) => setInputText(e.target.value)} placeholder={t('tools.translatePlaceholder')} />
-          </div>
-          <button className="btn btn-primary" onClick={handleTranslate} disabled={loading}>
-            {loading ? <><span className="spinner" /> {t('tools.translating')}</> : t('tools.translateAction', { lang: selectedLang })}
-          </button>
-        </div>
-      )}
-
-      {activeTool === 'write' && (
-        <div className="gap-2">
-          <div className="field">
-            <label className="field-label">{t('tools.selectAction')}</label>
-            <div className="writing-actions">
-              {WRITING_ACTIONS.map((a) => (
-                <button
-                  key={a.id}
-                  className={`writing-action-btn ${selectedAction === a.id ? 'active' : ''}`}
-                  onClick={() => setSelectedAction(a.id)}
-                >
-                  <span>{a.emoji}</span>
-                  <span>{t(`writing.${a.id}`)}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="field">
-            <label className="field-label">{t('tools.textInput')}</label>
-            <textarea className="textarea" rows={5} value={inputText} onChange={(e) => setInputText(e.target.value)} placeholder={t('tools.textPlaceholder')} />
-          </div>
-          <button className="btn btn-primary" onClick={handleWrite} disabled={loading}>
-            {loading ? <><span className="spinner" /> {t('common.processing')}</> : t('tools.executeAction', { action: t(`writing.${selectedAction}`) })}
-          </button>
-        </div>
-      )}
-
-      {activeTool === 'grammar' && (
-        <div className="gap-2">
-          <div className="field">
-            <label className="field-label">{t('tools.grammarText')}</label>
-            <textarea className="textarea" rows={6} value={inputText} onChange={(e) => setInputText(e.target.value)} placeholder={t('tools.grammarPlaceholder')} />
-          </div>
-          <button className="btn btn-primary" onClick={handleGrammar} disabled={loading}>
-            {loading ? <><span className="spinner" /> {t('tools.correcting')}</> : t('tools.grammarAction')}
-          </button>
-        </div>
-      )}
-
-      {activeTool === 'comments' && (
-        <div className="gap-2">
-          <p style={{ fontSize: 12, color: 'var(--text2)' }}>
-            {t('tools.commentsDesc')}
-          </p>
-          <button className="btn btn-primary" onClick={handleComments} disabled={loading}>
-            {loading ? <><span className="spinner" /> {t('tools.analyzingComments')}</> : t('tools.commentsAction')}
-          </button>
-        </div>
-      )}
-
-      {activeTool === 'insight' && (
-        <div className="gap-2">
-          <p style={{ fontSize: 12, color: 'var(--text2)' }}>
-            {t('tools.insightDesc')}
-          </p>
-          {reportProgress && (
-            <div className="insight-progress">
-              <div className="insight-progress-bar">
-                <div className="insight-progress-fill" style={{ width: `${reportProgress.percent}%` }} />
-              </div>
-              <span className="insight-progress-label">{reportProgress.stage} ({reportProgress.percent}%)</span>
-            </div>
-          )}
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn btn-primary" onClick={handleInsightReport} disabled={loading}>
-              {loading ? <><span className="spinner" /> {t('tools.generatingReport')}</> : t('tools.insightAction')}
-            </button>
-            {loading && (
-              <button className="btn btn-secondary" onClick={handleInsightStop}>{t('common.stop')}</button>
-            )}
-          </div>
-          {result && !loading && (
-            <button
-              className="btn btn-secondary btn-sm"
-              onClick={() => {
-                const blob = new Blob([result], { type: 'text/markdown' })
-                const url = URL.createObjectURL(blob)
-                const a = document.createElement('a')
-                a.href = url
-                a.download = `insight-report-${new Date().toISOString().slice(0, 10)}.md`
-                a.click()
-                URL.revokeObjectURL(url)
-                showToast(t('common.downloadComplete'))
-              }}
-            >
-              {t('tools.markdownDownload')}
-            </button>
-          )}
-        </div>
-      )}
-
-      {activeTool === 'pdf' && (
-        <div className="gap-2">
-          <p style={{ fontSize: 12, color: 'var(--text2)' }}>
-            {t('tools.pdfDesc')}
-          </p>
-          <label className="btn btn-secondary" style={{ cursor: 'pointer', justifyContent: 'center' }}>
-            {t('tools.pdfUpload')}
-            <input type="file" accept=".pdf" style={{ display: 'none' }} onChange={handlePdfUpload} />
-          </label>
-          {pdfFileName && (
-            <div style={{ fontSize: 11, color: 'var(--text2)', padding: '4px 0' }}>
-              {t('common.file')}: {pdfFileName}
-            </div>
-          )}
-          {pdfText && (
-            <div className="field">
-              <label className="field-label">{t('tools.pdfQuestionLabel')}</label>
-              <textarea
-                className="textarea"
-                rows={3}
-                value={pdfQuestion}
-                onChange={(e) => setPdfQuestion(e.target.value)}
-                placeholder={t('tools.pdfQuestionPlaceholder')}
-                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handlePdfChat() } }}
-              />
-              <button
-                className="btn btn-primary"
-                style={{ marginTop: 8 }}
-                onClick={handlePdfChat}
-                disabled={loading || !pdfQuestion.trim()}
-              >
-                {loading ? <><span className="spinner" /> {t('tools.answering')}</> : t('tools.askQuestion')}
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {activeTool === 'ocr' && (
-        <div className="gap-2">
-          <p style={{ fontSize: 12, color: 'var(--text2)' }}>{t('tools.ocrDesc')}</p>
-          <label className="btn btn-secondary" style={{ cursor: 'pointer', justifyContent: 'center' }}>
-            {t('tools.imageUpload')}
-            <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleOCR} />
-          </label>
-          {imgBase64 && (
-            <>
-              <img src={imgBase64} style={{ maxWidth: '100%', maxHeight: 160, borderRadius: 8, border: '1px solid var(--border2)' }} alt="" />
-              <button className="btn btn-primary" onClick={handleOCRRun} disabled={loading}>
-                {loading ? <><span className="spinner" /> {t('tools.extracting')}</> : t('tools.extractText')}
-              </button>
-            </>
-          )}
-        </div>
-      )}
-
-      {activeTool === 'dataAnalysis' && (
-        <div className="gap-2">
-          <p style={{ fontSize: 12, color: 'var(--text2)' }}>{t('tools.dataAnalysis.desc')}</p>
-          <label className="btn btn-secondary" style={{ cursor: 'pointer', justifyContent: 'center' }}>
-            {t('tools.dataAnalysis.upload')}
-            <input type="file" accept=".csv,.tsv,.xlsx,.xls" style={{ display: 'none' }} onChange={handleDataFileUpload} />
-          </label>
-          {parsedData && (
-            <>
-              <div style={{ fontSize: 11, color: 'var(--text2)', padding: '4px 0' }}>
-                {t('common.file')}: {parsedData.fileName} ({parsedData.rowCount}{t('tools.dataAnalysis.rows')}, {parsedData.headers.length}{t('tools.dataAnalysis.cols')})
-              </div>
-              <div className="result-box" style={{ maxHeight: 160, overflow: 'auto' }}>
-                <div className="result-content" style={{ fontSize: 11, whiteSpace: 'pre-wrap', fontFamily: 'var(--mono)' }}>
-                  {dataToMarkdownTable(parsedData, 5)}
-                </div>
-              </div>
-              <div className="field">
-                <label className="field-label">{t('tools.dataAnalysis.typeLabel')}</label>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  {(['summary', 'trend', 'outlier'] as AnalysisType[]).map((at) => (
-                    <button
-                      key={at}
-                      className={`btn btn-sm ${analysisType === at ? 'btn-primary' : 'btn-secondary'}`}
-                      onClick={() => setAnalysisType(at)}
-                    >
-                      {t(`tools.dataAnalysis.type_${at}`)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <button className="btn btn-primary" onClick={handleDataAnalysis} disabled={loading}>
-                {loading ? <><span className="spinner" /> {t('tools.analyzing')}</> : t('tools.dataAnalysis.startAnalysis')}
-              </button>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Result */}
       {result && (
         <div className="result-box">
           <div className="result-header">

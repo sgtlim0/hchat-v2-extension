@@ -10,10 +10,12 @@ interface RouteContext {
   preferFast?: boolean
 }
 
+// \b doesn't work with Korean characters (Unicode CJK)
+// Use (?:^|[\s,.!?])...(?:[\s,.!?]|$) or simple includes-style patterns for Korean
 const CODE_PATTERNS = [
   /```[\s\S]*```/,
   /\b(function|class|const|let|var|import|export|def|async|await)\b/,
-  /\b(코드|함수|변수|클래스|타입|인터페이스|컴포넌트|API|디버그|에러)\b/,
+  /(코드|함수|변수|클래스|타입|인터페이스|컴포넌트|API|디버그|에러)/,
   /\b(code|debug|error|bug|fix|refactor|implement)\b/i,
 ]
 
@@ -23,9 +25,9 @@ const SIMPLE_PATTERNS = [
 ]
 
 const REASONING_PATTERNS = [
-  /\b(분석|비교|장단점|평가|판단|논리|추론|근거)\b/,
+  /(분석|비교|장단점|평가|판단|논리|추론|근거)/,
   /\b(analyze|compare|evaluate|reason|explain why)\b/i,
-  /\b(왜|어떻게|차이점|원인)\b/,
+  /(왜|어떻게|차이점|원인)/,
 ]
 
 function detectContext(prompt: string, hasImage: boolean): RouteContext {

@@ -1,5 +1,8 @@
 import { useState, useCallback, useRef } from 'react'
 import { streamChatLive, type Message, MODELS } from '../lib/models'
+import type { AIProvider, ProviderType } from '../lib/providers/types'
+import { createAllProviders, getProviderForModel, getModelDef } from '../lib/providers/provider-factory'
+import { routeModel } from '../lib/providers/model-router'
 import { ChatHistory, type ChatMessage, type Conversation } from '../lib/chatHistory'
 import { needsWebSearch, extractSearchQuery } from '../lib/searchIntent'
 import { webSearch, buildSearchContext } from '../lib/webSearch'
@@ -16,6 +19,28 @@ function formatAgentContent(steps: AgentStep[]): string {
     if (s.type === 'thinking') return s.content ? `💭 ${s.content}` : '💭 사고 중...'
     return s.content
   }).join('\n\n')
+}
+
+async function streamWithProvider(
+  provider: AIProvider,
+  model: string,
+  messages: Message[],
+  systemPrompt: string | undefined,
+  onChunk: (chunk: string) => void,
+  signal?: AbortSignal,
+): Promise<string> {
+  let fullText = ''
+  const gen = provider.stream({ model, messages, systemPrompt, signal })
+  for await (const chunk of gen) {
+    onChunk(chunk)
+    fullText += chunk
+  }
+  return fullText
+}
+
+function resolveProviderType(modelId: string, providers: AIProvider[]): ProviderType {
+  const def = getModelDef(modelId, providers)
+  return def?.provider ?? 'bedrock'
 }
 
 export function useChat(config: Config) {
@@ -59,13 +84,32 @@ export function useChat(config: Config) {
       activeConv = await startNew(opts?.forcedModel ?? currentModel)
     }
 
-    const model = opts?.forcedModel ?? currentModel
-    const provider = MODELS.find((m) => m.id === model)?.provider ?? 'claude'
+    // Build providers from current config
+    const providers = createAllProviders({
+      bedrock: config.aws,
+      openai: config.openai,
+      gemini: config.gemini,
+    })
 
-    if (!config.aws.accessKeyId || !config.aws.secretAccessKey) {
-      setError('AWS 자격증명을 설정해주세요')
-      setIsLoading(false)
-      return
+    // Determine model: forced > autoRouting > currentModel
+    let model = opts?.forcedModel ?? currentModel
+    const hasImage = !!opts?.imageBase64
+
+    if (!opts?.forcedModel && config.autoRouting) {
+      const routed = routeModel(text, providers, hasImage)
+      if (routed) model = routed
+    }
+
+    const providerType = resolveProviderType(model, providers)
+    const provider = getProviderForModel(model, providers)
+
+    if (!provider?.isConfigured()) {
+      // Fallback to legacy Bedrock check
+      if (!config.aws.accessKeyId || !config.aws.secretAccessKey) {
+        setError('선택한 모델의 API 키를 설정해주세요')
+        setIsLoading(false)
+        return
+      }
     }
 
     // Build user message
@@ -144,7 +188,7 @@ export function useChat(config: Config) {
             : m)
         })
 
-        Usage.track(model, provider, text, finalText).catch(() => {})
+        Usage.track(model, providerType, text, finalText, 'agent').catch(() => {})
       } else {
         // ── Normal chat mode ──
         const persona = await Personas.getById(personaId)
@@ -172,24 +216,41 @@ export function useChat(config: Config) {
           setIsSearching(false)
         }
 
-        await streamChatLive({
-          aws: config.aws,
-          model,
-          messages: historyMsgs,
-          systemPrompt,
-          onChunk: (chunk) => {
-            setMessages((prev) =>
-              prev.map((m) => m.id === placeholderId ? { ...m, content: m.content + chunk } : m)
-            )
-          },
-        })
+        // Use provider system if available, fallback to legacy streamChatLive
+        if (provider?.isConfigured()) {
+          await streamWithProvider(
+            provider,
+            model,
+            historyMsgs,
+            systemPrompt,
+            (chunk) => {
+              setMessages((prev) =>
+                prev.map((m) => m.id === placeholderId ? { ...m, content: m.content + chunk } : m)
+              )
+            },
+            abortRef.current.signal,
+          )
+        } else {
+          await streamChatLive({
+            aws: config.aws,
+            model,
+            messages: historyMsgs,
+            systemPrompt,
+            onChunk: (chunk) => {
+              setMessages((prev) =>
+                prev.map((m) => m.id === placeholderId ? { ...m, content: m.content + chunk } : m)
+              )
+            },
+            signal: abortRef.current.signal,
+          })
+        }
 
         // Finalize
         setMessages((prev) => {
           const final = prev.find((m) => m.id === placeholderId)
           if (final) {
             ChatHistory.addMessage(activeConv!.id, { role: 'assistant', content: final.content, model, searchSources })
-            Usage.track(model, provider, text, final.content).catch(() => {})
+            Usage.track(model, providerType, text, final.content, 'chat').catch(() => {})
           }
           return prev.map((m) => m.id === placeholderId ? { ...m, streaming: false, searchSources } : m)
         })

@@ -1,16 +1,19 @@
 // lib/usage.ts — Token usage tracking and cost estimation
 
 import { Storage } from './storage'
-import type { Provider } from './models'
+import type { ProviderType } from './providers/types'
+
+export type UsageFeature = 'chat' | 'group' | 'tool' | 'agent' | 'debate' | 'report'
 
 export interface UsageRecord {
   date: string        // YYYY-MM-DD
-  provider: Provider
+  provider: ProviderType | string
   model: string
   inputTokens: number
   outputTokens: number
   requests: number
   estimatedCost: number  // USD
+  feature?: UsageFeature
 }
 
 export interface UsageSummary {
@@ -57,7 +60,7 @@ export const Usage = {
     return (await Storage.get<UsageRecord[]>(USAGE_KEY)) ?? []
   },
 
-  async track(model: string, provider: Provider, inputText: string, outputText: string): Promise<void> {
+  async track(model: string, provider: ProviderType | string, inputText: string, outputText: string, feature?: UsageFeature): Promise<void> {
     const records = await this.getRecords()
     const date = today()
     const inputTokens = estimateTokens(inputText)
@@ -71,7 +74,7 @@ export const Usage = {
       existing.requests += 1
       existing.estimatedCost += cost
     } else {
-      records.push({ date, provider, model, inputTokens, outputTokens, requests: 1, estimatedCost: cost })
+      records.push({ date, provider, model, inputTokens, outputTokens, requests: 1, estimatedCost: cost, feature })
     }
 
     // Keep last 90 days only

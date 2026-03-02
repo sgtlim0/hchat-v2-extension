@@ -30,6 +30,10 @@
   --amber: #fbbf24;
   --red: #f87171;
   --red-dim: rgba(248,113,113,0.1);
+  --green: #34d399;
+  --color-bedrock: #ff9900;
+  --color-openai: #10a37f;
+  --color-gemini: #4285f4;
   --mono: 'IBM Plex Mono', monospace;
   --sans: 'IBM Plex Sans KR', 'Noto Sans KR', sans-serif;
   --radius: 10px;
@@ -1983,4 +1987,191 @@ kbd {
 /* ── Spinning icon ── */
 .spinning {
   animation: spin 1s linear infinite;
+}
+
+/* ═══════════════════════════════════════════════════
+   v3 Additions: Provider cards, auto-routing, timestamps, debate
+   ═══════════════════════════════════════════════════ */
+
+/* ── Provider card ── */
+.provider-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.provider-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.provider-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.provider-label { flex: 1; }
+
+.api-input-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.api-input-row .input { flex: 1; }
+
+/* ── Auto-routing badge ── */
+.auto-routing-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-size: 10px;
+  font-family: var(--mono);
+}
+
+/* ── YouTube Timestamp ── */
+.timestamp-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+.timestamp-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.timestamp-item:hover { background: var(--bg3); }
+.timestamp-time {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--accent);
+  flex-shrink: 0;
+  min-width: 48px;
+}
+.timestamp-text {
+  font-size: 12px;
+  color: var(--text1);
+  line-height: 1.4;
+}
+
+/* ── Debate view ── */
+.debate-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 12px;
+  padding: 12px 14px;
+}
+.debate-round {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+}
+.debate-round-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text1);
+}
+.debate-round-content {
+  font-size: 12px;
+  color: var(--text1);
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
+.debate-model-select {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* ── Usage feature breakdown ── */
+.usage-feature-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  font-size: 11px;
+}
+.usage-feature-name {
+  min-width: 48px;
+  color: var(--text2);
+}
+.usage-feature-bar {
+  flex: 1;
+  height: 4px;
+  background: var(--bg3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.usage-feature-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s;
+}
+
+/* ── Insight Report Progress ── */
+.insight-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.insight-progress-bar {
+  height: 6px;
+  background: var(--bg3);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.insight-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent2), var(--accent));
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+.insight-progress-label {
+  font-size: 10px;
+  color: var(--text2);
+  font-family: var(--mono);
+}
+
+/* ── Tab styles for sub-views ── */
+.sub-tabs {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+.sub-tab {
+  padding: 4px 12px;
+  font-size: 11px;
+  border: none;
+  background: transparent;
+  color: var(--text2);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.1s;
+}
+.sub-tab:hover { background: var(--bg3); color: var(--text1); }
+.sub-tab.active {
+  background: var(--accent-dim);
+  color: var(--accent);
 }

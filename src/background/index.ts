@@ -1,10 +1,13 @@
 // Background Service Worker
-// Handles: icon click, context menus, alarms, Bedrock toolbar streaming
+// Handles: icon click, context menus, alarms, streaming via providers
 
 import { signRequest } from '../lib/aws-sigv4'
+import { BedrockProvider } from '../lib/providers/bedrock-provider'
+import { OpenAIProvider } from '../lib/providers/openai-provider'
+import { GeminiProvider } from '../lib/providers/gemini-provider'
+import type { AIProvider } from '../lib/providers/types'
 
 chrome.runtime.onInstalled.addListener(() => {
-  // Context menu for text selection
   chrome.contextMenus.create({
     id: 'hchat-explain',
     title: '💡 H Chat: 설명',
@@ -117,101 +120,86 @@ chrome.tabs.onActivated.addListener(async ({ tabId }) => {
   try {
     await chrome.tabs.sendMessage(tabId, { type: 'UPDATE_PAGE_CONTEXT' })
   } catch {
-    // Content script not loaded on this tab (e.g. chrome:// pages)
+    // Content script not loaded on this tab
   }
 })
 
-// ── Toolbar streaming via Bedrock ──
-chrome.runtime.onConnect.addListener((port) => {
-  if (port.name !== 'toolbar-stream') return
+// ── Helper: get config from storage ──
+async function getStoredConfig() {
+  const result = await chrome.storage.local.get('hchat:config')
+  return result['hchat:config'] ?? {}
+}
 
-  port.onMessage.addListener(async (msg) => {
-    if (msg.type !== 'TOOLBAR_STREAM') return
+// ── Helper: create provider from stored config ──
+function createProviderForModel(modelId: string, config: Record<string, unknown>): AIProvider | null {
+  const aws = config.aws as { accessKeyId?: string; secretAccessKey?: string; region?: string } | undefined
+  const openai = config.openai as { apiKey?: string } | undefined
+  const gemini = config.gemini as { apiKey?: string } | undefined
 
-    const { aws, model, prompt } = msg
-    const region = aws.region || 'us-east-1'
-
-    try {
-      const bodyObj = {
-        anthropic_version: 'bedrock-2023-05-31',
-        max_tokens: 1024,
-        messages: [{ role: 'user', content: prompt }],
-      }
-      const bodyStr = JSON.stringify(bodyObj)
-      const encodedModel = encodeURIComponent(model)
-      const url = `https://bedrock-runtime.${region}.amazonaws.com/model/${encodedModel}/invoke-with-response-stream`
-
-      const signedHeaders = await signRequest({
-        method: 'POST',
-        url,
-        headers: { 'content-type': 'application/json' },
-        body: bodyStr,
+  // Determine provider type from model ID
+  if (modelId.startsWith('us.anthropic') || modelId.startsWith('anthropic')) {
+    if (aws?.accessKeyId && aws.secretAccessKey) {
+      return new BedrockProvider({
         accessKeyId: aws.accessKeyId,
         secretAccessKey: aws.secretAccessKey,
-        region,
-        service: 'bedrock',
+        region: aws.region ?? 'us-east-1',
       })
+    }
+  } else if (modelId.startsWith('gpt-')) {
+    if (openai?.apiKey) return new OpenAIProvider(openai.apiKey)
+  } else if (modelId.startsWith('gemini-')) {
+    if (gemini?.apiKey) return new GeminiProvider(gemini.apiKey)
+  }
 
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: signedHeaders,
-        body: bodyStr,
-      })
+  // Fallback to bedrock
+  if (aws?.accessKeyId && aws.secretAccessKey) {
+    return new BedrockProvider({
+      accessKeyId: aws.accessKeyId,
+      secretAccessKey: aws.secretAccessKey,
+      region: aws.region ?? 'us-east-1',
+    })
+  }
 
-      if (!res.ok) {
-        const errText = await res.text()
-        let errMsg = `HTTP ${res.status}`
-        try { const j = JSON.parse(errText); errMsg = j.message ?? j.Message ?? errMsg } catch { errMsg = errText || errMsg }
-        port.postMessage({ type: 'error', message: errMsg })
+  return null
+}
+
+// ── Streaming via providers (toolbar-stream and inline-stream) ──
+chrome.runtime.onConnect.addListener((port) => {
+  if (port.name !== 'toolbar-stream' && port.name !== 'inline-stream') return
+
+  port.onMessage.addListener(async (msg) => {
+    if (msg.type !== 'TOOLBAR_STREAM' && msg.type !== 'INLINE_STREAM') return
+
+    const { model, prompt, systemPrompt } = msg
+
+    try {
+      // Get config for credentials
+      let config: Record<string, unknown>
+
+      if (msg.aws) {
+        // Legacy: credentials passed directly
+        config = { aws: msg.aws }
+      } else {
+        config = await getStoredConfig()
+      }
+
+      const modelId = model || (config as { defaultModel?: string }).defaultModel || 'us.anthropic.claude-sonnet-4-6'
+      const provider = createProviderForModel(modelId, config)
+
+      if (!provider) {
+        port.postMessage({ type: 'error', message: 'API 키가 설정되지 않았습니다' })
         return
       }
 
-      if (!res.body) {
-        port.postMessage({ type: 'error', message: '응답 스트림 없음' })
-        return
-      }
+      const gen = provider.stream({
+        model: modelId,
+        messages: [{ role: 'user', content: prompt }],
+        systemPrompt,
+        maxTokens: msg.maxTokens ?? 1024,
+      })
 
-      // Parse Bedrock event stream
-      const reader = res.body.getReader()
-      let buffer = new Uint8Array(0)
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        const merged = new Uint8Array(buffer.length + value.length)
-        merged.set(buffer)
-        merged.set(value, buffer.length)
-        buffer = merged
-
-        while (buffer.length >= 12) {
-          const view = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength)
-          const totalLength = view.getUint32(0)
-          const headersLength = view.getUint32(4)
-          if (buffer.length < totalLength) break
-
-          const payloadOffset = 12 + headersLength
-          const payloadLength = totalLength - headersLength - 16
-
-          if (payloadLength > 0) {
-            const payload = buffer.slice(payloadOffset, payloadOffset + payloadLength)
-            const payloadStr = new TextDecoder('utf-8').decode(payload)
-            try {
-              const event = JSON.parse(payloadStr)
-              if (event.bytes) {
-                const binary = atob(event.bytes)
-                const bytes = new Uint8Array(binary.length)
-                for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
-                const decoded = new TextDecoder('utf-8').decode(bytes)
-                const inner = JSON.parse(decoded)
-                if (inner.type === 'content_block_delta' && inner.delta?.text) {
-                  port.postMessage({ type: 'chunk', text: inner.delta.text })
-                }
-              }
-            } catch { /* ignore */ }
-          }
-          buffer = buffer.slice(totalLength)
-        }
+      for await (const chunk of gen) {
+        port.postMessage({ type: 'chunk', text: chunk })
       }
 
       port.postMessage({ type: 'done' })
@@ -226,7 +214,6 @@ chrome.commands?.onCommand?.addListener(async (command) => {
   if (command === 'quick-summarize') {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
     if (tab?.id) {
-      // Open sidepanel with summarize pending
       await chrome.storage.local.set({
         'hchat:quick-action': { action: 'summarize', ts: Date.now() },
       })

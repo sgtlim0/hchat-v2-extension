@@ -1,11 +1,54 @@
 import { useState, useEffect } from 'react'
-import { Usage, formatCost, formatTokens, type UsageSummary } from '../lib/usage'
+import { Usage, formatCost, formatTokens, type UsageSummary, type UsageFeature } from '../lib/usage'
+
+const PROVIDER_COLORS: Record<string, string> = {
+  bedrock: '#ff9900',
+  claude: '#9f7aea',
+  openai: '#10a37f',
+  gemini: '#4285f4',
+}
+
+const FEATURE_LABELS: Record<UsageFeature, string> = {
+  chat: '채팅',
+  group: '그룹',
+  tool: '도구',
+  agent: '에이전트',
+  debate: '토론',
+  report: '리포트',
+}
+
+const FEATURE_COLORS: Record<UsageFeature, string> = {
+  chat: '#34d399',
+  group: '#60a5fa',
+  tool: '#fbbf24',
+  agent: '#a78bfa',
+  debate: '#f87171',
+  report: '#fb923c',
+}
 
 export function UsageView() {
   const [summary, setSummary] = useState<UsageSummary | null>(null)
+  const [featureBreakdown, setFeatureBreakdown] = useState<Record<string, number>>({})
   const [days, setDays] = useState(30)
 
-  const load = () => Usage.getSummary(days).then(setSummary)
+  const load = async () => {
+    const s = await Usage.getSummary(days)
+    setSummary(s)
+
+    // Build feature breakdown from raw records
+    const records = await Usage.getRecords()
+    const cutoff = new Date()
+    cutoff.setDate(cutoff.getDate() - days)
+    const cutoffStr = cutoff.toISOString().slice(0, 10)
+    const filtered = records.filter((r) => r.date >= cutoffStr)
+    const breakdown: Record<string, number> = {}
+    for (const r of filtered) {
+      const f = r.feature ?? 'chat'
+      breakdown[f] = (breakdown[f] ?? 0) + r.requests
+    }
+    setFeatureBreakdown(breakdown)
+  }
+
   useEffect(() => { load() }, [days])
 
   const handleClear = async () => {
@@ -16,13 +59,8 @@ export function UsageView() {
 
   if (!summary) return <div style={{ padding: 16 }}><span className="spinner-sm" /></div>
 
-  const providerColors: Record<string, string> = {
-    claude: '#9f7aea',
-    openai: '#48bb78',
-    gemini: '#63b3ed',
-  }
-
   const maxCost = Math.max(...summary.byDate.map((d) => d.cost), 0.001)
+  const totalFeatureRequests = Object.values(featureBreakdown).reduce((a, b) => a + b, 0) || 1
 
   return (
     <div className="usage-view">
@@ -56,7 +94,7 @@ export function UsageView() {
         <div className="usage-section-title">프로바이더별</div>
         {Object.entries(summary.byProvider).map(([provider, data]) => (
           <div key={provider} className="usage-provider-row">
-            <div className="usage-provider-dot" style={{ background: providerColors[provider] ?? 'var(--text3)' }} />
+            <div className="usage-provider-dot" style={{ background: PROVIDER_COLORS[provider] ?? 'var(--text3)' }} />
             <span className="usage-provider-name">{provider}</span>
             <span className="usage-provider-stat">{data.requests}회</span>
             <span className="usage-provider-stat">{formatTokens(data.tokens)}</span>
@@ -68,7 +106,29 @@ export function UsageView() {
         )}
       </div>
 
-      {/* Daily chart (simple bar chart) */}
+      {/* Feature breakdown */}
+      {Object.keys(featureBreakdown).length > 0 && (
+        <div className="usage-section">
+          <div className="usage-section-title">기능별</div>
+          {(Object.entries(featureBreakdown) as [string, number][])
+            .sort((a, b) => b[1] - a[1])
+            .map(([feature, count]) => {
+              const percent = (count / totalFeatureRequests) * 100
+              const color = FEATURE_COLORS[feature as UsageFeature] ?? 'var(--text3)'
+              return (
+                <div key={feature} className="usage-feature-row">
+                  <span className="usage-feature-name">{FEATURE_LABELS[feature as UsageFeature] ?? feature}</span>
+                  <div className="usage-feature-bar">
+                    <div className="usage-feature-fill" style={{ width: `${percent}%`, background: color }} />
+                  </div>
+                  <span style={{ fontSize: 10, color: 'var(--text2)', minWidth: 40, textAlign: 'right' }}>{count}회</span>
+                </div>
+              )
+            })}
+        </div>
+      )}
+
+      {/* Daily chart */}
       {summary.byDate.length > 0 && (
         <div className="usage-section">
           <div className="usage-section-title">일별 비용</div>

@@ -2,6 +2,7 @@
 // Uses text-based tool parsing (XML tags) for cross-provider compatibility
 
 import { streamChatLive, type Message } from './models'
+import type { AIProvider } from './providers/types'
 import type { AwsCredentials } from '../hooks/useConfig'
 
 export interface Tool {
@@ -31,6 +32,7 @@ export interface AgentOptions {
   onStep: (step: AgentStep) => void
   onChunk?: (chunk: string) => void
   signal?: AbortSignal
+  provider?: AIProvider
 }
 
 function uid(): string {
@@ -100,6 +102,45 @@ function stripToolCalls(response: string): string {
     .trim()
 }
 
+async function streamStep(
+  opts: AgentOptions,
+  history: Message[],
+  systemPrompt: string,
+  onChunk?: (chunk: string) => void,
+): Promise<string> {
+  // Use provider if available, fallback to legacy streamChatLive
+  if (opts.provider?.isConfigured()) {
+    let fullResponse = ''
+    const gen = opts.provider.stream({
+      model: opts.model,
+      messages: history,
+      systemPrompt,
+      maxTokens: 4096,
+      signal: opts.signal,
+    })
+    for await (const chunk of gen) {
+      fullResponse += chunk
+      onChunk?.(chunk)
+    }
+    return fullResponse
+  }
+
+  let fullResponse = ''
+  await streamChatLive({
+    aws: opts.aws,
+    model: opts.model,
+    messages: history,
+    systemPrompt,
+    maxTokens: 4096,
+    onChunk: (chunk) => {
+      fullResponse += chunk
+      onChunk?.(chunk)
+    },
+    signal: opts.signal,
+  })
+  return fullResponse
+}
+
 export async function runAgent(opts: AgentOptions): Promise<{ finalText: string; steps: AgentStep[] }> {
   const {
     tools,
@@ -120,9 +161,6 @@ export async function runAgent(opts: AgentOptions): Promise<{ finalText: string;
   for (let step = 0; step < maxSteps; step++) {
     if (signal?.aborted) throw new DOMException('Aborted', 'AbortError')
 
-    // Collect full response via streaming
-    let fullResponse = ''
-
     const thinkingStep: AgentStep = {
       id: uid(),
       type: 'thinking',
@@ -135,17 +173,7 @@ export async function runAgent(opts: AgentOptions): Promise<{ finalText: string;
       steps.push(thinkingStep)
     }
 
-    await streamChatLive({
-      aws: opts.aws,
-      model: opts.model,
-      messages: history,
-      systemPrompt,
-      maxTokens: 4096,
-      onChunk: (chunk) => {
-        fullResponse += chunk
-        onChunk?.(chunk)
-      },
-    })
+    const fullResponse = await streamStep(opts, history, systemPrompt, onChunk)
 
     // Parse tool calls from response
     const toolCalls = parseToolCalls(fullResponse)
@@ -166,7 +194,6 @@ export async function runAgent(opts: AgentOptions): Promise<{ finalText: string;
     // Has tool calls — execute them
     const textBeforeTools = stripToolCalls(fullResponse)
     if (textBeforeTools) {
-      // Update thinking step with the text before tools
       thinkingStep.content = textBeforeTools
     }
 

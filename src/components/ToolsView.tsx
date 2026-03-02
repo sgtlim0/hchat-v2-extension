@@ -1,16 +1,23 @@
-import { useState } from 'react'
-import { streamChatLive } from '../lib/models'
+import { useState, useRef } from 'react'
+import { useProvider } from '../hooks/useProvider'
 import { getCurrentPageContent, getYouTubeTranscript, fileToBase64, truncate } from '../lib/pageReader'
 import { WRITING_ACTIONS, buildWritingPrompt, type WritingAction } from '../lib/writingTools'
+import { extractComments, buildCommentAnalysisPrompt } from '../lib/commentAnalyzer'
+import { extractPdfText, formatFileSize } from '../lib/pdfParser'
+import { generateInsightReport, type ReportProgress } from '../lib/insightReport'
+import { Usage } from '../lib/usage'
 import type { Config } from '../hooks/useConfig'
 
-type ToolId = 'summarize' | 'translate' | 'write' | 'youtube' | 'ocr' | 'grammar'
+type ToolId = 'summarize' | 'translate' | 'write' | 'youtube' | 'ocr' | 'grammar' | 'comments' | 'pdf' | 'insight'
 
 interface ToolDef { id: ToolId; icon: string; title: string; desc: string }
 
 const TOOLS: ToolDef[] = [
   { id: 'summarize', icon: '📄', title: '페이지 요약', desc: '현재 페이지를 즉시 요약합니다' },
   { id: 'youtube', icon: '▶️', title: 'YouTube 요약', desc: '유튜브 영상 내용을 핵심만 추출합니다' },
+  { id: 'comments', icon: '💬', title: '댓글 분석', desc: 'YouTube 댓글 감정·토픽·인사이트 분석' },
+  { id: 'insight', icon: '📊', title: '인사이트 리포트', desc: 'YouTube 자막+댓글 종합 분석 리포트' },
+  { id: 'pdf', icon: '📑', title: 'PDF 채팅', desc: 'PDF 업로드 후 내용에 대해 질문합니다' },
   { id: 'translate', icon: '🌐', title: '텍스트 번역', desc: '50개 이상의 언어로 번역합니다' },
   { id: 'write', icon: '✏️', title: '글쓰기 도구', desc: '교정·다듬기·재구성·톤 변경' },
   { id: 'grammar', icon: '✅', title: '문법 교정', desc: '맞춤법·문법·어색한 표현 수정' },
@@ -22,6 +29,7 @@ const LANGS = ['한국어', '영어', '일본어', '중국어(간체)', '스페�
 interface Props { config: Config }
 
 export function ToolsView({ config }: Props) {
+  const { getProvider, hasAnyKey } = useProvider(config)
   const [activeTool, setActiveTool] = useState<ToolId | null>(null)
   const [result, setResult] = useState('')
   const [loading, setLoading] = useState(false)
@@ -30,23 +38,68 @@ export function ToolsView({ config }: Props) {
   const [selectedAction, setSelectedAction] = useState<WritingAction>('paraphrase')
   const [imgBase64, setImgBase64] = useState('')
   const [toast, setToast] = useState('')
+  const [pdfText, setPdfText] = useState('')
+  const [pdfFileName, setPdfFileName] = useState('')
+  const [pdfQuestion, setPdfQuestion] = useState('')
+  const [reportProgress, setReportProgress] = useState<ReportProgress | null>(null)
+  const abortRef = useRef<AbortController | null>(null)
 
   const activeModel = config.defaultModel
-  const hasCredentials = !!config.aws.accessKeyId && !!config.aws.secretAccessKey
 
   const showToast = (m: string) => { setToast(m); setTimeout(() => setToast(''), 1800) }
 
-  const runStream = async (prompt: string) => {
-    if (!hasCredentials) { setResult('❌ AWS 자격증명을 먼저 설정해주세요 (설정 탭)'); return }
+  const runStream = async (prompt: string, model?: string) => {
+    const m = model ?? activeModel
+    const provider = getProvider(m)
+    if (!provider?.isConfigured()) {
+      if (!hasAnyKey) { setResult('❌ API 키를 먼저 설정해주세요 (설정 탭)'); return }
+    }
     setResult('')
     setLoading(true)
     try {
-      await streamChatLive({
-        aws: config.aws,
-        model: activeModel,
-        messages: [{ role: 'user', content: prompt }],
-        onChunk: (c) => setResult((r) => r + c),
+      if (provider?.isConfigured()) {
+        let fullText = ''
+        const gen = provider.stream({
+          model: m,
+          messages: [{ role: 'user', content: prompt }],
+        })
+        for await (const chunk of gen) {
+          fullText += chunk
+          setResult((r) => r + chunk)
+        }
+        Usage.track(m, provider.type, prompt, fullText, 'tool').catch(() => {})
+      }
+    } catch (err) {
+      setResult('❌ ' + String(err))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const runVisionStream = async (imageBase64: string, prompt: string) => {
+    // Prefer vision-capable model
+    const visionModel = 'us.anthropic.claude-sonnet-4-6'
+    const provider = getProvider(visionModel)
+    if (!provider?.isConfigured()) { setResult('❌ AWS Bedrock 키를 설정해주세요'); return }
+    setResult('')
+    setLoading(true)
+    try {
+      let fullText = ''
+      const gen = provider.stream({
+        model: visionModel,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image_url', image_url: { url: imageBase64 } },
+            { type: 'text', text: prompt },
+          ],
+        }],
       })
+      for await (const chunk of gen) {
+        fullText += chunk
+        setResult((r) => r + chunk)
+      }
+      Usage.track(visionModel, 'bedrock', prompt, fullText, 'tool').catch(() => {})
     } catch (err) {
       setResult('❌ ' + String(err))
     } finally {
@@ -106,26 +159,90 @@ export function ToolsView({ config }: Props) {
 
   const handleOCRRun = async () => {
     if (!imgBase64) return
-    if (!hasCredentials) { setResult('❌ AWS 자격증명을 먼저 설정해주세요'); return }
+    await runVisionStream(imgBase64, '이 이미지에서 모든 텍스트를 추출해줘. 원본 형식과 구조를 최대한 유지해줘.')
+  }
+
+  const handleComments = async () => {
+    setLoading(true)
+    setResult('')
+    try {
+      const page = await getCurrentPageContent()
+      if (!page.isYouTube) { setResult('❌ 현재 탭이 YouTube 동영상이 아닙니다'); setLoading(false); return }
+      const comments = await extractComments(200)
+      if (comments.length === 0) {
+        setResult('❌ 댓글을 찾을 수 없습니다. 페이지를 스크롤하여 댓글을 로드한 후 다시 시도해주세요.')
+        setLoading(false)
+        return
+      }
+      const prompt = buildCommentAnalysisPrompt(comments, page.title)
+      await runStream(prompt)
+    } catch (err) {
+      setResult('❌ ' + String(err))
+      setLoading(false)
+    }
+  }
+
+  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    setPdfText('')
+    setPdfFileName(file.name)
     setResult('')
     setLoading(true)
-    // OCR uses vision via Bedrock Claude Sonnet
-    const model = 'us.anthropic.claude-sonnet-4-6'
     try {
-      await streamChatLive({
-        aws: config.aws,
-        model,
-        messages: [{ role: 'user', content: [
-          { type: 'image_url', image_url: { url: imgBase64 } },
-          { type: 'text', text: '이 이미지에서 모든 텍스트를 추출해줘. 원본 형식과 구조를 최대한 유지해줘.' },
-        ]}],
-        onChunk: (c) => setResult((r) => r + c),
-      })
+      const text = await extractPdfText(file)
+      setPdfText(text)
+      setResult(`PDF 로드 완료 (${formatFileSize(file.size)}, ${text.length.toLocaleString()}자 추출)\n\n아래에 질문을 입력하세요.`)
     } catch (err) {
       setResult('❌ ' + String(err))
     } finally {
       setLoading(false)
     }
+  }
+
+  const handlePdfChat = async () => {
+    if (!pdfText || !pdfQuestion.trim()) return
+    await runStream(`다음은 PDF 문서의 내용입니다:\n\n${pdfText.slice(0, 12000)}\n\n---\n질문: ${pdfQuestion.trim()}\n\n위 문서 내용을 기반으로 정확하게 답변해줘. 한국어로 답변하세요.`)
+    setPdfQuestion('')
+  }
+
+  const handleInsightReport = async () => {
+    setLoading(true)
+    setResult('')
+    setReportProgress({ stage: '시작 중...', percent: 0 })
+    abortRef.current = new AbortController()
+    try {
+      const provider = getProvider(activeModel)
+      if (!provider?.isConfigured()) {
+        setResult('❌ API 키를 먼저 설정해주세요')
+        setLoading(false)
+        setReportProgress(null)
+        return
+      }
+      const report = await generateInsightReport(
+        provider,
+        activeModel,
+        (p) => setReportProgress(p),
+        (chunk) => setResult((r) => r + chunk),
+        abortRef.current.signal,
+      )
+      setResult(report.fullMarkdown)
+      setReportProgress(null)
+    } catch (err) {
+      if (!String(err).includes('abort')) {
+        setResult('❌ ' + String(err))
+      }
+      setReportProgress(null)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleInsightStop = () => {
+    abortRef.current?.abort()
+    setLoading(false)
+    setReportProgress(null)
   }
 
   if (!activeTool) {
@@ -232,9 +349,99 @@ export function ToolsView({ config }: Props) {
         </div>
       )}
 
+      {activeTool === 'comments' && (
+        <div className="gap-2">
+          <p style={{ fontSize: 12, color: 'var(--text2)' }}>
+            YouTube 탭에서 실행하세요. 댓글을 로드하려면 먼저 페이지를 스크롤해주세요.
+          </p>
+          <button className="btn btn-primary" onClick={handleComments} disabled={loading}>
+            {loading ? <><span className="spinner" /> 댓글 분석 중...</> : '💬 댓글 분석 시작'}
+          </button>
+        </div>
+      )}
+
+      {activeTool === 'insight' && (
+        <div className="gap-2">
+          <p style={{ fontSize: 12, color: 'var(--text2)' }}>
+            YouTube 영상의 자막과 댓글을 종합 분석하여 Markdown 리포트를 생성합니다.
+          </p>
+          {reportProgress && (
+            <div className="insight-progress">
+              <div className="insight-progress-bar">
+                <div className="insight-progress-fill" style={{ width: `${reportProgress.percent}%` }} />
+              </div>
+              <span className="insight-progress-label">{reportProgress.stage} ({reportProgress.percent}%)</span>
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn btn-primary" onClick={handleInsightReport} disabled={loading}>
+              {loading ? <><span className="spinner" /> 리포트 생성 중...</> : '📊 인사이트 리포트 생성'}
+            </button>
+            {loading && (
+              <button className="btn btn-secondary" onClick={handleInsightStop}>중단</button>
+            )}
+          </div>
+          {result && !loading && (
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={() => {
+                const blob = new Blob([result], { type: 'text/markdown' })
+                const url = URL.createObjectURL(blob)
+                const a = document.createElement('a')
+                a.href = url
+                a.download = `insight-report-${new Date().toISOString().slice(0, 10)}.md`
+                a.click()
+                URL.revokeObjectURL(url)
+                showToast('다운로드 완료!')
+              }}
+            >
+              Markdown 다운로드
+            </button>
+          )}
+        </div>
+      )}
+
+      {activeTool === 'pdf' && (
+        <div className="gap-2">
+          <p style={{ fontSize: 12, color: 'var(--text2)' }}>
+            PDF 파일을 업로드하면 내용을 추출하고, 질문에 답변합니다.
+          </p>
+          <label className="btn btn-secondary" style={{ cursor: 'pointer', justifyContent: 'center' }}>
+            📎 PDF 업로드
+            <input type="file" accept=".pdf" style={{ display: 'none' }} onChange={handlePdfUpload} />
+          </label>
+          {pdfFileName && (
+            <div style={{ fontSize: 11, color: 'var(--text2)', padding: '4px 0' }}>
+              파일: {pdfFileName}
+            </div>
+          )}
+          {pdfText && (
+            <div className="field">
+              <label className="field-label">질문 입력</label>
+              <textarea
+                className="textarea"
+                rows={3}
+                value={pdfQuestion}
+                onChange={(e) => setPdfQuestion(e.target.value)}
+                placeholder="PDF 내용에 대해 질문하세요..."
+                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handlePdfChat() } }}
+              />
+              <button
+                className="btn btn-primary"
+                style={{ marginTop: 8 }}
+                onClick={handlePdfChat}
+                disabled={loading || !pdfQuestion.trim()}
+              >
+                {loading ? <><span className="spinner" /> 답변 중...</> : '질문하기'}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {activeTool === 'ocr' && (
         <div className="gap-2">
-          <p style={{ fontSize: 12, color: 'var(--text2)' }}>이미지에서 텍스트를 추출합니다. Claude 또는 GPT-4o API 키가 필요합니다.</p>
+          <p style={{ fontSize: 12, color: 'var(--text2)' }}>이미지에서 텍스트를 추출합니다. Vision 지원 API 키가 필요합니다.</p>
           <label className="btn btn-secondary" style={{ cursor: 'pointer', justifyContent: 'center' }}>
             📎 이미지 업로드
             <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleOCR} />

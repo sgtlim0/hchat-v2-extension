@@ -121,6 +121,105 @@ export async function getYouTubeTranscript(videoId: string): Promise<string> {
   }
 }
 
+export interface TranscriptSegment {
+  start: number  // seconds
+  text: string
+}
+
+export function formatTimestamp(seconds: number): string {
+  const h = Math.floor(seconds / 3600)
+  const m = Math.floor((seconds % 3600) / 60)
+  const s = Math.floor(seconds % 60)
+  return h > 0
+    ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+    : `${m}:${String(s).padStart(2, '0')}`
+}
+
+/**
+ * Get structured transcript with timestamps
+ */
+export async function getYouTubeTranscriptStructured(videoId: string): Promise<TranscriptSegment[]> {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+    if (!tab?.id) return []
+
+    const captionResults = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      world: 'MAIN' as any,
+      func: (preferLang: string) => {
+        try {
+          const playerResp = (window as any).ytInitialPlayerResponse
+          if (playerResp) {
+            const tracks = playerResp?.captions?.playerCaptionsTracklistRenderer?.captionTracks
+            if (tracks?.length) {
+              const track = tracks.find((t: { languageCode: string }) => t.languageCode === preferLang) ?? tracks[0]
+              if (track?.baseUrl) return track.baseUrl
+            }
+          }
+          const ytplayer = (window as any).ytplayer?.config?.args
+          if (ytplayer) {
+            const raw = ytplayer.raw_player_response ?? ytplayer.player_response
+            const data = typeof raw === 'string' ? JSON.parse(raw) : raw
+            const tracks = data?.captions?.playerCaptionsTracklistRenderer?.captionTracks
+            if (tracks?.length) {
+              const track = tracks.find((t: { languageCode: string }) => t.languageCode === preferLang) ?? tracks[0]
+              if (track?.baseUrl) return track.baseUrl
+            }
+          }
+          const html = document.documentElement.innerHTML
+          const match = html.match(/"captionTracks":(\[.*?\])/)
+          if (match) {
+            const tracks = JSON.parse(match[1])
+            const track = tracks.find((t: { languageCode: string }) => t.languageCode === preferLang) ?? tracks[0]
+            if (track?.baseUrl) return track.baseUrl
+          }
+          return null
+        } catch { return null }
+      },
+      args: ['ko'],
+    })
+
+    const captionUrl = captionResults?.[0]?.result
+    if (!captionUrl) return []
+
+    const xmlResults = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: async (url: string) => {
+        try {
+          const res = await fetch(url)
+          return await res.text()
+        } catch { return '' }
+      },
+      args: [captionUrl],
+    })
+
+    const xml = xmlResults?.[0]?.result ?? ''
+    if (!xml) return []
+
+    // Parse XML <text start="12.34" dur="2.5">content</text>
+    const segments: { start: number; text: string }[] = []
+    const regex = /<text\s+start="([^"]+)"[^>]*>([\s\S]*?)<\/text>/g
+    let match
+
+    while ((match = regex.exec(xml)) !== null) {
+      const start = parseFloat(match[1])
+      const text = match[2]
+        .replace(/<[^>]+>/g, '')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&#39;/g, "'")
+        .replace(/&quot;/g, '"')
+        .trim()
+      if (text) segments.push({ start, text })
+    }
+
+    return segments.slice(0, 500)
+  } catch {
+    return []
+  }
+}
+
 export function fileToBase64(file: File): Promise<string> {
   return new Promise((res, rej) => {
     const r = new FileReader()

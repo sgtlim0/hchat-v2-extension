@@ -8,16 +8,18 @@ import { PromptLibraryView } from '../components/PromptLibraryView'
 import { HistoryView } from '../components/HistoryView'
 import { SettingsView } from '../components/SettingsView'
 import { BookmarksView } from '../components/BookmarksView'
+import { DebateView } from '../components/DebateView'
 import { MessageSearchModal } from '../components/MessageSearchModal'
 import type { ShortcutAction } from '../lib/shortcuts'
 import '../styles/global.css'
 
-type Tab = 'chat' | 'group' | 'tools' | 'prompts' | 'history' | 'bookmarks' | 'settings'
+type Tab = 'chat' | 'group' | 'tools' | 'debate' | 'prompts' | 'history' | 'bookmarks' | 'settings'
 
 const TABS: { id: Tab; icon: string; label: string }[] = [
   { id: 'chat',      icon: '💬', label: '채팅' },
   { id: 'group',     icon: '🤖', label: '그룹' },
   { id: 'tools',     icon: '🛠', label: '도구' },
+  { id: 'debate',    icon: '🎯', label: '토론' },
   { id: 'prompts',   icon: '📚', label: '프롬프트' },
   { id: 'history',   icon: '🕐', label: '기록' },
   { id: 'bookmarks', icon: '🔖', label: '북마크' },
@@ -35,7 +37,7 @@ export function App() {
   const chatNewRef = useRef<() => void>()
   const chatStopRef = useRef<() => void>()
   const chatInputRef = useRef<() => void>()
-  const hasAnyKey = !!config.aws.accessKeyId && !!config.aws.secretAccessKey
+  const hasAnyKey = !!(config.aws.accessKeyId && config.aws.secretAccessKey) || !!config.openai.apiKey || !!config.gemini.apiKey
 
   const cycleTab = useCallback((dir: 1 | -1) => {
     setTab((current) => {
@@ -84,12 +86,12 @@ export function App() {
           <div className="chat-empty">
             <div className="chat-empty-logo">H</div>
             <h2>H Chat에 오신 것을 환영합니다</h2>
-            <p>AWS Bedrock을 통한 Claude AI 어시스턴트</p>
+            <p>Claude · GPT · Gemini 멀티 AI 어시스턴트</p>
             <button className="btn btn-primary btn-lg" style={{ marginTop: 8 }} onClick={() => setTab('settings')}>
-              ⚙️ AWS 자격증명 설정하기
+              ⚙️ API 키 설정하기
             </button>
             <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 8 }}>
-              AWS Access Key ID와 Secret Access Key가 필요합니다
+              AWS Bedrock, OpenAI, 또는 Google Gemini API 키가 필요합니다
             </div>
           </div>
         </div>
@@ -124,7 +126,7 @@ export function App() {
         onSelect={(convId) => { setLoadConvId(convId); setTab('chat') }}
       />
 
-      <div className={`content ${tab === 'chat' || tab === 'group' ? 'flex-col' : ''}`}>
+      <div className={`content ${tab === 'chat' || tab === 'group' || tab === 'debate' ? 'flex-col' : ''}`}>
         {tab === 'chat' && (
           <ChatView
             config={config}
@@ -142,6 +144,7 @@ export function App() {
         )}
         {tab === 'group' && <GroupChatView config={config} />}
         {tab === 'tools' && <ToolsView config={config} />}
+        {tab === 'debate' && <DebateView config={config} />}
         {tab === 'prompts' && (
           <PromptLibraryView
             onUsePrompt={(content) => {

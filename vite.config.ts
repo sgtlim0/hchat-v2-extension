@@ -40,11 +40,15 @@ export default defineConfig({
         popup: resolve(__dirname, 'popup.html'),
         background: resolve(__dirname, 'src/background/index.ts'),
         content: resolve(__dirname, 'src/content/index.ts'),
+        'search-injector': resolve(__dirname, 'src/content/search-injector.ts'),
+        'writing-assistant': resolve(__dirname, 'src/content/writing-assistant.ts'),
       },
       output: {
         entryFileNames: (chunk) => {
           if (chunk.name === 'background') return 'background.js'
           if (chunk.name === 'content') return 'content.js'
+          if (chunk.name === 'search-injector') return 'search-injector.js'
+          if (chunk.name === 'writing-assistant') return 'writing-assistant.js'
           return 'assets/[name]-[hash].js'
         },
         chunkFileNames: 'assets/[name]-[hash].js',

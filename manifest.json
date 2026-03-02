@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "H Chat - AI 올인원 어시스턴트",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "Claude, GPT, Gemini를 사이드바에서. 페이지 요약·번역·글쓰기·그룹채팅·프롬프트 라이브러리.",
 
   "icons": {
@@ -28,6 +28,21 @@
       "js": ["content.js"],
       "css": ["content.css"],
       "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://www.google.com/search*",
+        "https://www.google.co.kr/search*",
+        "https://www.bing.com/search*",
+        "https://search.naver.com/search*"
+      ],
+      "js": ["search-injector.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["<all_urls>"],
+      "js": ["writing-assistant.js"],
+      "run_at": "document_idle"
     }
   ],
 
@@ -44,6 +59,8 @@
 
   "host_permissions": [
     "https://bedrock-runtime.*.amazonaws.com/*",
+    "https://api.openai.com/*",
+    "https://generativelanguage.googleapis.com/*",
     "<all_urls>"
   ],
 

@@ -1,8 +1,9 @@
 # 경쟁 분석 & H Chat 구현 방안
 
 > 분석 일시: 2026-03-03
-> 대상: H Chat — 기업용 AI 업무 도구 플랫폼
+> 대상: 경쟁사 (기업용 AI 업무 도구 플랫폼)
 > 목적: H Chat v4 기능 로드맵 수립
+> 현재 버전: v4.2
 
 ---
 
@@ -58,19 +59,19 @@
 
 ---
 
-## 2. 기능 갭 분석
+## 2. 기능 갭 분석 (v4.2 기준)
 
-| 기능 | 경쟁사 | H Chat v3.6 | 갭 |
+| 기능 | 경쟁사 | H Chat v4.2 | 갭 |
 |------|---------|-------------|-----|
 | AI 채팅 | ✅ GPT-4o, GPT-4.1 nano | ✅ Claude, GPT, Gemini (9모델) | **H Chat 우위** (모델 다양성) |
 | 실시간 검색 | ✅ | ✅ DuckDuckGo + Google CSE | 동등 |
 | 사진 이해 | ✅ | ✅ Vision (Claude, GPT) | 동등 |
 | 데이터 분석 | ✅ | ✅ CSV/Excel + SVG 차트 | 동등 |
-| 커스텀 비서 | ✅ 빌더 + 마켓플레이스 | ⚠️ 페르소나 프리셋만 | **큰 갭** |
-| 문서 번역 | ✅ 포맷 유지, DeepL 연동 | ❌ 텍스트 번역만 | **큰 갭** |
-| 문서 작성 | ✅ HWP/DOCX 생성, 프로젝트 관리 | ❌ 없음 | **큰 갭** |
-| 배치 OCR | ✅ 20장 동시, 파일 다운로드 | ⚠️ 단일 이미지 Vision | **갭** |
-| 차트/그림 생성 | ✅ DALL-E3 | ❌ 없음 | **갭** |
+| 커스텀 비서 | ✅ 빌더 + 마켓플레이스 | ✅ 8개 내장 + 커스텀 빌더 | ⚠️ 마켓플레이스 없음 |
+| 문서 번역 | ✅ 포맷 유지, DeepL 연동 | ✅ TXT/CSV/XLSX (포맷 유지) | ⚠️ PDF/PPTX 미지원 |
+| 문서 작성 | ✅ HWP/DOCX 생성, 프로젝트 관리 | ✅ DOCX 생성 (5가지 유형) | ⚠️ 프로젝트 관리 없음 |
+| 배치 OCR | ✅ 20장 동시, 파일 다운로드 | ✅ 10장 동시, 구조화 OCR | 동등 |
+| 차트/그림 생성 | ✅ DALL-E3 | ✅ DALL-E3 (3가지 크기, HD 지원) | 동등 |
 | PPT 기획 | ✅ | ❌ 없음 | **갭** |
 | 오프라인 지원 | ❌ | ✅ 메시지 큐 + 자동 재전송 | **H Chat 우위** |
 | 브라우저 통합 | ❌ 웹앱 | ✅ 사이드패널 + 콘텐츠 스크립트 | **H Chat 우위** |
@@ -82,9 +83,7 @@
 
 ## 3. 구현 우선순위
 
-### 🔴 Priority 1: 커스텀 비서 빌더 (영향도 최대)
-
-경쟁사의 핵심 차별점. 현재 H Chat 페르소나가 시스템 프롬프트만 변경하는 것에 비해, 비서는 **도구 + 프롬프트 + 파라미터 + 아바타**를 묶은 패키지.
+### 🟢 Priority 1: 커스텀 비서 빌더 ✅ 완료 (v4.0)
 
 #### 구현 범위
 
@@ -143,9 +142,19 @@ interface CustomAssistant {
 - 기존 `pluginRegistry.ts`의 도구를 비서에 바인딩
 - `useChat.ts`에서 비서 선택 시 모델 + systemPrompt + tools 자동 설정
 
+#### 구현 상태
+
+- ✅ `src/lib/assistantBuilder.ts` — 커스텀 비서 CRUD
+- ✅ `AssistantBuilder.tsx` — 비서 생성/편집 UI
+- ✅ `AssistantSelector.tsx` — 비서 선택 드롭다운
+- ✅ 8개 내장 비서: 문서 검토관, 번역 전문가, 데이터 분석가, 이메일 작성, 코드 리뷰어, 보고서 작성, 회의록 정리, 리서치 비서
+- ✅ 사용 횟수 추적
+- ✅ useChat 통합 (비서별 모델/systemPrompt/tools 자동 설정)
+- ✅ 테스트: `assistantBuilder.test.ts`, `AssistantSelector.test.tsx`
+
 ---
 
-### 🟠 Priority 2: 문서 번역 (포맷 유지)
+### 🟢 Priority 2: 문서 번역 (포맷 유지) ✅ 완료 (v4.1)
 
 #### 구현 전략
 
@@ -184,9 +193,20 @@ src/components/tools/DocTranslateTool.tsx — UI
 - **비용 경고**: 대용량 파일 번역 시 예상 토큰/비용 미리 표시
 - **진행률**: 전체 청크 수 대비 완료 비율 프로그레스바
 
+#### 구현 상태
+
+- ✅ `src/lib/docTranslator.ts` — 번역 파이프라인
+- ✅ `DocTranslateTool.tsx` — 문서 번역 UI
+- ✅ 지원 포맷: TXT, CSV, XLSX
+- ✅ 1000자 청크 분할, 용어 일관성 유지
+- ✅ 비용 추정 + 확인 다이얼로그
+- ✅ 진행률 프로그레스바
+- ✅ 테스트: `docTranslator.test.ts`
+- ⚠️ PDF/PPTX는 v4.3에서 추가 예정
+
 ---
 
-### 🟠 Priority 3: 배치 OCR 강화
+### 🟢 Priority 3: 배치 OCR 강화 ✅ 완료 (v4.0)
 
 #### 현재 H Chat OCR
 
@@ -218,9 +238,19 @@ const OCR_PROMPTS = {
 }
 ```
 
+#### 구현 상태
+
+- ✅ `src/lib/batchOcr.ts` — 배치 OCR 오케스트레이터
+- ✅ `BatchOcrTool.tsx` — 드래그앤드롭, 결과 목록 UI
+- ✅ 최대 10장 동시 업로드
+- ✅ 4가지 모드: 일반, 명함(JSON), 영수증(JSON), 스크린샷
+- ✅ 병렬 처리 (3장씩 배치)
+- ✅ 전체 결과 TXT/JSON 다운로드
+- ✅ 테스트: `batchOcr.test.ts`, `BatchOcrTool.test.tsx`
+
 ---
 
-### 🟡 Priority 4: 문서 작성 도구
+### 🟢 Priority 4: 문서 작성 도구 ✅ 완료 (v4.1)
 
 가장 복잡한 기능. 단계적 접근 필요.
 
@@ -247,9 +277,21 @@ src/components/tools/DocWriteTool.tsx — UI
 - AI가 양식 구조 분석 → 빈칸 채우기
 - HWP 지원은 서버 없이 불가 → DOCX만 지원
 
+#### 구현 상태
+
+- ✅ `src/lib/docGenerator.ts` — 문서 생성 엔진
+- ✅ `DocWriteTool.tsx` — 문서 작성 UI
+- ✅ 5가지 유형: 보고서, 이메일, 제안서, 회의록, 메모
+- ✅ 3단계 파이프라인: 주제 입력 → 목차 생성 → 섹션별 콘텐츠 작성
+- ✅ DOCX 내보내기 (docx 라이브러리, 동적 임포트)
+- ✅ 배경 정보 주입
+- ✅ 테스트: `docGenerator.test.ts`, `DocWriteTool.test.tsx`
+- ⚠️ 프로젝트 관리는 v4.3에서 추가 예정
+- ⚠️ HWP 미지원 (서버 없이 불가)
+
 ---
 
-### 🟡 Priority 5: 이미지 생성 (DALL-E3)
+### 🟢 Priority 5: 이미지 생성 (DALL-E3) ✅ 완료 (v4.2)
 
 #### 구현
 
@@ -263,70 +305,90 @@ src/components/tools/ImageGenTool.tsx — 프롬프트 입력 + 결과 갤러리
 - 결과 저장 (base64 → blob → IndexedDB 또는 다운로드)
 - 비용 경고: $0.04/image (standard), $0.08/image (HD)
 
+#### 구현 상태
+
+- ✅ `src/lib/imageGenerator.ts` — DALL-E 3 API 래퍼
+- ✅ `ImageGenTool.tsx` — 이미지 생성 UI
+- ✅ 3가지 크기: 1024×1024, 1792×1024, 1024×1792
+- ✅ 2가지 품질: Standard, HD
+- ✅ 2가지 스타일: Vivid, Natural
+- ✅ 비용 추정 + 확인 다이얼로그
+- ✅ 세션 히스토리 (다운로드, 재사용)
+- ✅ 테스트: `imageGenerator.test.ts`, `ImageGenTool.test.tsx`
+
 ---
 
-## 4. 기술 아키텍처 변경
+## 4. 기술 아키텍처 변경 (v4.0~v4.2 완료)
 
-### 새 파일 맵
+### 신규 파일 맵
 
 ```
 src/
 ├── lib/
-│   ├── assistantBuilder.ts      # 커스텀 비서 CRUD
-│   ├── docTranslator.ts         # 문서 번역 파이프라인
-│   ├── docParser.ts             # DOCX/XLSX/PPTX 파싱
-│   ├── docGenerator.ts          # AI 문서 생성
-│   └── batchOcr.ts              # 배치 OCR 오케스트레이터
+│   ├── assistantBuilder.ts      # ✅ 커스텀 비서 CRUD
+│   ├── docTranslator.ts         # ✅ 문서 번역 파이프라인
+│   ├── docGenerator.ts          # ✅ AI 문서 생성
+│   ├── batchOcr.ts              # ✅ 배치 OCR 오케스트레이터
+│   └── imageGenerator.ts        # ✅ DALL-E 3 이미지 생성
 ├── components/
-│   ├── AssistantBuilder.tsx      # 비서 생성/편집 UI
-│   ├── AssistantMarket.tsx       # 비서 목록 (카드 그리드)
+│   ├── AssistantBuilder.tsx      # ✅ 비서 생성/편집 UI
+│   ├── AssistantSelector.tsx     # ✅ 비서 선택 드롭다운
 │   └── tools/
-│       ├── DocTranslateTool.tsx  # 문서 번역 UI
-│       ├── BatchOcrTool.tsx      # 배치 OCR UI
-│       ├── DocWriteTool.tsx      # 문서 작성 UI
-│       └── ImageGenTool.tsx      # 이미지 생성 UI
-└── i18n/                        # 각 언어에 새 키 추가
+│       ├── DocTranslateTool.tsx  # ✅ 문서 번역 UI
+│       ├── BatchOcrTool.tsx      # ✅ 배치 OCR UI
+│       ├── DocWriteTool.tsx      # ✅ 문서 작성 UI
+│       └── ImageGenTool.tsx      # ✅ 이미지 생성 UI
+└── i18n/                        # ✅ ko/en/ja 650+ 키
 ```
 
 ### Storage 키 추가
 
 ```
-hchat:assistants       — 커스텀 비서 목록
-hchat:doc-projects     — 문서 프로젝트 목록
-hchat:ocr-results      — OCR 결과 캐시
+hchat:assistants       — ✅ 커스텀 비서 목록
+hchat:ocr-results      — ✅ OCR 결과 캐시
+hchat:image-gen-history — ✅ 이미지 생성 히스토리
 ```
 
-### 새 의존성
+### 의존성 추가 현황
 
-| 패키지 | 크기 | 용도 | 로딩 |
-|--------|------|------|------|
-| `mammoth` | ~16KB | DOCX → HTML 변환 | 동적 임포트 |
-| `docx` | ~50KB | DOCX 생성 | 동적 임포트 |
-| `pptxgenjs` | ~50KB | PPTX 파싱/생성 | 동적 임포트 |
-| `file-saver` | ~3KB | Blob 다운로드 | 동적 임포트 |
+| 패키지 | 크기 | 용도 | 로딩 | 상태 |
+|--------|------|------|------|------|
+| `docx` | ~50KB | DOCX 생성 | 동적 임포트 | ✅ 사용 중 |
+| `xlsx` | ~430KB | Excel 파싱 | 동적 임포트 | ✅ 사용 중 (lazy chunk) |
 
-모두 **동적 임포트**로 번들 사이즈 영향 최소화 (xlsx 패턴 재사용).
+모두 **동적 임포트**로 번들 사이즈 영향 최소화.
+
+### 미구현 (v4.3 예정)
+
+| 패키지 | 크기 | 용도 | 예정 버전 |
+|--------|------|------|----------|
+| `mammoth` | ~16KB | DOCX → HTML 변환 | v4.3 (PDF/PPTX 번역) |
+| `pptxgenjs` | ~50KB | PPTX 파싱/생성 | v4.3 |
+| `file-saver` | ~3KB | Blob 다운로드 | 불필요 (네이티브 `<a>` 사용) |
 
 ---
 
-## 5. 구현 로드맵
+## 5. 구현 로드맵 (완료 현황)
 
 ```
-v4.0 (1주차)
-├── 커스텀 비서 빌더 + 기본 비서 8개
-├── 배치 OCR (10장 동시, 구조화 OCR)
-└── 40+ 테스트
+✅ v4.0 (완료)
+├── ✅ 커스텀 비서 빌더 + 기본 비서 8개
+├── ✅ 배치 OCR (10장 동시, 구조화 OCR)
+└── ✅ 421 tests, 27 files
 
-v4.1 (2주차)
-├── 문서 번역 (DOCX/XLSX/TXT, 청크 스트리밍)
-├── 문서 작성 Phase 1 (Markdown → DOCX)
-└── 40+ 테스트
+✅ v4.1 (완료)
+├── ✅ 문서 번역 (TXT/CSV/XLSX, 청크 스트리밍)
+├── ✅ 문서 작성 (5가지 유형, DOCX 내보내기)
+└── ✅ ~460 tests, 29 files
 
-v4.2 (3주차)
-├── PPTX/PDF 번역 지원
-├── 이미지 생성 (DALL-E 3)
-├── 문서 프로젝트 관리
-└── 30+ 테스트
+✅ v4.2 (완료)
+├── ✅ 이미지 생성 (DALL-E 3, 3가지 크기, HD 지원)
+└── ✅ 498 tests, 30 files
+
+⏳ v4.3 (예정)
+├── ⏳ PPTX/PDF 번역 지원
+├── ⏳ 문서 프로젝트 관리
+└── ⏳ 양식 기반 작성
 ```
 
 ---

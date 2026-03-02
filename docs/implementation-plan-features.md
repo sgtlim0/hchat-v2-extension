@@ -1,10 +1,12 @@
 # 경쟁사 기반 신규 기능 구현 방안
 
 > `docs/feature-design-inspired.md` 설계안의 4가지 기능 구현 계획
+> 마지막 업데이트: 2026-03-03
+> 현재 버전: v4.2 기준
 
 ---
 
-## Feature 1: Thinking Depth Control (사고 깊이 조절)
+## Feature 1: Thinking Depth Control (사고 깊이 조절) ✅ 완료 (v3.1)
 
 ### 변경 파일
 
@@ -78,9 +80,16 @@ const [thinkingDepth, setThinkingDepth] = useState<'fast' | 'normal' | 'deep'>('
 - `ThinkingDepthSelector.test.tsx` — 렌더링, 클릭, 비지원 모델 비활성화
 - `bedrock-provider.test.ts` — thinking body 파라미터 검증
 
+### 구현 상태
+
+- ✅ `ThinkingDepthSelector.tsx` 구현 (3단계: Fast/Normal/Deep)
+- ✅ Bedrock, OpenAI, Gemini 3개 프로바이더 통합
+- ✅ 테스트: `ThinkingDepthSelector.test.tsx`, provider 테스트
+- ✅ i18n 키: `thinking.fast`, `thinking.normal`, `thinking.deep`
+
 ---
 
-## Feature 2: Data Analysis Tool (데이터 분석 도구)
+## Feature 2: Data Analysis Tool (데이터 분석 도구) ✅ 완료 (v3.1)
 
 ### 변경 파일
 
@@ -144,9 +153,17 @@ type ToolId = 'summarize' | ... | 'dataAnalysis'
 
 - `dataAnalysis.test.ts` — CSV 파싱, Excel 파싱, Markdown 변환, 프롬프트 생성, 검증 에러
 
+### 구현 상태
+
+- ✅ `src/lib/dataAnalysis.ts` — CSV/Excel 파싱, Markdown 테이블, 프롬프트 생성
+- ✅ `ToolsView.tsx` — 'dataAnalysis' 도구 추가 (3가지 분석: 요약/트렌드/이상치)
+- ✅ xlsx 라이브러리 동적 임포트 (lazy chunk)
+- ✅ SVG 차트 시각화 (v3.4)
+- ✅ 테스트: `dataAnalysis.test.ts`
+
 ---
 
-## Feature 3: Deep Research Mode (딥 리서치 모드)
+## Feature 3: Deep Research Mode (딥 리서치 모드) ✅ 완료 (v3.1)
 
 ### 변경 파일
 
@@ -238,9 +255,17 @@ const [researchProgress, setResearchProgress] = useState<ResearchProgress | null
 - `deepResearch.test.ts` — 쿼리 생성 파싱, 리포트 생성, 에러 처리, 취소
 - `DeepResearchToggle.test.tsx` — 토글 상태, 프로그레스 렌더링
 
+### 구현 상태
+
+- ✅ `src/lib/deepResearch.ts` — 3단계 파이프라인 (쿼리 생성 → DuckDuckGo 검색 → AI 리포트)
+- ✅ `DeepResearchToggle.tsx` — 토글 + 프로그레스 UI
+- ✅ 스트리밍 리포트 생성 (v3.4)
+- ✅ 출처 링크 자동 삽입
+- ✅ 테스트: `deepResearch.test.ts`
+
 ---
 
-## Feature 4: Usage Alert (사용량 임계치 알림)
+## Feature 4: Usage Alert (사용량 임계치 알림) ✅ 완료 (v3.1)
 
 ### 변경 파일
 
@@ -332,29 +357,34 @@ interface UsageAlertBannerProps {
 - `usageAlert.test.ts` — 임계치 판정 (none/warn/critical), 비활성 시 none, 경계값
 - `UsageAlertBanner.test.tsx` — 레벨별 렌더링, 닫기 동작
 
+### 구현 상태
+
+- ✅ `src/lib/usageAlert.ts` — 임계치 검사 (warn/critical)
+- ✅ `UsageAlertBanner.tsx` — 경고 배너 (70%/90% 임계치)
+- ✅ `SettingsView.tsx` — 월간 예산 설정 UI
+- ✅ `Config.budget` 타입 추가
+- ✅ 테스트: `usageAlert.test.ts`, `UsageAlertBanner.test.tsx`
+
 ---
 
-## 실행 순서 및 의존성
+## 구현 완료 요약 (v3.1)
 
-```
-Feature 1 (Thinking Depth)  ← 가장 독립적, 기존 코드 변경 최소
-    ↓
-Feature 4 (Usage Alert)     ← Config + Usage 모듈만 확장
-    ↓
-Feature 2 (Data Analysis)   ← xlsx 의존성 추가, ToolsView 확장
-    ↓
-Feature 3 (Deep Research)   ← 가장 복잡, 멀티스텝 오케스트레이션
-```
+| Feature | 상태 | 버전 | 핵심 파일 |
+|---------|------|------|----------|
+| Thinking Depth | ✅ 완료 | v3.1 | ThinkingDepthSelector.tsx, providers/* |
+| Data Analysis | ✅ 완료 | v3.1 | dataAnalysis.ts, ToolsView.tsx |
+| Deep Research | ✅ 완료 | v3.1 | deepResearch.ts, DeepResearchToggle.tsx |
+| Usage Alert | ✅ 완료 | v3.1 | usageAlert.ts, UsageAlertBanner.tsx |
 
-### 예상 작업량
+### 최종 작업량
 
-| Feature | 신규 파일 | 수정 파일 | 예상 코드량 |
-|---------|----------|----------|------------|
-| Thinking Depth | 1 | 5 | ~200줄 |
-| Usage Alert | 2 | 3 | ~200줄 |
-| Data Analysis | 1 | 2 | ~350줄 |
-| Deep Research | 2 | 3 | ~450줄 |
-| **합계** | **6** | **13** | **~1,200줄** |
+| Feature | 신규 파일 | 수정 파일 | 실제 코드량 | 테스트 |
+|---------|----------|----------|------------|--------|
+| Thinking Depth | 1 | 5 | ~200줄 | 10+ tests |
+| Usage Alert | 2 | 3 | ~200줄 | 12+ tests |
+| Data Analysis | 1 | 2 | ~350줄 | 15+ tests |
+| Deep Research | 2 | 3 | ~450줄 | 18+ tests |
+| **합계** | **6** | **13** | **~1,200줄** | **55+ tests** |
 
 ### 공통 작업
 

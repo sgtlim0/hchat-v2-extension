@@ -1,22 +1,44 @@
 # H Chat v2 - 추가 기능 상세 기술 설계
 
-## 기존 아키텍처 요약
+> 마지막 업데이트: 2026-03-03
+> 현재 버전: v4.2
+> 참고: 이 문서는 v2~v3 초기 설계안입니다. 대부분 기능이 v3.x~v4.x에서 구현 완료되었습니다.
+
+## 기존 아키텍처 요약 (v4.2 기준)
 
 | 모듈 | 역할 |
 |------|------|
-| `streamChatLive()` | Claude/OpenAI/Gemini 통합 스트리밍 |
+| `providers/` | Bedrock/OpenAI/Gemini 프로바이더 추상화 |
 | `ChatHistory` | `hchat:conv:*` 기반 대화 CRUD |
-| `useChat` hook | 대화 상태, 스트리밍, 중단 관리 |
-| `pageReader` | 페이지/YouTube 컨텐츠 추출 |
-| `ToolsView` | 6개 도구 카드 (요약, YouTube, 번역, 글쓰기, 문법, OCR) |
-| `App.tsx` | 6탭: chat, group, tools, prompts, history, settings |
+| `useChat` hook | 대화 상태, 스트리밍, 중단 관리, 비서 통합 |
+| `pageReader` | 페이지/YouTube 컨텐츠 추출 (구조화 자막 포함) |
+| `ToolsView` | 15개 도구 (요약, 멀티탭, YouTube, OCR, 배치OCR, 번역, 글쓰기, 문서작성, 문법, 댓글분석, PDF, 인사이트, 데이터분석, 이미지생성, 문서번역) |
+| `App.tsx` | 8탭: chat, group, tools, debate, prompts, history, bookmarks, settings |
 
 ---
 
-## Feature 1: 웹 검색 통합 (Web Search + RAG)
+## 구현 상태 요약
 
-### 목표
-사용자 질문에 실시간 웹 검색 결과를 컨텍스트로 주입하여 최신 정보 기반 응답 생성.
+아래 6개 기능 중 대부분이 v3.x~v4.x에서 구현 완료되었습니다.
+
+| Feature | 구현 상태 | 버전 |
+|---------|----------|------|
+| Feature 1: 웹 검색 통합 | ✅ 완료 | v2 (기초), v3.1 (딥 리서치) |
+| Feature 2: 사이드바 컨텍스트 | ✅ 완료 | v3.0 (pageContext) |
+| Feature 3: 멀티턴 에이전트 | ✅ 완료 | v2 (기초), v3.6 (플러그인 도구) |
+| Feature 4: 스마트 북마크 | ✅ 완료 | v2 (기초) |
+| Feature 5: 키보드 단축키 | ⚠️ 부분 완료 | v3.3 (내비게이션만) |
+| Feature 6: 대화 내보내기 | ✅ 완료 | v3.0 (5가지 포맷) |
+
+---
+
+## Feature 1: 웹 검색 통합 (Web Search + RAG) ✅ 완료 (v2 기초, v3.1 딥 리서치)
+
+### 구현 상태
+- ✅ `webSearch.ts` — DuckDuckGo + Google CSE
+- ✅ `searchIntent.ts` — 검색 의도 판단
+- ✅ `deepResearch.ts` — 3단계 멀티스텝 리서치
+- ✅ RAG 컨텍스트 자동 주입
 
 ### 아키텍처
 
@@ -148,10 +170,13 @@ hchat:search-cache:{queryHash}  → { results, ts }  // 1시간 캐시
 
 ---
 
-## Feature 2: 사이드바 채팅 컨텍스트
+## Feature 2: 사이드바 채팅 컨텍스트 ✅ 완료 (v3.0)
 
-### 목표
-현재 탭의 페이지 컨텍스트를 자동으로 채팅에 주입. 탭 전환 시 컨텍스트 자동 업데이트.
+### 구현 상태
+- ✅ `pageContext.ts` — 페이지 타입 감지 (article/code/video/social)
+- ✅ `content/index.ts` — MutationObserver 페이지 변경 감지
+- ✅ `useChat.ts` — 페이지 컨텍스트 자동 주입
+- ✅ ChatView 컨텍스트 토글 UI
 
 ### 아키텍처
 
@@ -299,10 +324,14 @@ hchat:config.enablePageContext   → boolean      // 토글
 
 ---
 
-## Feature 3: 멀티턴 에이전트 모드
+## Feature 3: 멀티턴 에이전트 모드 ✅ 완료 (v2 기초, v3.6 플러그인)
 
-### 목표
-LLM이 도구(검색, 페이지 읽기, 코드 실행 등)를 자율적으로 호출하며 멀티턴으로 작업 수행.
+### 구현 상태
+- ✅ `agent.ts` — 10스텝 에이전트 루프
+- ✅ `agentTools.ts` — 5개 내장 도구 (web_search, read_page, fetch_url, calculate, javascript_eval)
+- ✅ `pluginRegistry.ts` — 커스텀 플러그인 시스템 (webhook/JS/prompt)
+- ✅ ChatView 에이전트 모드 토글
+- ✅ 도구 호출 스텝 UI
 
 ### 아키텍처
 
@@ -524,10 +553,14 @@ interface ChatMessage {
 
 ---
 
-## Feature 4: 스마트 북마크 / 하이라이트
+## Feature 4: 스마트 북마크 / 하이라이트 ✅ 완료 (v2)
 
-### 목표
-웹페이지에서 중요 텍스트를 하이라이트하고, AI 주석과 함께 저장/관리.
+### 구현 상태
+- ✅ `bookmarks.ts` — 하이라이트 CRUD
+- ✅ `content/toolbar.ts` — 하이라이트 버튼
+- ✅ XPath 기반 하이라이트 복원
+- ✅ BookmarksView — 검색/필터/태그
+- ✅ AI 주석 생성 (generateAiNote)
 
 ### 아키텍처
 
@@ -701,10 +734,13 @@ hchat:collections         → BookmarkCollection[]   // 컬렉션
 
 ---
 
-## Feature 5: 키보드 단축키 시스템
+## Feature 5: 키보드 단축키 시스템 ⚠️ 부분 완료 (v3.3)
 
-### 목표
-파워 유저를 위한 전역/로컬 키보드 단축키 시스템.
+### 구현 상태
+- ✅ 키보드 내비게이션 (탭 전환, 입력창 포커스)
+- ⚠️ 커스터마이징 미구현
+- ⚠️ Chrome commands API 미등록
+- ✅ useShortcuts 훅 패턴 준비됨
 
 ### 새 파일
 
@@ -866,10 +902,14 @@ hchat:shortcuts → Shortcut[]  // 커스텀 단축키 (기본값 override)
 
 ---
 
-## Feature 6: 대화 내보내기 / 공유
+## Feature 6: 대화 내보내기 / 공유 ✅ 완료 (v3.0)
 
-### 목표
-대화를 다양한 형식으로 내보내기 및 공유.
+### 구현 상태
+- ✅ `exportChat.ts` — 5가지 포맷 (markdown/html/json/txt/pdf)
+- ✅ `importChat.ts` — ChatGPT/Claude 대화 가져오기 (v3.5)
+- ✅ ChatView 내보내기 버튼
+- ✅ 클립보드 복사
+- ✅ HistoryView 일괄 내보내기
 
 ### 새 파일
 
@@ -1053,37 +1093,30 @@ export async function copyToClipboard(conv: Conversation): Promise<void> {
 
 ---
 
-## 구현 우선순위 및 의존성
+## 구현 완료 요약
 
-```
-Phase 1 (핵심):
-  ├── Feature 5: 키보드 단축키 (독립적, 바로 구현 가능)
-  ├── Feature 6: 대화 내보내기 (독립적, 바로 구현 가능)
-  └── Feature 2: 사이드바 컨텍스트 (pageReader 확장)
+| Feature | 상태 | 버전 | 신규 파일 | 수정 파일 |
+|---------|------|------|----------|----------|
+| 웹 검색 | ✅ 완료 | v2, v3.1 | 2 | 4 |
+| 사이드바 컨텍스트 | ✅ 완료 | v3.0 | 1 | 3 |
+| 에이전트 모드 | ✅ 완료 | v2, v3.6 | 2 | 3 |
+| 스마트 북마크 | ✅ 완료 | v2 | 2 | 3 |
+| 키보드 단축키 | ⚠️ 부분 | v3.3 | 1 | 2 |
+| 대화 내보내기 | ✅ 완료 | v3.0, v3.5 | 2 | 2 |
 
-Phase 2 (검색 + AI):
-  ├── Feature 1: 웹 검색 (API 키 설정 필요)
-  └── Feature 4: 스마트 북마크 (content script 확장)
+### 총 변경 범위 (실제)
 
-Phase 3 (고급):
-  └── Feature 3: 에이전트 모드 (Feature 1, 2 의존)
-```
+- 신규 파일: 10개
+- 수정 파일: 17개
+- 새 Storage 키: 15개
+- 새 탭: 2개 (북마크, 토론)
+- manifest.json: permissions 확장, content_scripts 추가
 
-### 예상 작업량
+---
 
-| Feature | 새 파일 | 수정 파일 | 난이도 |
-|---------|---------|----------|--------|
-| 웹 검색 | 2 | 4 | ★★★ |
-| 사이드바 컨텍스트 | 1 | 3 | ★★ |
-| 에이전트 모드 | 2 | 3 | ★★★★ |
-| 스마트 북마크 | 2 | 3 | ★★★ |
-| 키보드 단축키 | 2 | 3 | ★★ |
-| 대화 내보내기 | 1 | 2 | ★★ |
+## 향후 작업 (v5.0 예정)
 
-### 총 변경 범위
-
-- 새 파일: 10개
-- 수정 파일: 8개 (중복 포함)
-- 새 Storage 키: ~10개
-- 새 탭: 1개 (북마크)
-- manifest.json 수정: commands 추가
+- [ ] 키보드 단축키 완전 구현 (커스터마이징 + Chrome commands)
+- [ ] 비서 마켓플레이스 (공유/검색/추천)
+- [ ] PPT 기획 도구
+- [ ] AI 가드레일 (개인정보 마스킹)

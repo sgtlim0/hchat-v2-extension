@@ -20,34 +20,35 @@
 | Phase 7 | v3.5 | ChatGPT/Claude 대화 가져오기, 음성 UX, 일본어 i18n, Webhook 알림, 검색 인덱싱 |
 | Phase 8 | v3.6 | 오프라인 지원, 플러그인 시스템 (webhook/JS/prompt), 내장 도구 확장 (365 tests) |
 
-### v4.0 — 커스텀 비서 + 배치 OCR
+### v4.0 — 커스텀 비서 + 배치 OCR ✅
 
 - **커스텀 비서 빌더**: 8개 내장 비서, CRUD, 사용 횟수 추적, useChat 통합
 - **배치 OCR**: 10장 동시 업로드, 4가지 모드 (일반/명함/영수증/스크린샷), 구조화 JSON 추출
 - 421 tests, 27 files
 
-### v4.1 — 문서 번역 + 문서 작성
+### v4.1 — 문서 번역 + 문서 작성 ✅
 
 - **문서 번역**: TXT/CSV/XLSX 지원, 1000자 청크 분할, 용어 일관성 유지, 비용 추정
 - **문서 작성**: 5가지 유형 (보고서/이메일/제안서/회의록/메모), 3단계 파이프라인, DOCX 내보내기
 
-### v4.2 — 이미지 생성
+### v4.2 — 이미지 생성 ✅
 
 - **DALL-E 3**: 3가지 크기, Standard/HD 품질, Vivid/Natural 스타일, 비용 추정, 세션 히스토리
 - 498 tests, 30 files
 
 ---
 
-## 현재 수치
+## 현재 수치 (v4.2)
 
 | 항목 | 수치 |
 |------|------|
 | 테스트 | 498 tests, 30 files |
-| 도구 | 15개 |
-| 언어 | 3개 (ko/en/ja) |
+| 도구 | 15개 (요약, 멀티탭, 번역, 글쓰기, 문서작성, YouTube, OCR, 배치OCR, 문법, 댓글분석, PDF, 인사이트, 데이터분석, 이미지생성, 문서번역) |
+| 언어 | 3개 (ko/en/ja), 650+ i18n keys |
 | AI 프로바이더 | 3개 (Bedrock/OpenAI/Gemini) |
-| 모델 | 9개 |
-| 번들 | sidepanel 86KB (31KB gzip), 6 lazy chunks |
+| 모델 | 9개 (Claude Sonnet 4.6/Opus 4.6/Haiku 4.5, GPT-4o/4o-mini/o1-mini, Gemini 2.0 Flash/1.5 Pro/1.5 Flash) |
+| 비서 | 8개 내장 + 커스텀 빌더 |
+| 번들 | sidepanel 86KB (31KB gzip), 6 lazy chunks + xlsx/docx 동적 임포트 |
 
 ---
 

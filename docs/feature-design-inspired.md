@@ -1,6 +1,9 @@
 # 경쟁사 기반 신규 기능 설계안
 
 > 경쟁사 2026 릴리즈 노트 분석 후 H Chat v3에 도입할 기능 4가지 선별
+> 마지막 업데이트: 2026-03-03
+> 현재 버전: v4.2
+> 상태: ✅ 4개 기능 모두 완료 (v3.1)
 
 ## 분석 요약
 
@@ -35,9 +38,9 @@
 
 ---
 
-## 도입 기능 4가지
+## 도입 기능 4가지 (모두 완료)
 
-### Feature 1: Thinking Depth Control (사고 깊이 조절)
+### Feature 1: Thinking Depth Control (사고 깊이 조절) ✅ 완료 (v3.1)
 
 **참고**: 경쟁사 01.06 — "Thinking Depth" 기능
 
@@ -55,9 +58,14 @@
 - Normal: 기본 동작 (현재와 동일)
 - Deep: `thinking: { type: "enabled", budget_tokens: 10000 }` 파라미터 추가
 
+**구현 상태:**
+- ✅ `ThinkingDepthSelector.tsx` — 3단계 토글 (Fast/Normal/Deep)
+- ✅ Bedrock, OpenAI, Gemini 프로바이더 통합
+- ✅ Claude Extended Thinking 지원 (budget_tokens)
+
 ---
 
-### Feature 2: Data Analysis Tool (데이터 분석 도구)
+### Feature 2: Data Analysis Tool (데이터 분석 도구) ✅ 완료 (v3.1)
 
 **참고**: 경쟁사 01.19 — "고급 데이터 분석 도구"
 
@@ -74,9 +82,15 @@
 - Excel: `SheetJS (xlsx)` 라이브러리로 파싱 → CSV 변환
 - 최대 크기: 5MB, 최대 10,000행
 
+**구현 상태:**
+- ✅ `src/lib/dataAnalysis.ts` — CSV/Excel 파싱, Markdown 테이블
+- ✅ ToolsView에 'dataAnalysis' 도구 추가
+- ✅ 3가지 분석 유형: 요약 통계 / 트렌드 분석 / 이상치 탐지
+- ✅ SVG 차트 시각화 (v3.4)
+
 ---
 
-### Feature 3: Deep Research Mode (딥 리서치 모드)
+### Feature 3: Deep Research Mode (딥 리서치 모드) ✅ 완료 (v3.1)
 
 **참고**: 경쟁사 02.04 — "Gemini Deep Research 모델"
 
@@ -93,9 +107,15 @@
 3. 검색 결과 종합 → AI에게 구조화된 리포트 요청
 4. 출처 URL 포함 Markdown 렌더링
 
+**구현 상태:**
+- ✅ `src/lib/deepResearch.ts` — 3단계 파이프라인
+- ✅ DuckDuckGo 검색 통합 + AI 쿼리 생성
+- ✅ 스트리밍 리포트 생성 (v3.4)
+- ✅ 출처 URL 자동 삽입
+
 ---
 
-### Feature 4: Usage Alert (사용량 임계치 알림)
+### Feature 4: Usage Alert (사용량 임계치 알림) ✅ 완료 (v3.1)
 
 **참고**: 경쟁사 02.04 — "실시간 사용량 모니터링"
 
@@ -108,12 +128,21 @@
 
 **데이터**: 기존 `Usage.getRecords()` 활용, 월별 집계
 
+**구현 상태:**
+- ✅ `src/lib/usageAlert.ts` — 임계치 검사 (warn/critical)
+- ✅ `UsageAlertBanner.tsx` — 경고 배너 (70%/90% 임계치)
+- ✅ SettingsView에 예산 설정 UI
+- ✅ 월간 예산 초과 시 배너 표시
+
 ---
 
-## 화면 설계
+## 구현 완료 요약
 
-v3.pen 파일에 아래 4개 화면 프레임 추가:
-1. **ThinkingDepthControl** — 모델 선택 영역 + 깊이 토글
-2. **DataAnalysisTool** — 도구 탭 내 데이터 분석 화면
-3. **DeepResearchMode** — 채팅 화면 + 리서치 프로그레스
-4. **UsageAlertBanner** — 사용량 경고 배너 + 설정 화면
+| Feature | 버전 | 상태 | 핵심 파일 |
+|---------|------|------|----------|
+| Thinking Depth | v3.1 | ✅ 완료 | ThinkingDepthSelector.tsx, providers/* |
+| Data Analysis | v3.1 | ✅ 완료 | dataAnalysis.ts, SVG 차트 (v3.4) |
+| Deep Research | v3.1 | ✅ 완료 | deepResearch.ts, DuckDuckGo 통합 |
+| Usage Alert | v3.1 | ✅ 완료 | usageAlert.ts, UsageAlertBanner.tsx |
+
+이 4가지 기능은 모두 **v3.1**에서 구현 완료되었으며, 이후 v3.4에서 차트 시각화 및 스트리밍 개선이 추가되었습니다.

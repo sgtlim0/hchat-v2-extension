@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Usage, formatCost, formatTokens, exportUsageAsCSV, type UsageSummary, type UsageFeature } from '../lib/usage'
+import { UsageChart } from './UsageChart'
 import { downloadBlob } from '../lib/exportChat'
 import { useLocale } from '../i18n'
 
@@ -53,7 +54,6 @@ export function UsageView() {
 
   if (!summary) return <div style={{ padding: 16 }}><span className="spinner-sm" /></div>
 
-  const maxCost = Math.max(...summary.byDate.map((d) => d.cost), 0.001)
   const totalFeatureRequests = Object.values(featureBreakdown).reduce((a, b) => a + b, 0) || 1
 
   return (
@@ -122,22 +122,11 @@ export function UsageView() {
         </div>
       )}
 
-      {/* Daily chart */}
+      {/* Daily chart (SVG) */}
       {summary.byDate.length > 0 && (
         <div className="usage-section">
           <div className="usage-section-title">{t('usage.dailyCost')}</div>
-          <div className="usage-chart">
-            {summary.byDate.slice(-14).map((d) => (
-              <div key={d.date} className="usage-bar-col">
-                <div
-                  className="usage-bar"
-                  style={{ height: `${Math.max((d.cost / maxCost) * 60, 2)}px` }}
-                  title={`${d.date}: ${formatCost(d.cost)} (${t('usage.count', { n: d.requests })})`}
-                />
-                <div className="usage-bar-label">{d.date.slice(5)}</div>
-              </div>
-            ))}
-          </div>
+          <UsageChart data={summary.byDate.slice(-14)} />
         </div>
       )}
 

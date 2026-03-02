@@ -117,9 +117,13 @@ function injectCard() {
 
     // Stream answer via background
     const port = chrome.runtime.connect({ name: 'inline-stream' })
+    const searchPrompt = locale === 'en'
+      ? `Answer the following search query concisely and accurately in 3-5 sentences. Use plain text without markdown:\n\n"${query}"`
+      : `다음 검색 질문에 대해 간결하고 정확하게 3-5문장으로 답변해줘. 마크다운 없이 일반 텍스트로 답변:\n\n"${query}"`
+
     port.postMessage({
       type: 'INLINE_STREAM',
-      prompt: `다음 검색 질문에 대해 간결하고 정확하게 3-5문장으로 답변해줘. 마크다운 없이 일반 텍스트로 답변:\n\n"${query}"`,
+      prompt: searchPrompt,
       maxTokens: 512,
     })
 

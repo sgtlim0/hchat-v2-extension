@@ -114,7 +114,7 @@ export function ToolsView({ config }: Props) {
     try {
       const page = await getCurrentPageContent()
       if (!page.text) { setResult(t('tools.noPageContent')); setLoading(false); return }
-      await runStream(`다음 웹페이지 내용을 핵심 위주로 5-7개 항목으로 정리하여 요약해줘. 마지막에 1~2줄의 핵심 결론도 추가해줘.\n\n제목: ${page.title}\nURL: ${page.url}\n\n내용:\n${truncate(page.text)}`)
+      await runStream(`${t('aiPrompts.summarizePage')}\n\n제목: ${page.title}\nURL: ${page.url}\n\n내용:\n${truncate(page.text)}`)
     } catch (err) {
       setResult('❌ ' + String(err))
       setLoading(false)
@@ -129,7 +129,7 @@ export function ToolsView({ config }: Props) {
       if (!page.isYouTube) { setResult(t('tools.notYouTube')); setLoading(false); return }
       const transcript = await getYouTubeTranscript(page.youtubeId!)
       if (!transcript) { setResult(t('tools.noSubtitles')); setLoading(false); return }
-      await runStream(`다음은 YouTube 영상의 자막입니다. 핵심 내용을 구조적으로 요약해줘:\n\n제목: ${page.title}\n\n자막:\n${transcript}`)
+      await runStream(`${t('aiPrompts.summarizeYoutube')}\n\n제목: ${page.title}\n\n자막:\n${transcript}`)
     } catch (err) {
       setResult('❌ ' + String(err))
       setLoading(false)
@@ -138,7 +138,7 @@ export function ToolsView({ config }: Props) {
 
   const handleTranslate = async () => {
     if (!inputText.trim()) { setResult(t('tools.noText')); return }
-    await runStream(`다음 텍스트를 자연스럽고 정확하게 ${selectedLang}로 번역해줘:\n\n${inputText}`)
+    await runStream(t('aiPrompts.translateTo', { lang: selectedLang }) + `\n\n${inputText}`)
   }
 
   const handleWrite = async () => {
@@ -148,7 +148,7 @@ export function ToolsView({ config }: Props) {
 
   const handleGrammar = async () => {
     if (!inputText.trim()) { setResult(t('tools.noGrammarText')); return }
-    await runStream(`다음 텍스트의 맞춤법, 문법, 어색한 표현을 교정하고, 교정한 내용과 이유를 함께 설명해줘:\n\n${inputText}`)
+    await runStream(t('aiPrompts.grammarCheck') + `\n\n${inputText}`)
   }
 
   const handleOCR = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -161,7 +161,7 @@ export function ToolsView({ config }: Props) {
 
   const handleOCRRun = async () => {
     if (!imgBase64) return
-    await runVisionStream(imgBase64, '이 이미지에서 모든 텍스트를 추출해줘. 원본 형식과 구조를 최대한 유지해줘.')
+    await runVisionStream(imgBase64, t('aiPrompts.ocrExtract'))
   }
 
   const handleComments = async () => {
@@ -205,7 +205,7 @@ export function ToolsView({ config }: Props) {
 
   const handlePdfChat = async () => {
     if (!pdfText || !pdfQuestion.trim()) return
-    await runStream(`다음은 PDF 문서의 내용입니다:\n\n${pdfText.slice(0, 12000)}\n\n---\n질문: ${pdfQuestion.trim()}\n\n위 문서 내용을 기반으로 정확하게 답변해줘. 한국어로 답변하세요.`)
+    await runStream(t('aiPrompts.pdfChat', { pdfContent: pdfText.slice(0, 12000), question: pdfQuestion.trim() }) + ' ' + t('aiPrompts.respondInLang'))
     setPdfQuestion('')
   }
 

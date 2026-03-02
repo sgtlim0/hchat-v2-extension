@@ -1,5 +1,7 @@
 // lib/webSearch.ts — Web search via DuckDuckGo Instant Answer API + HTML scraping fallback
 
+import { t } from '../i18n'
+
 export interface SearchResult {
   title: string
   url: string
@@ -123,7 +125,7 @@ export function buildSearchContext(results: SearchResult[]): string {
   )
 
   return [
-    '다음 웹 검색 결과를 참고하여 답변하세요. 정보의 출처를 인용해주세요.',
+    t('aiPrompts.searchContext'),
     '',
     ...lines,
   ].join('\n')

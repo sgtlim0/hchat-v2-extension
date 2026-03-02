@@ -1,5 +1,7 @@
 // lib/pageContext.ts — Page context tracking for sidebar chat
 
+import { getGlobalLocale } from '../i18n'
+
 export interface PageContext {
   url: string
   title: string
@@ -23,6 +25,25 @@ export function detectPageType(url: string): PageContext['meta']['type'] {
 }
 
 export function buildPageSystemPrompt(ctx: PageContext): string {
+  const isEn = getGlobalLocale() === 'en'
+
+  if (isEn) {
+    const lines = [
+      'Current web page the user is viewing:',
+      `- Title: ${ctx.title}`,
+      `- URL: ${ctx.url}`,
+    ]
+    if (ctx.meta?.type && ctx.meta.type !== 'unknown') {
+      lines.push(`- Type: ${ctx.meta.type}`)
+    }
+    if (ctx.selection) {
+      lines.push(`- Selected text: "${ctx.selection.slice(0, 500)}"`)
+    }
+    lines.push('', 'Page content (excerpt):', ctx.text.slice(0, 3000))
+    lines.push('', 'Use this page context to answer the user\'s questions.')
+    return lines.join('\n')
+  }
+
   const lines = [
     '현재 사용자가 보고 있는 웹페이지 정보:',
     `- 제목: ${ctx.title}`,

@@ -1,6 +1,7 @@
 // lib/bookmarks.ts — Smart bookmarks / highlights CRUD
 
 import { Storage } from './storage'
+import { t } from '../i18n'
 
 export type HighlightColor = 'yellow' | 'green' | 'blue' | 'pink' | 'purple'
 
@@ -132,16 +133,16 @@ export function getXPathForElement(node: Node): string {
   return '/' + parts.join('/')
 }
 
-// Utility: format relative time in Korean
+// Utility: format relative time (locale-aware)
 export function timeAgo(ts: number): string {
   const diff = Date.now() - ts
   const sec = Math.floor(diff / 1000)
-  if (sec < 60) return '방금 전'
+  if (sec < 60) return t('timeAgo.justNow')
   const min = Math.floor(sec / 60)
-  if (min < 60) return `${min}분 전`
+  if (min < 60) return t('timeAgo.minutesAgo', { n: min })
   const hr = Math.floor(min / 60)
-  if (hr < 24) return `${hr}시간 전`
+  if (hr < 24) return t('timeAgo.hoursAgo', { n: hr })
   const day = Math.floor(hr / 24)
-  if (day < 7) return `${day}일 전`
-  return new Date(ts).toLocaleDateString('ko-KR')
+  if (day < 7) return t('timeAgo.daysAgo', { n: day })
+  return new Date(ts).toLocaleDateString()
 }

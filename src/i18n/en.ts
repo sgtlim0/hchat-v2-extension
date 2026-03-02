@@ -81,6 +81,7 @@ const en = {
     summaryGenerating: 'Generating...',
     summaryFailed: 'Summary failed: {error}',
     forked: 'Conversation forked',
+    forkSuffix: '(fork)',
     pinned: 'Message pinned',
     unpinned: 'Unpinned',
     pinnedMessages: 'Pinned messages ({n})',
@@ -426,6 +427,45 @@ const en = {
     ytSummary: 'YouTube summary',
     argAnalysis: 'Argument analysis',
     eli5: 'Explain (simple)',
+  },
+
+  defaultPrompts: {
+    pageSummary: { title: 'Summarize page', content: 'Summarize the following in 5 bullet points:\n\n{{content}}' },
+    translateKo: { title: 'Translate (Korean)', content: 'Translate the following into natural Korean:\n\n{{content}}' },
+    polish: { title: 'Polish text', content: 'Rewrite the following to be more professional and clear:\n\n{{content}}' },
+    codeReview: { title: 'Code review', content: 'Review the following code for bugs, performance, and readability:\n\n```\n{{content}}\n```' },
+    emailDraft: { title: 'Draft email', content: 'Write a professional email based on the following:\n\n{{content}}' },
+    ytSummary: { title: 'YouTube summary', content: 'Summarize the key points of the following YouTube transcript:\n\n{{content}}' },
+    argAnalysis: { title: 'Argument analysis', content: 'Analyze the pros and cons of the following argument:\n\n{{content}}' },
+    eli5: { title: 'Explain (simple)', content: 'Explain the following in simple terms that anyone can understand:\n\n{{content}}' },
+  },
+
+  modelLabels: {
+    recommended: 'Recommended',
+    bestPerformance: 'Best Performance',
+    fast: 'Fast',
+    multimodal: 'Multimodal',
+    ultrafast: 'Ultra Fast',
+    advanced: 'Advanced',
+  },
+
+  aiPrompts: {
+    newConversation: 'New conversation',
+    summarizePage: 'Summarize the following webpage content into 5-7 key bullet points. Add a 1-2 line conclusion at the end.',
+    summarizeYoutube: 'The following is a YouTube video transcript. Summarize the key points in a structured format:',
+    translateTo: 'Translate the following text naturally and accurately into {lang}:',
+    grammarCheck: 'Check the following text for spelling, grammar, and awkward expressions. Explain each correction and the reason.',
+    ocrExtract: 'Extract all text from this image. Preserve the original format and structure as much as possible.',
+    pdfChat: 'The following is the content of a PDF document:\n\n{pdfContent}\n\n---\nQuestion: {question}\n\nAnswer accurately based on the document above.',
+    respondInLang: 'Please respond in English.',
+    searchContext: 'Use the following web search results as reference. Cite the sources of information.',
+  },
+
+  timeAgo: {
+    justNow: 'Just now',
+    minutesAgo: '{n}m ago',
+    hoursAgo: '{n}h ago',
+    daysAgo: '{n}d ago',
   },
 } as const
 

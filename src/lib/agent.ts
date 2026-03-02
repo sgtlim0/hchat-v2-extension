@@ -4,6 +4,7 @@
 import { streamChatLive, type Message } from './models'
 import type { AIProvider } from './providers/types'
 import type { AwsCredentials } from '../hooks/useConfig'
+import { getGlobalLocale } from '../i18n'
 
 export interface Tool {
   name: string
@@ -40,15 +41,43 @@ function uid(): string {
 }
 
 function buildToolsDescription(tools: Tool[]): string {
+  const isEn = getGlobalLocale() === 'en'
   return tools.map((t) => {
     const params = Object.entries(t.parameters)
-      .map(([k, v]) => `  - ${k} (${v.type}${v.required ? ', 필수' : ''}): ${v.description}`)
+      .map(([k, v]) => `  - ${k} (${v.type}${v.required ? (isEn ? ', required' : ', 필수') : ''}): ${v.description}`)
       .join('\n')
-    return `### ${t.name}\n${t.description}\n파라미터:\n${params}`
+    return `### ${t.name}\n${t.description}\n${isEn ? 'Parameters' : '파라미터'}:\n${params}`
   }).join('\n\n')
 }
 
 function buildAgentSystemPrompt(tools: Tool[], extraSystem?: string): string {
+  const isEn = getGlobalLocale() === 'en'
+
+  if (isEn) {
+    return [
+      'You are an AI agent that can use tools. Please respond in English.',
+      '',
+      '## Available Tools',
+      '',
+      buildToolsDescription(tools),
+      '',
+      '## Tool Call Format',
+      '',
+      'To use a tool, use the following XML format:',
+      '',
+      '<tool_call>',
+      '<name>tool_name</name>',
+      '<params>{"key": "value"}</params>',
+      '</tool_call>',
+      '',
+      'To give a final answer without tool calls, respond in plain text.',
+      'You can use multiple tools sequentially.',
+      'After analyzing tool results, call additional tools if needed.',
+      '',
+      extraSystem ?? '',
+    ].filter(Boolean).join('\n')
+  }
+
   return [
     '당신은 도구를 사용할 수 있는 AI 에이전트입니다. 한국어로 답변하세요.',
     '',

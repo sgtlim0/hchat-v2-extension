@@ -1,5 +1,7 @@
 // lib/commentAnalyzer.ts — YouTube comment extraction and analysis
 
+import { getGlobalLocale } from '../i18n'
+
 export interface CommentData {
   text: string
   likes: number
@@ -56,10 +58,38 @@ export async function extractComments(maxCount = 200): Promise<CommentData[]> {
  * Build prompt for AI comment analysis
  */
 export function buildCommentAnalysisPrompt(comments: CommentData[], videoTitle: string): string {
+  const isEn = getGlobalLocale() === 'en'
+  const likesLabel = isEn ? 'likes' : '좋아요'
+
   const commentTexts = comments
     .slice(0, 100)
-    .map((c, i) => `[${i + 1}] (좋아요: ${c.likes}) ${c.text}`)
+    .map((c, i) => `[${i + 1}] (${likesLabel}: ${c.likes}) ${c.text}`)
     .join('\n')
+
+  if (isEn) {
+    return `The following are ${comments.length} comments from the YouTube video "${videoTitle}".
+
+Analyze the comments and write results in the following structure:
+
+## Sentiment Analysis
+- Positive: X%
+- Neutral: X%
+- Negative: X%
+
+## Key Topics (up to 5)
+- Topic 1: Description
+- Topic 2: Description
+
+## Key Insights (3-5)
+Points of particular viewer interest, common opinions, points of debate, etc.
+
+## Top 5 Popular Comments
+Most liked comments and their significance
+
+---
+Comment data:
+${commentTexts}`
+  }
 
   return `다음은 YouTube 영상 "${videoTitle}"의 댓글 ${comments.length}개입니다.
 

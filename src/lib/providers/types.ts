@@ -10,6 +10,7 @@ export interface ModelDef {
   label: string
   shortLabel: string
   emoji: string
+  labelKey?: string  // i18n key in modelLabels.* for translated suffix
   capabilities: ModelCapability[]
   cost: { input: number; output: number }  // USD per 1M tokens
 }

@@ -81,6 +81,7 @@ const ko = {
     summaryGenerating: '생성 중...',
     summaryFailed: '요약 실패: {error}',
     forked: '대화가 분기되었습니다',
+    forkSuffix: '(분기)',
     pinned: '메시지 고정됨',
     unpinned: '고정 해제됨',
     pinnedMessages: '고정 메시지 ({n})',
@@ -426,6 +427,45 @@ const ko = {
     ytSummary: '유튜브 요약',
     argAnalysis: '논거 분석',
     eli5: '설명 (초등학생)',
+  },
+
+  defaultPrompts: {
+    pageSummary: { title: '현재 페이지 요약', content: '다음 내용을 핵심 위주로 5줄 이내로 요약해줘:\n\n{{content}}' },
+    translateKo: { title: '번역 (한국어)', content: '다음을 자연스러운 한국어로 번역해줘:\n\n{{content}}' },
+    polish: { title: '문장 다듬기', content: '다음 문장을 더 전문적이고 명확하게 다듬어줘:\n\n{{content}}' },
+    codeReview: { title: '코드 리뷰', content: '다음 코드를 리뷰해줘. 버그, 성능, 가독성 관점에서:\n\n```\n{{content}}\n```' },
+    emailDraft: { title: '이메일 작성', content: '다음 내용으로 전문적인 이메일을 작성해줘:\n\n{{content}}' },
+    ytSummary: { title: '유튜브 요약', content: '다음 유튜브 자막을 핵심 내용 위주로 요약해줘:\n\n{{content}}' },
+    argAnalysis: { title: '논거 분석', content: '다음 주장의 찬반 논거를 분석해줘:\n\n{{content}}' },
+    eli5: { title: '설명 (초등학생)', content: '다음 내용을 초등학생도 이해할 수 있게 설명해줘:\n\n{{content}}' },
+  },
+
+  modelLabels: {
+    recommended: '권장',
+    bestPerformance: '최고 성능',
+    fast: '빠름',
+    multimodal: '멀티모달',
+    ultrafast: '초고속',
+    advanced: '고급',
+  },
+
+  aiPrompts: {
+    newConversation: '새 대화',
+    summarizePage: '다음 웹페이지 내용을 핵심 위주로 5-7개 항목으로 정리하여 요약해줘. 마지막에 1~2줄의 핵심 결론도 추가해줘.',
+    summarizeYoutube: '다음은 YouTube 영상의 자막입니다. 핵심 내용을 구조적으로 요약해줘:',
+    translateTo: '다음 텍스트를 자연스럽고 정확하게 {lang}로 번역해줘:',
+    grammarCheck: '다음 텍스트의 맞춤법, 문법, 어색한 표현을 교정하고, 교정한 내용과 이유를 함께 설명해줘:',
+    ocrExtract: '이 이미지에서 모든 텍스트를 추출해줘. 원본 형식과 구조를 최대한 유지해줘.',
+    pdfChat: '다음은 PDF 문서의 내용입니다:\n\n{pdfContent}\n\n---\n질문: {question}\n\n위 문서 내용을 기반으로 정확하게 답변해줘.',
+    respondInLang: '한국어로 답변하세요.',
+    searchContext: '다음 웹 검색 결과를 참고하여 답변하세요. 정보의 출처를 인용해주세요.',
+  },
+
+  timeAgo: {
+    justNow: '방금 전',
+    minutesAgo: '{n}분 전',
+    hoursAgo: '{n}시간 전',
+    daysAgo: '{n}일 전',
   },
 } as const
 

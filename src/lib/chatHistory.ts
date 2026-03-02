@@ -1,4 +1,5 @@
 import { Storage } from './storage'
+import { t } from '../i18n'
 import type { AgentStep } from './agent'
 
 export interface ChatMessage {
@@ -38,7 +39,7 @@ export const ChatHistory = {
   async create(model: string): Promise<Conversation> {
     const conv: Conversation = {
       id: crypto.randomUUID(),
-      title: '새 대화',
+      title: t('aiPrompts.newConversation'),
       model,
       messages: [],
       createdAt: Date.now(),
@@ -59,7 +60,7 @@ export const ChatHistory = {
     const m: ChatMessage = { ...msg, id: crypto.randomUUID(), ts: Date.now() }
     conv.messages.push(m)
     conv.updatedAt = Date.now()
-    if (conv.messages.length === 2 && conv.title === '새 대화') {
+    if (conv.messages.length === 2 && (conv.title === '새 대화' || conv.title === 'New conversation')) {
       conv.title = conv.messages[0].content.slice(0, 40)
     }
     await Storage.set(PREFIX + convId, conv)
@@ -152,7 +153,7 @@ export const ChatHistory = {
 
     const forked: Conversation = {
       id: crypto.randomUUID(),
-      title: `${source.title} (분기)`,
+      title: `${source.title} ${t('chat.forkSuffix')}`,
       model: source.model,
       messages: source.messages.slice(0, msgIdx + 1).map((m) => ({
         ...m,

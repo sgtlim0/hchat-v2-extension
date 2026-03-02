@@ -92,7 +92,7 @@ export function ModelSelector({ value, onChange, config }: Props) {
                     onMouseLeave={(e) => { e.currentTarget.style.background = value === m.id && !autoRouting ? 'var(--accent-dim)' : 'transparent' }}
                   >
                     <span>{m.emoji}</span>
-                    <span style={{ fontSize: 12, color: 'var(--text0)' }}>{m.label}</span>
+                    <span style={{ fontSize: 12, color: 'var(--text0)' }}>{m.labelKey ? `${m.label} (${t('modelLabels.' + m.labelKey)})` : m.label}</span>
                     {value === m.id && !autoRouting && <span style={{ marginLeft: 'auto', color: 'var(--accent)', fontSize: 12 }}>✓</span>}
                   </button>
                 ))}

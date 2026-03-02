@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from 'react'
 import { getGlobalLocale } from '../i18n'
 import type { AIProvider, Message, ProviderType, ThinkingDepth } from '../lib/providers/types'
 import { BedrockProvider } from '../lib/providers/bedrock-provider'
+import { streamWithRetry } from '../lib/providers/stream-retry'
 import { createAllProviders, getProviderForModel, getModelDef } from '../lib/providers/provider-factory'
 import { routeModel } from '../lib/providers/model-router'
 import { ChatHistory, type ChatMessage, type Conversation } from '../lib/chatHistory'
@@ -33,7 +34,13 @@ async function streamWithProvider(
   thinkingDepth?: ThinkingDepth,
 ): Promise<string> {
   let fullText = ''
-  const gen = provider.stream({ model, messages, systemPrompt, signal, thinkingDepth })
+  const gen = streamWithRetry(provider, { model, messages, systemPrompt, signal, thinkingDepth }, {
+    maxRetries: 2,
+    retryDelayMs: 1000,
+    onRetry: (attempt) => {
+      onChunk(`\n\n[네트워크 오류 — 재시도 ${attempt}/2...]\n\n`)
+    },
+  })
   for await (const chunk of gen) {
     onChunk(chunk)
     fullText += chunk

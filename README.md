@@ -4,9 +4,9 @@
 
 ## Overview
 
-H Chat은 Sider 스타일의 올인원 AI 브라우저 어시스턴트입니다. AWS Bedrock Claude, OpenAI GPT, Google Gemini를 통합 지원하며, 커스텀 비서 빌더, 문서 번역/작성, 이미지 생성, 크로스 모델 토론, YouTube 분석, PDF 채팅, 검색 엔진 AI 카드, 글쓰기 어시스턴트 등 풍부한 기능을 제공합니다.
+H Chat은 Sider 스타일의 올인원 AI 브라우저 어시스턴트입니다. AWS Bedrock Claude, OpenAI GPT, Google Gemini를 통합 지원하며, 커스텀 비서 빌더, 문서 번역/작성, PPTX/PDF 번역, 템플릿 문서 작성, 이미지 생성, 크로스 모델 토론, YouTube 분석, PDF 채팅, 검색 엔진 AI 카드, 글쓰기 어시스턴트 등 풍부한 기능을 제공합니다.
 
-- **Version**: 4.2.0
+- **Version**: 4.3.0
 - **Platform**: Chrome Extension (Manifest V3)
 - **AI Providers**: AWS Bedrock (Claude), OpenAI (GPT), Google Gemini
 - **GitHub**: https://github.com/sgtlim0/hchat-v2-extension
@@ -72,7 +72,7 @@ H Chat은 Sider 스타일의 올인원 AI 브라우저 어시스턴트입니다.
 - 7가지 변환: 개선, 축약, 확장, 전문적, 캐주얼, 교정, 번역
 - 실시간 AI 변환 결과 적용
 
-### 9. 도구 패널 (ToolsView) — 15개 AI 도구
+### 9. 도구 패널 (ToolsView) — 16개 AI 도구
 | 도구 | 기능 |
 |------|------|
 | 📄 페이지 요약 | 현재 탭 내용 추출 + AI 요약 |
@@ -86,9 +86,10 @@ H Chat은 Sider 스타일의 올인원 AI 브라우저 어시스턴트입니다.
 | 📄 PDF 채팅 | PDF 업로드 후 질의응답 |
 | 📊 데이터 분석 | CSV/Excel 업로드 → 요약 통계/트렌드/이상치 분석 |
 | 🔬 딥 리서치 | 3단계 자동 리서치 (쿼리 생성 → 검색 → 리포트) |
-| 📝 문서 번역 | TXT/CSV/XLSX 파일 번역, 포맷 유지, 청크 분할 |
-| 📋 문서 작성 | 5가지 문서 유형 AI 생성, Markdown/DOCX 내보내기 |
+| 📝 문서 번역 | TXT/CSV/XLSX/PPTX/PDF 파일 번역, 포맷 유지, 청크 분할 |
+| 📋 문서 작성 | 5가지 문서 유형 AI 생성, 프로젝트 관리, Markdown/DOCX 내보내기 |
 | 🎨 이미지 생성 | DALL-E 3 (3가지 크기, Standard/HD, Vivid/Natural) |
+| 📋 템플릿 문서 | DOCX 템플릿 업로드 → {{필드}} 추출 → AI 내용 생성 |
 | 🔎 페이지 검색 | 현재 페이지 내용 검색 |
 
 ### 10. 웹 검색 + RAG
@@ -357,7 +358,7 @@ hchat-v2-extension/
     │   ├── ChatView.tsx            # 메인 채팅 (460줄)
     │   ├── GroupChatView.tsx       # 크로스 모델 비교
     │   ├── DebateView.tsx          # 크로스 모델 토론
-    │   ├── ToolsView.tsx           # 도구 패널 (15개 도구, 219줄)
+    │   ├── ToolsView.tsx           # 도구 패널 (16개 도구, 230줄)
     │   ├── PromptLibraryView.tsx   # 프롬프트 라이브러리
     │   ├── HistoryView.tsx         # 대화 기록
     │   ├── BookmarksView.tsx       # 하이라이트 관리
@@ -381,8 +382,11 @@ hchat-v2-extension/
     │   │   └── VoiceWaveform.tsx          # 음성 파형 SVG
     │   └── tools/                  # 도구 서브 컴포넌트
     │       ├── BatchOcrTool.tsx    # 배치 OCR (10장, 4모드)
-    │       ├── DocTranslateTool.tsx # 문서 번역 (TXT/CSV/XLSX)
-    │       ├── DocWriteTool.tsx    # 문서 작성 (5유형, DOCX)
+    │       ├── DocTranslateTool.tsx # 문서 번역 (TXT/CSV/XLSX/PPTX/PDF)
+    │       ├── DocWriteTool.tsx    # 문서 작성 (5유형, 프로젝트 관리, DOCX)
+    │       ├── DocProjectList.tsx  # 문서 프로젝트 목록
+    │       ├── DocProjectDetail.tsx # 문서 프로젝트 상세 + 버전 관리
+    │       ├── DocTemplateTool.tsx # 템플릿 문서 작성 (DOCX 업로드 → AI 생성)
     │       └── ImageGenTool.tsx    # 이미지 생성 (DALL-E 3)
     ├── hooks/
     │   ├── useChat.ts              # 채팅 상태 + 스트리밍 (256줄)
@@ -431,8 +435,12 @@ hchat-v2-extension/
     │   ├── messageQueue.ts         # 오프라인 메시지 큐
     │   ├── assistantBuilder.ts     # 커스텀 비서 CRUD
     │   ├── batchOcr.ts             # 배치 OCR 오케스트레이터
-    │   ├── docTranslator.ts        # 문서 번역 파이프라인
+    │   ├── docTranslator.ts        # 문서 번역 파이프라인 (TXT/CSV/XLSX/PPTX/PDF)
     │   ├── docGenerator.ts         # AI 문서 생성 엔진
+    │   ├── docProjects.ts          # 문서 프로젝트 CRUD + 버전 관리
+    │   ├── docTemplateParser.ts    # DOCX 템플릿 파싱, {{필드}} 추출
+    │   ├── docTemplateGenerator.ts # 템플릿 AI 필드 제안 + 섹션 생성
+    │   ├── pptxParser.ts           # PPTX 파싱/재조립 (JSZip)
     │   ├── imageGenerator.ts       # DALL-E 3 이미지 생성
     │   └── chartDataExtractor.ts   # 차트 데이터 자동 추출
     └── styles/
@@ -532,6 +540,8 @@ hchat-v2-extension/
 | `hchat:folders` | Folder[] | 대화 폴더 |
 | `hchat:assistants` | Assistant[] | 커스텀 비서 정의 |
 | `hchat:active-assistant` | string | 현재 활성 비서 ID |
+| `hchat:doc-projects` | DocProjectIndex[] | 문서 프로젝트 인덱스 |
+| `hchat:doc-project:{id}` | DocProject | 개별 문서 프로젝트 + 버전 |
 
 ## Manifest Permissions
 
@@ -580,6 +590,15 @@ npm run build      # 프로덕션 빌드 → dist/
 4. (선택) Google 검색 API 키 설정 (웹 검색 강화)
 
 ## 버전 히스토리
+
+### v4.3 (2026-03) — 문서 도구 확장
+
+| 기능 | 설명 |
+|------|------|
+| PPTX/PDF 번역 | PPTX: JSZip 파싱 → XML 텍스트 번역 → 재조립, PDF: 텍스트 추출 → Markdown 번역 |
+| 문서 프로젝트 관리 | 프로젝트 CRUD, 버전 관리 (최대 10), 프로젝트 저장/열기/복원 |
+| 템플릿 문서 작성 | DOCX 업로드 → {{필드}} 추출 → AI 제안 → 섹션별 AI 생성 → MD/DOCX 다운로드 |
+| 도구 확장 | 16개 도구 (템플릿 문서 추가), 589 tests (34 files) |
 
 ### v4.2 (2026-03) — 문서 도구 + 이미지 생성
 
@@ -697,17 +716,17 @@ npm run build      # 프로덕션 빌드 → dist/
 | YouTube 요약 | 자막 추출 (3단계 fallback) + AI 요약 |
 
 ### 규모 비교
-| 항목 | v1 | v2 | v3 | v3.6 | v4.2 |
-|------|:--:|:--:|:--:|:--:|:--:|
-| 소스 파일 | ~22개 | ~40개 | ~50개 | ~80개 | ~90개 |
-| 코드 라인 | ~4,000 | ~8,000 | ~10,000+ | ~15,000+ | ~18,000+ |
-| 탭 수 | 5개 | 7개 | 8개 | 8개 | 8개 |
-| lib 파일 | 6개 | 20개 | 30개 | 45개 | 50개 |
-| AI 프로바이더 | 1개 | 1개 | 3개 | 3개 | 3개 |
-| 지원 모델 | 3개 | 3개 | 9개 | 9개 | 9개 |
-| 도구 | 4개 | 8개 | 8개 | 12개 | 15개 |
-| 테스트 | 0개 | 0개 | 0개 | 365개 | 498개 (30 파일) |
-| i18n 키 | 0개 | 0개 | 0개 | 420+ | 600+ (3개 언어) |
+| 항목 | v1 | v2 | v3 | v3.6 | v4.2 | v4.3 |
+|------|:--:|:--:|:--:|:--:|:--:|:--:|
+| 소스 파일 | ~22개 | ~40개 | ~50개 | ~80개 | ~90개 | ~100개 |
+| 코드 라인 | ~4,000 | ~8,000 | ~10,000+ | ~15,000+ | ~18,000+ | ~20,000+ |
+| 탭 수 | 5개 | 7개 | 8개 | 8개 | 8개 | 8개 |
+| lib 파일 | 6개 | 20개 | 30개 | 45개 | 50개 | 55개 |
+| AI 프로바이더 | 1개 | 1개 | 3개 | 3개 | 3개 | 3개 |
+| 지원 모델 | 3개 | 3개 | 9개 | 9개 | 9개 | 9개 |
+| 도구 | 4개 | 8개 | 8개 | 12개 | 15개 | 16개 |
+| 테스트 | 0개 | 0개 | 0개 | 365개 | 498개 (30 파일) | 589개 (34 파일) |
+| i18n 키 | 0개 | 0개 | 0개 | 420+ | 600+ (3개 언어) | 650+ (3개 언어) |
 
 ## Design System
 

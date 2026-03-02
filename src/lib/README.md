@@ -2,7 +2,7 @@
 
 ## 개요
 
-비즈니스 로직과 유틸리티 함수를 캡슐화하는 라이브러리 모듈. 총 30+ 파일, 약 3,500줄. 멀티 프로바이더 API 통신, 데이터 관리, AI 기능, 검색, 음성, 내보내기/가져오기를 담당한다. 모든 모듈은 `Storage` 래퍼를 통해 `chrome.storage.local`에 접근한다.
+비즈니스 로직과 유틸리티 함수를 캡슐화하는 라이브러리 모듈. 총 40+ 파일, 약 5,000줄. 멀티 프로바이더 API 통신, 데이터 관리, AI 기능, 검색, 음성, 내보내기/가져오기를 담당한다. 모든 모듈은 `Storage` 래퍼를 통해 `chrome.storage.local`에 접근한다.
 
 ## 파일 목록
 
@@ -28,7 +28,7 @@
 |------|-------|------|
 | `chatHistory.ts` | 204 | 대화 기록 CRUD, 메시지 관리, 분기, 고정 |
 | `agent.ts` | 240 | 다중 턴 에이전트 루프 (XML 기반 도구 호출) |
-| `agentTools.ts` | 100 | 내장 도구 5종 (web_search, read_page, fetch_url, calculate, get_datetime) |
+| `agentTools.ts` | 100 | 내장 도구 8종 (web_search, read_page, fetch_url, calculate, get_datetime, translate, summarize_text, timestamp_convert) |
 | `commentAnalyzer.ts` | 200+ | YouTube 댓글 추출 및 분석 (감정, 토픽, 인사이트) [v3 신규] |
 | `pdfParser.ts` | 150+ | PDF 텍스트 추출 (pdfjs-dist 기반) [v3 신규] |
 | `insightReport.ts` | 180+ | YouTube 자막 + 댓글 통합 리포트 생성 [v3 신규] |
@@ -51,6 +51,18 @@
 | `bookmarks.ts` | 148 | 하이라이트 CRUD, XPath 유틸, 상대 시간 포맷 |
 | `tags.ts` | 59 | 대화 태그 CRUD, 자동 색상 할당, 사용 횟수 |
 | `storage.ts` | 20 | chrome.storage.local 래퍼 (get/set/remove/getAll) |
+
+### 문서 도구 모듈 (v4.1~v4.3)
+
+| 파일 | 줄 수 | 설명 |
+|------|-------|------|
+| `docTranslator.ts` | 270+ | 문서 번역 파이프라인 (TXT/CSV/XLSX/PPTX/PDF), 청크 분할, 포맷 유지 |
+| `docGenerator.ts` | 190+ | AI 문서 생성 (5유형), 목차→본문 파이프라인, DOCX 내보내기 |
+| `docProjects.ts` | 200+ | 문서 프로젝트 CRUD + 버전 관리 (최대 10 FIFO) [v4.3 신규] |
+| `docTemplateParser.ts` | 220+ | DOCX 템플릿 파싱, `{{필드}}` 추출, fillTemplate [v4.3 신규] |
+| `docTemplateGenerator.ts` | 160+ | 템플릿 필드 AI 제안, 섹션별 AI 확장 생성 [v4.3 신규] |
+| `pptxParser.ts` | 130+ | PPTX 파싱/재조립 (JSZip + DOMParser, `<a:t>` 노드) [v4.3 신규] |
+| `imageGenerator.ts` | 100+ | DALL-E 3 이미지 생성 (3크기, HD/Standard) [v4.2 신규] |
 
 ### 설정/UI 모듈
 
@@ -270,6 +282,8 @@ stt.ts / tts.ts     (Web Speech API만 사용)
 | `hchat:page-context` | pageContext | 현재 페이지 컨텍스트 |
 | `hchat:page-context-enabled` | pageContext | 컨텍스트 활성화 상태 |
 | `hchat:config` | (useConfig) | 전체 설정 객체 |
+| `hchat:doc-projects` | docProjects | 문서 프로젝트 인덱스 [v4.3 신규] |
+| `hchat:doc-project:{id}` | docProjects | 개별 프로젝트 + 버전 [v4.3 신규] |
 
 ## 설계 원칙
 

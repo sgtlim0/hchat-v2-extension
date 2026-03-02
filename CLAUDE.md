@@ -12,7 +12,7 @@ H Chat is a Chrome Extension (Manifest V3) that provides a multi-AI sidebar assi
 npm run build    # Production build to dist/
 npm run dev      # Watch mode (vite build --watch)
 npm run clean    # Remove dist/
-npm test         # Run all tests (Vitest, 498 tests, 30 files)
+npm test         # Run all tests (Vitest, 589 tests, 34 files)
 npm run lint     # ESLint (flat config)
 ```
 
@@ -70,6 +70,7 @@ All persistence uses `chrome.storage.local` via `src/lib/storage.ts` wrapper. Ke
 - `hchat:search-index` — Inverted search index cache
 - `hchat:assistants` — Custom assistant definitions
 - `hchat:active-assistant` — Currently active assistant ID
+- `hchat:doc-projects` / `hchat:doc-project:*` — Document project management
 
 ### Styling
 
@@ -86,7 +87,7 @@ Haiku 4.5:  us.anthropic.claude-haiku-4-5-20251001-v1:0  (-v1:0)
 
 ### Internationalization (`src/i18n/`)
 
-3 locales: Korean (primary), English, Japanese. Lightweight custom implementation — `t()` function + `useLocale()` hook. 420+ keys per locale. Content scripts use `tSync()` + `getLocale()`.
+3 locales: Korean (primary), English, Japanese. Lightweight custom implementation — `t()` function + `useLocale()` hook. 650+ keys per locale. Content scripts use `tSync()` + `getLocale()`.
 
 ## Key Constraints
 
@@ -94,4 +95,4 @@ Haiku 4.5:  us.anthropic.claude-haiku-4-5-20251001-v1:0  (-v1:0)
 - Files should stay under 800 lines; extract into separate files if approaching limit
 - Korean is the primary UI language, with English and Japanese translations
 - Immutable patterns throughout (never mutate objects)
-- Tests: Vitest with chrome.storage.local mock, 498 tests across 30 files
+- Tests: Vitest with chrome.storage.local mock, 589 tests across 34 files

@@ -130,14 +130,24 @@ export function App() {
     <div className="app">
       <div className="topbar">
         <div className="logo">H</div>
-        <div className="tab-bar">
-          {TABS_BASE.map((tb) => (
+        <div className="tab-bar" role="tablist" aria-label="Main navigation">
+          {TABS_BASE.map((tb, i) => (
             <button
               key={tb.id}
+              role="tab"
+              aria-selected={tab === tb.id}
+              tabIndex={tab === tb.id ? 0 : -1}
               className={`tab-btn ${tab === tb.id ? 'active' : ''}`}
               onClick={() => setTab(tb.id)}
+              onKeyDown={(e) => {
+                const len = TABS_BASE.length
+                if (e.key === 'ArrowRight') { e.preventDefault(); const next = TABS_BASE[(i + 1) % len]; setTab(next.id); (e.currentTarget.parentElement?.children[(i + 1) % len] as HTMLElement)?.focus() }
+                if (e.key === 'ArrowLeft') { e.preventDefault(); const prev = TABS_BASE[(i - 1 + len) % len]; setTab(prev.id); (e.currentTarget.parentElement?.children[(i - 1 + len) % len] as HTMLElement)?.focus() }
+                if (e.key === 'Home') { e.preventDefault(); setTab(TABS_BASE[0].id); (e.currentTarget.parentElement?.children[0] as HTMLElement)?.focus() }
+                if (e.key === 'End') { e.preventDefault(); setTab(TABS_BASE[len - 1].id); (e.currentTarget.parentElement?.children[len - 1] as HTMLElement)?.focus() }
+              }}
             >
-              <span className="tab-icon">{tb.icon}</span>
+              <span className="tab-icon" aria-hidden="true">{tb.icon}</span>
               <span>{t(`tabs.${tb.id}`)}</span>
             </button>
           ))}
@@ -153,7 +163,7 @@ export function App() {
         onSelect={(convId) => { setLoadConvId(convId); setTab('chat') }}
       />
 
-      <div className={`content ${tab === 'chat' || tab === 'group' || tab === 'debate' ? 'flex-col' : ''}`}>
+      <div className={`content ${tab === 'chat' || tab === 'group' || tab === 'debate' ? 'flex-col' : ''}`} role="tabpanel" aria-label={t(`tabs.${tab}`)}>
         {tab === 'chat' && (
           <ChatView
             config={config}

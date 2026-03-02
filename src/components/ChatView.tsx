@@ -21,7 +21,7 @@ import { UsageAlertBanner } from './chat/UsageAlertBanner'
 import { DeepResearchToggle } from './chat/DeepResearchToggle'
 import { streamDeepResearch, type ResearchProgress, type SourceRef } from '../lib/deepResearch'
 import { createAllProviders, getProviderForModel } from '../lib/providers/provider-factory'
-import { checkUsageAlert, type UsageAlertState } from '../lib/usageAlert'
+import { checkAndNotify, type UsageAlertState } from '../lib/usageAlert'
 import type { Config } from '../hooks/useConfig'
 import type { ThinkingDepth } from '../lib/providers/types'
 
@@ -94,7 +94,7 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
 
   useEffect(() => {
     if (config.budget.monthly > 0) {
-      checkUsageAlert(config.budget).then(setUsageAlert)
+      checkAndNotify(config.budget).then(setUsageAlert)
     }
   }, [config.budget, isLoading]) // re-check after each message
 

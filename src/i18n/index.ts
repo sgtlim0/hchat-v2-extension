@@ -3,12 +3,13 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import ko from './ko'
 import en from './en'
+import ja from './ja'
 
-export type Locale = 'ko' | 'en'
+export type Locale = 'ko' | 'en' | 'ja'
 
 type Translations = typeof ko
 
-const translations: Record<Locale, Translations> = { ko, en }
+const translations: Record<Locale, Translations> = { ko, en, ja }
 
 let currentLocale: Locale = 'ko'
 
@@ -50,7 +51,9 @@ export async function getLocale(): Promise<Locale> {
   try {
     const result = await chrome.storage.local.get('hchat:config')
     const lang = result['hchat:config']?.language
-    return lang === 'en' ? 'en' : 'ko'
+    if (lang === 'en') return 'en'
+    if (lang === 'ja') return 'ja'
+    return 'ko'
   } catch {
     return 'ko'
   }
@@ -74,7 +77,9 @@ export function useLocale() {
   useEffect(() => {
     chrome.storage.local.get('hchat:config', (result) => {
       const lang = result['hchat:config']?.language
-      const resolved: Locale = lang === 'en' ? 'en' : 'ko'
+      let resolved: Locale = 'ko'
+      if (lang === 'en') resolved = 'en'
+      else if (lang === 'ja') resolved = 'ja'
       currentLocale = resolved
       setLocaleState(resolved)
     })
@@ -83,7 +88,9 @@ export function useLocale() {
     const handler = (changes: Record<string, chrome.storage.StorageChange>) => {
       if (changes['hchat:config']) {
         const lang = changes['hchat:config'].newValue?.language
-        const resolved: Locale = lang === 'en' ? 'en' : 'ko'
+        let resolved: Locale = 'ko'
+        if (lang === 'en') resolved = 'en'
+        else if (lang === 'ja') resolved = 'ja'
         currentLocale = resolved
         setLocaleState(resolved)
       }

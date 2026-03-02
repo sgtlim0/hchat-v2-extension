@@ -51,6 +51,22 @@ describe('Storage', () => {
     })
   })
 
+  describe('setMultiple', () => {
+    it('stores multiple key-value pairs at once', async () => {
+      await Storage.setMultiple({ 'key1': 'value1', 'key2': 'value2', 'key3': 'value3' })
+      expect(await Storage.get('key1')).toBe('value1')
+      expect(await Storage.get('key2')).toBe('value2')
+      expect(await Storage.get('key3')).toBe('value3')
+    })
+
+    it('overwrites existing values', async () => {
+      await Storage.set('existing', 'old')
+      await Storage.setMultiple({ 'existing': 'new', 'other': 'data' })
+      expect(await Storage.get('existing')).toBe('new')
+      expect(await Storage.get('other')).toBe('data')
+    })
+  })
+
   describe('getAll', () => {
     it('returns empty object when no keys match', async () => {
       expect(await Storage.getAll('prefix:')).toEqual({})

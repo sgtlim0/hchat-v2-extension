@@ -1,5 +1,6 @@
 import { useLocale } from '../../i18n'
 import { STT } from '../../lib/stt'
+import { VoiceWaveform } from './VoiceWaveform'
 import type { Prompt } from '../../lib/promptLibrary'
 
 interface ChatInputAreaProps {
@@ -49,8 +50,18 @@ export function ChatInputArea({
 }: ChatInputAreaProps) {
   const { t } = useLocale()
 
+  const isListening = STT.getState() === 'listening'
+
   return (
-    <div className="input-area">
+    <div className={`input-area${voiceMode ? ' voice-mode-active' : ''}`}>
+      {voiceMode && (
+        <div className="voice-mode-indicator">
+          <div className="voice-mode-pulse">🎙️</div>
+          <VoiceWaveform isListening={isListening} />
+          <span className="voice-mode-text">{t('chat.voiceModeActive')}</span>
+        </div>
+      )}
+
       {attachment && (
         <div className="input-attachments">
           <div className="attachment-chip">
@@ -87,6 +98,7 @@ export function ChatInputArea({
             onKeyDown={onKeyDown}
             placeholder={agentMode ? t('chat.agentPlaceholder') : t('chat.placeholder')}
             rows={1}
+            disabled={voiceMode}
           />
           <div className="input-actions">
             <input ref={fileRef} type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={onFileSelect} />

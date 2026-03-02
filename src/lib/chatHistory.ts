@@ -1,6 +1,7 @@
 import { Storage } from './storage'
 import { t } from '../i18n'
 import type { AgentStep } from './agent'
+import { updateIndexForMessage, removeFromIndex } from './messageSearch'
 
 export interface ChatMessage {
   id: string
@@ -66,6 +67,8 @@ export const ChatHistory = {
     }
     await Storage.set(PREFIX + convId, conv)
     await this._updateIndex(conv)
+    // Update search index incrementally
+    await updateIndexForMessage(conv.id, conv.title, m).catch((err) => console.error('Failed to update search index:', err))
     return m
   },
 
@@ -81,6 +84,8 @@ export const ChatHistory = {
     await Storage.remove(PREFIX + id)
     const idx = await this.listIndex()
     await Storage.set(INDEX_KEY, idx.filter((c) => c.id !== id))
+    // Remove from search index
+    await removeFromIndex(id).catch((err) => console.error('Failed to remove from search index:', err))
   },
 
   async pin(id: string, pinned: boolean): Promise<void> {

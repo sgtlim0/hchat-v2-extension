@@ -6,6 +6,9 @@ export const Storage = {
   async set<T>(key: string, value: T): Promise<void> {
     await chrome.storage.local.set({ [key]: value })
   },
+  async setMultiple(data: Record<string, unknown>): Promise<void> {
+    await chrome.storage.local.set(data)
+  },
   async remove(key: string): Promise<void> {
     await chrome.storage.local.remove(key)
   },

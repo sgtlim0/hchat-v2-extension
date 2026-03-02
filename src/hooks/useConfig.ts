@@ -11,6 +11,8 @@ export interface BudgetConfig {
   monthly: number         // Monthly budget in USD, 0 = disabled
   warnThreshold: number   // Warning threshold (%), default 70
   critThreshold: number   // Critical threshold (%), default 90
+  webhookUrl: string      // Slack/Discord/generic webhook URL for alerts
+  webhookEnabled: boolean // Whether webhook notification is enabled
 }
 
 export interface Config {
@@ -42,7 +44,7 @@ const DEFAULTS: Config = {
   enableWebSearch: true,
   googleSearchApiKey: '',
   googleSearchEngineId: '',
-  budget: { monthly: 0, warnThreshold: 70, critThreshold: 90 },
+  budget: { monthly: 0, warnThreshold: 70, critThreshold: 90, webhookUrl: '', webhookEnabled: false },
 }
 
 export function useConfig() {

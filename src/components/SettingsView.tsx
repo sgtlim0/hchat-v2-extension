@@ -258,6 +258,7 @@ export default function SettingsView() {
           <select className="select" value={config.language} onChange={(e) => update({ language: e.target.value })}>
             <option value="ko">한국어</option>
             <option value="en">English</option>
+            <option value="ja">日本語</option>
           </select>
         </div>
 
@@ -342,6 +343,24 @@ export default function SettingsView() {
               <span style={{ fontSize: 12, color: 'var(--text2)' }}>%</span>
             </div>
           </div>
+        </div>
+        <div className="field">
+          <label className="field-label">{t('settings.webhookUrl')}</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <input className="input" type="url" style={{ flex: 1 }}
+              value={config.budget.webhookUrl || ''}
+              placeholder="https://hooks.slack.com/services/..."
+              onChange={(e) => update({ budget: { ...config.budget, webhookUrl: e.target.value } })} />
+          </div>
+          <div className="field-hint">{t('settings.webhookHint')}</div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <input type="checkbox" id="webhookEnabled"
+            checked={config.budget.webhookEnabled || false}
+            onChange={(e) => update({ budget: { ...config.budget, webhookEnabled: e.target.checked } })} />
+          <label htmlFor="webhookEnabled" style={{ fontSize: 12, color: 'var(--text1)', cursor: 'pointer' }}>
+            {t('settings.webhookEnable')}
+          </label>
         </div>
       </div>
 

@@ -1,8 +1,8 @@
 // lib/agent.ts — Multi-turn agent loop with tool calling
 // Uses text-based tool parsing (XML tags) for cross-provider compatibility
 
-import { streamChatLive, type Message } from './models'
-import type { AIProvider } from './providers/types'
+import type { AIProvider, Message } from './providers/types'
+import { BedrockProvider } from './providers/bedrock-provider'
 import type { AwsCredentials } from '../hooks/useConfig'
 import { getGlobalLocale } from '../i18n'
 
@@ -154,19 +154,20 @@ async function streamStep(
     return fullResponse
   }
 
+  // Fallback: create BedrockProvider directly from AWS credentials
+  const fallback = new BedrockProvider(opts.aws)
   let fullResponse = ''
-  await streamChatLive({
-    aws: opts.aws,
+  const gen = fallback.stream({
     model: opts.model,
     messages: history,
     systemPrompt,
     maxTokens: 4096,
-    onChunk: (chunk) => {
-      fullResponse += chunk
-      onChunk?.(chunk)
-    },
     signal: opts.signal,
   })
+  for await (const chunk of gen) {
+    fullResponse += chunk
+    onChunk?.(chunk)
+  }
   return fullResponse
 }
 

@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react'
 import { getGlobalLocale } from '../i18n'
-import { streamChatLive, type Message } from '../lib/models'
-import type { AIProvider, ProviderType, ThinkingDepth } from '../lib/providers/types'
+import type { AIProvider, Message, ProviderType, ThinkingDepth } from '../lib/providers/types'
+import { BedrockProvider } from '../lib/providers/bedrock-provider'
 import { createAllProviders, getProviderForModel, getModelDef } from '../lib/providers/provider-factory'
 import { routeModel } from '../lib/providers/model-router'
 import { ChatHistory, type ChatMessage, type Conversation } from '../lib/chatHistory'
@@ -235,18 +235,20 @@ export function useChat(config: Config) {
             opts?.thinkingDepth,
           )
         } else {
-          await streamChatLive({
-            aws: config.aws,
+          // Fallback: create BedrockProvider directly from AWS credentials
+          const fallback = new BedrockProvider(config.aws)
+          await streamWithProvider(
+            fallback,
             model,
-            messages: historyMsgs,
+            historyMsgs,
             systemPrompt,
-            onChunk: (chunk) => {
+            (chunk) => {
               setMessages((prev) =>
                 prev.map((m) => m.id === placeholderId ? { ...m, content: m.content + chunk } : m)
               )
             },
-            signal: abortRef.current.signal,
-          })
+            abortRef.current.signal,
+          )
         }
 
         // Finalize

@@ -3,7 +3,7 @@ import { useLocale } from '../i18n'
 import { ChatHistory } from '../lib/chatHistory'
 import { Tags, type TagDef } from '../lib/tags'
 import { Folders, type Folder } from '../lib/folders'
-import { MODELS } from '../lib/models'
+import { getModelEmoji } from '../lib/providers/provider-factory'
 import { importFromFile, getSourceLabel } from '../lib/importChat'
 
 interface Props {
@@ -67,7 +67,7 @@ export default function HistoryView({ onSelect, activeId }: Props) {
     return new Date(ts).toLocaleDateString(locale === 'en' ? 'en-US' : 'ko-KR')
   }
 
-  const modelEmoji = (modelId: string) => MODELS.find((m) => m.id === modelId)?.emoji ?? '🤖'
+  const modelEmoji = (modelId: string) => getModelEmoji(modelId)
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation()

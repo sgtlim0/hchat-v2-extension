@@ -1,6 +1,7 @@
 /** AI-powered conversation summarization */
 
-import { streamChatLive, type Message } from './models'
+import type { Message } from './providers/types'
+import { BedrockProvider } from './providers/bedrock-provider'
 import type { AwsCredentials } from '../hooks/useConfig'
 import type { Conversation } from './chatHistory'
 
@@ -37,15 +38,17 @@ export async function generateSummary(
     content: `다음 대화를 3~5줄로 요약해주세요. 핵심 주제, 결론, 중요 정보를 포함해주세요. 한국어로 작성하세요.\n\n${convText}`,
   }]
 
+  const provider = new BedrockProvider(aws)
   let result = ''
-  await streamChatLive({
-    aws,
+  const gen = provider.stream({
     model: targetModel,
     messages,
     systemPrompt: '당신은 대화 요약 전문가입니다. 간결하고 정확하게 요약해주세요.',
     maxTokens: 512,
-    onChunk: (chunk) => { result += chunk },
   })
+  for await (const chunk of gen) {
+    result += chunk
+  }
 
   return result.trim()
 }

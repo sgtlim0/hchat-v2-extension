@@ -2,7 +2,7 @@
 
 import type { AIProvider, ModelDef, SendParams, ContentPart, ProviderType } from './types'
 
-const OPENAI_MODELS: ModelDef[] = [
+export const OPENAI_MODELS: ModelDef[] = [
   {
     id: 'gpt-4o',
     provider: 'openai',

@@ -1,9 +1,12 @@
 // providers/provider-factory.ts — Create and manage provider instances
 
 import type { AIProvider, ModelDef, ProviderType } from './types'
-import { BedrockProvider, type BedrockCredentials } from './bedrock-provider'
-import { OpenAIProvider } from './openai-provider'
-import { GeminiProvider } from './gemini-provider'
+import { BedrockProvider, BEDROCK_MODELS, type BedrockCredentials } from './bedrock-provider'
+import { OpenAIProvider, OPENAI_MODELS } from './openai-provider'
+import { GeminiProvider, GEMINI_MODELS } from './gemini-provider'
+
+/** Static list of all model definitions (no credentials needed) */
+const ALL_STATIC_MODELS: ModelDef[] = [...BEDROCK_MODELS, ...OPENAI_MODELS, ...GEMINI_MODELS]
 
 export interface ProviderConfigs {
   bedrock: BedrockCredentials
@@ -47,4 +50,14 @@ export function getModelDef(modelId: string, providers: AIProvider[]): ModelDef 
     if (m) return m
   }
   return undefined
+}
+
+/** Get model emoji without needing provider instances (uses static model definitions) */
+export function getModelEmoji(modelId: string): string {
+  return ALL_STATIC_MODELS.find((m) => m.id === modelId)?.emoji ?? '🤖'
+}
+
+/** Get static model definition without needing provider instances */
+export function getStaticModelDef(modelId: string): ModelDef | undefined {
+  return ALL_STATIC_MODELS.find((m) => m.id === modelId)
 }

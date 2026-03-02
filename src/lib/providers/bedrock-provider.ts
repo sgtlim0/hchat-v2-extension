@@ -9,7 +9,7 @@ export interface BedrockCredentials {
   region: string
 }
 
-const BEDROCK_MODELS: ModelDef[] = [
+export const BEDROCK_MODELS: ModelDef[] = [
   {
     id: 'us.anthropic.claude-sonnet-4-6',
     provider: 'bedrock',

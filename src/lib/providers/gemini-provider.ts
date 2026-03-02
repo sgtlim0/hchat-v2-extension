@@ -2,7 +2,7 @@
 
 import type { AIProvider, ModelDef, SendParams, ContentPart, ProviderType } from './types'
 
-const GEMINI_MODELS: ModelDef[] = [
+export const GEMINI_MODELS: ModelDef[] = [
   {
     id: 'gemini-2.0-flash',
     provider: 'gemini',

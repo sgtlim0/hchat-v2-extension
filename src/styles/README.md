@@ -1,133 +1,186 @@
-# src/styles/ — 디자인 시스템
+# src/styles/
 
 ## 개요
 
-H Chat v2의 전역 CSS 디자인 시스템. CSS 변수 기반 Light/Dark 테마, 컴포넌트 스타일, 애니메이션, 타이포그래피를 정의한다. 약 33KB, 1,200줄 이상의 포괄적인 스타일시트.
+H Chat v2의 전역 CSS 디자인 시스템. 단일 파일(`global.css`)에 CSS 변수 기반 다크 테마, 20개 이상의 컴포넌트 스타일, 애니메이션, 타이포그래피를 정의한다. 외부 CSS 프레임워크 없이 순수 CSS로 구현.
 
 ## 파일 목록
 
-| 파일 | 크기 | 설명 |
-|------|-----:|------|
-| `global.css` | ~33KB | 전역 디자인 시스템 (유일한 CSS 파일) |
+| 파일 | 줄 수 | 크기 | 설명 |
+|------|-------|------|------|
+| `global.css` | 1,986 | ~33KB | 전역 디자인 시스템 (유일한 CSS 파일) |
+
+## 섹션 구조
+
+| 줄 범위 | 섹션 | 설명 |
+|---------|------|------|
+| 1-63 | **Design System** | CSS 변수, 리셋, 기본 스타일, 스크롤바 |
+| 64-146 | **Layout** | `.app`, `.topbar`, `.tab-bar`, `.content`, `.logo` |
+| 147-198 | **Buttons** | `.btn`, `.btn-primary`, `.btn-secondary`, `.btn-ghost`, `.icon-btn` |
+| 199-222 | **Form** | `.input`, `.textarea`, `.select`, `.field-input` |
+| 223-243 | **Badges & Chips** | `.badge`, `.badge-green`, `.badge-red`, `.tag` |
+| 244-594 | **Chat** | 메시지 버블, 마크다운 렌더링, 코드 블록, 입력 영역, 제안 카드, 에이전트 스텝 |
+| 595-618 | **Sidebar / Panel Common** | 패널 공통 스타일 |
+| 619-641 | **History** | 대화 기록 목록, 항목, 태그 |
+| 642-711 | **Group Chat** | 그룹 채팅 모델 선택, 응답 그리드 |
+| 712-807 | **Tools** | 도구 카드, 결과 영역, 입력 폼 |
+| 808-887 | **Settings** | 설정 섹션, 토글 스위치, AWS 상태 |
+| 888-912 | **Prompt Library** | 프롬프트 카드, 카테고리 필터 |
+| 913-989 | **Misc** | 스피너, 오버레이, 토스트, `fadeUp` 애니메이션 |
+| 990-1029 | **Export Menu** | 내보내기 드롭다운 메뉴 |
+| 1030-1057 | **Keyboard Shortcuts UI** | 단축키 표시 (`<kbd>` 스타일) |
+| 1058-1107 | **Web Search** | 검색 소스 칩, 검색 중 인디케이터 |
+| 1108-1740 | **Bookmarks / Highlights** | 북마크 뷰, 하이라이트 색상, 메모 편집 |
+| 1741-1875 | **Message Search Modal** | 검색 모달 오버레이, 결과 하이라이팅 |
+| 1876-1920 | **Summary Panel** | 대화 요약 패널 |
+| 1921-1986 | **Pinned Messages Panel** | 고정 메시지 사이드 패널 |
 
 ## 디자인 토큰 (CSS 변수)
 
-### 색상 체계
+### 색상 체계 (Dark Obsidian 테마)
 
-| 토큰 | Light | Dark | 용도 |
-|------|-------|------|------|
-| `--bg0` | `#FFFFFF` | `#0D1117` | 페이지 배경 |
-| `--bg1` | `#F6F8FA` | `#161B22` | 사이드바/패널 배경 |
-| `--bg2` | `#F0F2F5` | `#1C2128` | 카드/입력 배경 |
-| `--bg3` | `#E8ECF0` | `#2D333B` | 호버 상태 |
-| `--text0` | `#1F2328` | `#E6EDF3` | 주요 텍스트 |
-| `--text1` | `#424A53` | `#C9D1D9` | 보조 텍스트 |
-| `--text2` | `#636C76` | `#8B949E` | 3차 텍스트 |
-| `--text3` | `#8C959F` | `#6E7681` | 비활성 텍스트 |
-| `--accent` | `#34D399` | `#34D399` | 브랜드 액센트 (에메랄드) |
-| `--border` | `#D0D7DE` | `#30363D` | 기본 테두리 |
-| `--danger` | `#EF4444` | `#F87171` | 위험/삭제 |
-| `--success` | `#22C55E` | `#34D399` | 성공 |
+```css
+:root {
+  /* 배경 — 어두운 것부터 밝은 것까지 */
+  --bg0: #080b0e;        /* 페이지 배경 */
+  --bg1: #0e1318;        /* 사이드바/패널 */
+  --bg2: #141b24;        /* 카드/입력 */
+  --bg3: #1a2233;        /* 호버 */
+  --bg4: #212d40;        /* 활성 */
+  --bg5: #2a3a52;        /* 스크롤바 */
+
+  /* 테두리 */
+  --border:  rgba(255,255,255,0.06);
+  --border2: rgba(255,255,255,0.1);
+  --border3: rgba(255,255,255,0.16);
+
+  /* 텍스트 */
+  --text0: #eef1f5;      /* 주요 텍스트 */
+  --text1: #adb8c8;      /* 보조 텍스트 */
+  --text2: #6b7c93;      /* 3차 텍스트 */
+  --text3: #3d4f65;      /* 비활성 */
+
+  /* 브랜드 / 액센트 (Emerald) */
+  --accent:     #34d399;
+  --accent2:    #10b981;
+  --accent-dim: rgba(52,211,153,0.1);
+  --accent-glow: rgba(52,211,153,0.25);
+
+  /* 시맨틱 색상 */
+  --purple: #a78bfa;
+  --blue:   #60a5fa;
+  --amber:  #fbbf24;
+  --red:    #f87171;
+  --red-dim: rgba(248,113,113,0.1);
+}
+```
 
 ### 타이포그래피
 
 ```css
---font-sans: 'IBM Plex Sans KR', -apple-system, sans-serif;
---font-mono: 'IBM Plex Mono', 'JetBrains Mono', monospace;
+--mono: 'IBM Plex Mono', monospace;
+--sans: 'IBM Plex Sans KR', 'Noto Sans KR', sans-serif;
 ```
 
-- **본문**: 13px, line-height 1.6
-- **소형**: 12px (버튼, 레이블)
-- **초소형**: 10-11px (힌트, 메타데이터)
-- **코드**: IBM Plex Mono, 12.5px
+| 용도 | 크기 | 가중치 |
+|------|------|--------|
+| 본문 | 13px, line-height 1.6 | 400 |
+| 소형 (버튼, 레이블) | 12px | 500 |
+| 초소형 (힌트, 메타) | 10-11px | 300-400 |
+| 코드 | 12.5px | 400 |
+| 제목 (h1-h3) | 16-20px | 600-700 |
+
+### 공간 / 모서리 / 그림자
+
+```css
+--radius:    10px;
+--radius-sm: 6px;
+--radius-lg: 14px;
+--shadow:    0 4px 24px rgba(0,0,0,0.4);
+--shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
+```
 
 ## 주요 컴포넌트 스타일
 
-### 레이아웃
+### 메시지 버블
 
 | 클래스 | 설명 |
 |--------|------|
-| `.app` | 전체 앱 컨테이너 (flex column, 100vh) |
-| `.topbar` | 상단 탭 바 (고정) |
-| `.tab-bar` / `.tab-btn` | 탭 네비게이션 |
-| `.content` | 메인 컨텐츠 영역 (flex: 1, 스크롤) |
+| `.msg` | 메시지 컨테이너 (fadeUp 애니메이션) |
+| `.msg-user` | 사용자 메시지 정렬 |
+| `.msg-user .msg-text` | 에메랄드 그라디언트 배경 (`#183b2e` → `#0e2a1f`) |
+| `.msg-ai` | AI 메시지 정렬 |
+| `.msg-ai .msg-text` | 투명 배경, 마크다운 렌더링 |
+| `.msg-actions` | 복사/편집/TTS/핀 버튼 (호버 시 표시) |
 
-### 채팅
+### 코드 블록
 
-| 클래스 | 설명 |
-|--------|------|
-| `.chat-container` | 채팅 뷰 래퍼 |
-| `.chat-messages` | 메시지 목록 (스크롤) |
-| `.msg` / `.msg-user` / `.msg-ai` | 메시지 버블 |
-| `.msg-user .msg-text` | 사용자 메시지 (에메랄드 배경) |
-| `.msg-ai .msg-text` | AI 메시지 (배경 없음, 마크다운 렌더링) |
-| `.chat-input-area` | 하단 입력 영역 |
-| `.chat-input-wrapper` | 입력 + 버튼 래퍼 |
+```css
+.msg-text pre {
+  background: #080b0e;
+  border-radius: 8px;
+  overflow-x: auto;
+}
+.code-header {
+  background: rgba(255,255,255,0.03);
+  /* 언어 라벨 + 복사 버튼 */
+}
+```
 
-### 도구 호출 시각화
+### 에이전트 스텝
 
-| 클래스 | 설명 |
-|--------|------|
-| `.agent-step` | 에이전트 스텝 컨테이너 |
-| `.agent-step-header` | 스텝 헤더 (접기/펼치기) |
-| `.agent-tool-call` | 도구 호출 블록 |
-| `.agent-tool-result` | 도구 결과 블록 |
+```css
+.agent-step { border-left: 2px solid var(--accent-dim); }
+.agent-step-thinking { border-color: var(--purple); }
+.agent-step-tool_call { border-color: var(--blue); }
+.agent-step-tool_result { border-color: var(--accent); }
+```
 
-### 마크다운 렌더링
+### 토글 스위치
 
-| 클래스 | 설명 |
-|--------|------|
-| `.msg-text h1`~`h6` | 제목 스타일 |
-| `.msg-text pre` / `code` | 코드 블록 (다크 배경) |
-| `.msg-text table` | 테이블 (테두리, 호버) |
-| `.msg-text blockquote` | 인용문 (좌측 보더) |
-| `.msg-text ul` / `ol` | 목록 스타일 |
-
-### 설정
-
-| 클래스 | 설명 |
-|--------|------|
-| `.settings-view` | 설정 뷰 래퍼 |
-| `.settings-section` | 설정 섹션 그룹 |
-| `.settings-row` | 설정 항목 행 |
-| `.toggle` / `.toggle-on` | 토글 스위치 |
-| `.field-input` / `.field-select` | 폼 입력 필드 |
-
-### 기록/북마크
-
-| 클래스 | 설명 |
-|--------|------|
-| `.history-view` | 기록 뷰 래퍼 |
-| `.history-item` | 대화 항목 (호버, 액티브) |
-| `.bookmark-item` | 북마크 항목 |
-| `.tag` | 태그 칩 |
+```css
+.toggle { width: 36px; height: 20px; border-radius: 10px; }
+.toggle-on { background: var(--accent); }
+.toggle-on::after { transform: translateX(16px); }
+```
 
 ## 애니메이션
 
-| 이름 | 용도 |
-|------|------|
-| `@keyframes fadeUp` | 메시지 등장 (위로 슬라이드) |
-| `@keyframes blink` | 커서 깜빡임 |
-| `@keyframes spin` | 로딩 스피너 |
-| `@keyframes pulse` | 스트리밍 인디케이터 |
-
-## 다크모드 전환
-
-```css
-:root { /* Light 테마 변수 */ }
-:root[data-theme='dark'] { /* Dark 테마 변수 오버라이드 */ }
-```
-
-`SettingsView`에서 `document.documentElement.dataset.theme` 토글로 전환.
+| 이름 | 속성 | 용도 |
+|------|------|------|
+| `fadeUp` | `opacity 0→1`, `translateY 8px→0` | 메시지 등장 (0.2s) |
+| `blink` | `opacity 1→0→1` | 스트리밍 커서 깜빡임 (0.8s) |
+| `spin` | `rotate 0→360` | 로딩 스피너 (0.8s) |
+| `pulse` | `opacity 1→0.4→1` | 검색 중 인디케이터 (1.2s) |
 
 ## 반응형
 
-- 사이드패널 고정 너비 (Chrome 사이드패널 제약)
-- 메시지 버블 `max-width: 85%`
-- 코드 블록 가로 스크롤
-- 모바일 미지원 (Chrome 확장 전용)
+사이드패널은 Chrome이 관리하는 고정 너비이므로 미디어 쿼리를 사용하지 않는다.
+
+- 메시지 버블: `max-width: 85%`
+- 코드 블록: `overflow-x: auto` (가로 스크롤)
+- 테이블: `overflow-x: auto` 래퍼
+
+## 글꼴 로드
+
+```css
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,400&family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap');
+```
+
+- **IBM Plex Sans KR**: 본문 (300-700 가중치)
+- **IBM Plex Mono**: 코드, 모노스페이스 (300-600 가중치, 이탤릭 포함)
 
 ## 의존성
 
-- Google Fonts: IBM Plex Sans KR (300-700), IBM Plex Mono (300-600)
-- 외부 CSS 프레임워크 없음 (순수 CSS)
+| 대상 | 관계 |
+|------|------|
+| Google Fonts CDN | 런타임 글꼴 로드 |
+| `popup/main.tsx` | 임포트 |
+| `sidepanel/main.tsx` | 임포트 |
+| 모든 `components/*.tsx` | CSS 클래스 참조 |
+
+## 다른 디렉토리와의 관계
+
+- **components/** — 모든 컴포넌트가 이 CSS 클래스를 사용
+- **popup/** — CSS 변수만 참조 (인라인 스타일 주체)
+- **content/toolbar.ts** — 별도 인라인 CSS 사용 (이 파일 미참조, 웹페이지 격리)

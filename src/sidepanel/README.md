@@ -1,192 +1,117 @@
-# sidepanel
+# src/sidepanel/
 
 ## 개요
 
-Chrome Extension 사이드패널의 메인 앱입니다. 채팅, 설정, 도구 등 모든 기능이 통합된 UI를 제공합니다.
+확장의 메인 UI. Chrome 사이드패널에 렌더링되는 탭 기반 SPA로, 채팅/그룹채팅/도구/프롬프트/기록/북마크/설정 7개 탭으로 구성된다. 모든 핵심 기능은 이 사이드패널을 통해 제공된다.
 
-## 파일 구조
+## 파일 목록
 
-### main.tsx (7줄)
+| 파일 | 줄 수 | 설명 |
+|------|-------|------|
+| `main.tsx` | 7 | React 엔트리 포인트 — `#root`에 `App` 마운트 |
+| `App.tsx` | 168 | 메인 앱 쉘 — 탭 네비게이션, 키보드 단축키, 검색 모달 통합 |
 
-React 앱 진입점입니다.
+## main.tsx
 
 ```typescript
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import { App } from './App'
-
 createRoot(document.getElementById('root')!).render(
   <StrictMode><App /></StrictMode>
 )
 ```
 
-- React 19의 `createRoot` 사용
-- StrictMode로 개발 경고 활성화
-- `#root` 요소에 마운트
+React 18 `createRoot` + StrictMode 사용.
 
----
+## App.tsx
 
-### App.tsx (168줄)
+### 탭 정의
 
-사이드패널 메인 앱 컴포넌트입니다. 탭 기반 네비게이션과 키보드 단축키를 통합합니다.
-
-#### 타입 정의
 ```typescript
 type Tab = 'chat' | 'group' | 'tools' | 'prompts' | 'history' | 'bookmarks' | 'settings'
 ```
 
-#### 탭 구성
+| 탭 ID | 아이콘 | 라벨 | 렌더링 컴포넌트 |
+|--------|--------|------|----------------|
+| `chat` | 💬 | 채팅 | `ChatView` |
+| `group` | 🤖 | 그룹 | `GroupChatView` |
+| `tools` | 🛠 | 도구 | `ToolsView` |
+| `prompts` | 📚 | 프롬프트 | `PromptLibraryView` |
+| `history` | 🕐 | 기록 | `HistoryView` |
+| `bookmarks` | 🔖 | 북마크 | `BookmarksView` |
+| `settings` | ⚙️ | 설정 | `SettingsView` |
+
+### 주요 상태
+
+| 상태 | 타입 | 설명 |
+|------|------|------|
+| `tab` | `Tab` | 현재 활성 탭 (기본: `'chat'`) |
+| `loadConvId` | `string \| undefined` | 외부에서 로드할 대화 ID |
+| `contextEnabled` | `boolean` | 페이지 컨텍스트 활성화 (기본: `true`) |
+| `showSearch` | `boolean` | 검색 모달 표시 여부 |
+
+### Ref를 통한 액션 등록
+
 ```typescript
-const TABS: { id: Tab; icon: string; label: string }[] = [
-  { id: 'chat',      icon: '💬', label: '채팅' },
-  { id: 'group',     icon: '🤖', label: '그룹' },
-  { id: 'tools',     icon: '🛠', label: '도구' },
-  { id: 'prompts',   icon: '📚', label: '프롬프트' },
-  { id: 'history',   icon: '🕐', label: '기록' },
-  { id: 'bookmarks', icon: '🔖', label: '북마크' },
-  { id: 'settings',  icon: '⚙️', label: '설정' }
-]
+const chatNewRef = useRef<() => void>()    // 새 대화 시작
+const chatStopRef = useRef<() => void>()   // 응답 생성 중지
+const chatInputRef = useRef<() => void>()  // 입력창 포커스
 ```
 
-#### 주요 상태
-```typescript
-const [tab, setTab] = useState<Tab>('chat')                 // 현재 활성 탭
-const [loadConvId, setLoadConvId] = useState<string | undefined>()  // 로드할 대화 ID
-const [contextEnabled, setContextEnabled] = useState(true)  // 페이지 컨텍스트 활성화
-const [showSearch, setShowSearch] = useState(false)         // 검색 모달 표시
-```
+ChatView가 `onRegisterActions` 콜백을 통해 이 ref에 함수를 등록한다. 키보드 단축키가 이 ref를 호출하여 ChatView를 제어한다.
 
-#### Ref를 통한 액션 등록
-```typescript
-const chatNewRef = useRef<() => void>()     // 새 대화 시작
-const chatStopRef = useRef<() => void>()    // 생성 중지
-const chatInputRef = useRef<() => void>()   // 입력창 포커스
-```
-- ChatView가 `onRegisterActions`를 통해 함수 등록
-- 키보드 단축키에서 호출
+### 키보드 단축키
 
-#### 훅 사용
 ```typescript
-const { config, loaded } = useConfig()
-useShortcuts(shortcutActions)
-```
-
-#### 주요 함수
-
-**cycleTab(dir: 1 | -1)**
-```typescript
-const cycleTab = useCallback((dir: 1 | -1) => {
-  setTab((current) => {
-    const idx = TAB_ORDER.indexOf(current)
-    const next = (idx + dir + TAB_ORDER.length) % TAB_ORDER.length
-    return TAB_ORDER[next]
-  })
-}, [])
-```
-- Ctrl+] / Ctrl+[ 로 탭 순환
-- 순환 배열 인덱스 계산
-
-**shortcutActions**
-```typescript
-const shortcutActions = useMemo<Partial<Record<ShortcutAction, () => void>>>(() => ({
+const shortcutActions = useMemo(() => ({
   'new-chat': () => { setTab('chat'); chatNewRef.current?.() },
   'focus-input': () => { setTab('chat'); chatInputRef.current?.() },
   'stop-generation': () => chatStopRef.current?.(),
   'search-history': () => setShowSearch(true),
   'toggle-context': () => setContextEnabled((v) => !v),
   'next-tab': () => cycleTab(1),
-  'prev-tab': () => cycleTab(-1)
+  'prev-tab': () => cycleTab(-1),
 }), [cycleTab])
+
+useShortcuts(shortcutActions)
 ```
-- 키보드 단축키와 액션 매핑
-- useMemo로 불필요한 재생성 방지
 
-#### UI 구조
+| 액션 | 기본 키 | 동작 |
+|------|---------|------|
+| `new-chat` | `Ctrl+N` | 채팅 탭으로 이동 + 새 대화 시작 |
+| `focus-input` | `/` | 채팅 탭으로 이동 + 입력창 포커스 |
+| `stop-generation` | `Escape` | 응답 생성 중지 |
+| `search-history` | `Ctrl+K` | 검색 모달 열기 |
+| `toggle-context` | `Ctrl+Shift+P` | 페이지 컨텍스트 토글 |
+| `next-tab` | `Ctrl+]` | 다음 탭 (순환) |
+| `prev-tab` | `Ctrl+[` | 이전 탭 (순환) |
 
-**1. 로딩 화면**
-```typescript
-if (!loaded) {
-  return (
-    <div className="app" style={{ alignItems: 'center', justifyContent: 'center' }}>
-      <span className="spinner-sm" />
-    </div>
-  )
-}
+### 화면 분기
+
 ```
-- 설정 로딩 중 스피너 표시
+설정 로딩 중 (!loaded)
+  → 스피너 표시
 
-**2. 초기 설정 화면**
-```typescript
-if (!hasAnyKey && tab !== 'settings') {
-  return (
-    <div className="app">
-      <div className="topbar">...</div>
-      <div className="content">
-        <div className="chat-empty">
-          <h2>H Chat에 오신 것을 환영합니다</h2>
-          <p>AWS Bedrock을 통한 Claude AI 어시스턴트</p>
-          <button onClick={() => setTab('settings')}>
-            ⚙️ AWS 자격증명 설정하기
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
+AWS 키 미설정 (!hasAnyKey && tab !== 'settings')
+  → 환영 화면 + "AWS 자격증명 설정하기" 버튼
+
+정상 상태
+  → Topbar (로고 + 탭바 + 검색 버튼)
+  → Content (활성 탭 컴포넌트)
+  → MessageSearchModal (오버레이)
 ```
-- AWS 키 없을 때 안내 화면
-- 설정 탭으로 이동 버튼
 
-**3. 메인 앱**
+### UI 구조
 
-**Topbar**
-```typescript
-<div className="topbar">
-  <div className="logo">H</div>
-  <div className="tab-bar">
-    {TABS.map((t) => (
-      <button className={`tab-btn ${tab === t.id ? 'active' : ''}`} onClick={() => setTab(t.id)}>
-        <span className="tab-icon">{t.icon}</span>
-        <span>{t.label}</span>
-      </button>
-    ))}
-  </div>
-  <div className="topbar-actions">
-    <button className="icon-btn" title="메시지 검색 (Ctrl+Shift+F)" onClick={() => setShowSearch(true)}>🔍</button>
-  </div>
-</div>
 ```
-- H 로고
-- 7개 탭 버튼
-- 검색 버튼
-
-**Content**
-```typescript
-<div className={`content ${tab === 'chat' || tab === 'group' ? 'flex-col' : ''}`}>
-  {tab === 'chat' && <ChatView ... />}
-  {tab === 'group' && <GroupChatView ... />}
-  {tab === 'tools' && <ToolsView ... />}
-  {tab === 'prompts' && <PromptLibraryView ... />}
-  {tab === 'history' && <HistoryView ... />}
-  {tab === 'bookmarks' && <BookmarksView />}
-  {tab === 'settings' && <SettingsView />}
-</div>
+┌─────────────────────────────────────┐
+│ [H]  💬 🤖 🛠 📚 🕐 🔖 ⚙️    [🔍] │  Topbar
+├─────────────────────────────────────┤
+│                                     │
+│   (현재 활성 탭 컴포넌트)            │  Content
+│                                     │
+└─────────────────────────────────────┘
 ```
-- 조건부 렌더링 (현재 탭만 표시)
-- chat/group은 flex-col 레이아웃
 
-**MessageSearchModal**
-```typescript
-<MessageSearchModal
-  open={showSearch}
-  onClose={() => setShowSearch(false)}
-  onSelect={(convId) => { setLoadConvId(convId); setTab('chat') }}
-/>
-```
-- 전체 대화 검색 모달
-- 선택 시 chat 탭으로 이동 및 대화 로드
-
-#### Props 전달
+### Props 전달
 
 **ChatView**
 ```typescript
@@ -204,223 +129,90 @@ if (!hasAnyKey && tab !== 'settings') {
   onForkConv={(id) => { setLoadConvId(id); setTab('chat') }}
 />
 ```
-- 설정, 대화 로드, 컨텍스트 관리
-- 액션 등록 콜백
-- 대화 분기 시 새 대화 로드
 
 **HistoryView**
 ```typescript
 <HistoryView
   activeId={loadConvId}
-  onSelect={(id) => {
-    setLoadConvId(id)
-    setTab('chat')
-  }}
+  onSelect={(id) => { setLoadConvId(id); setTab('chat') }}
 />
 ```
-- 대화 선택 시 chat 탭으로 이동 및 로드
 
 **PromptLibraryView**
 ```typescript
 <PromptLibraryView
-  onUsePrompt={(content) => {
-    setTab('chat')
-    // TODO: pass to chat view
-  }}
+  onUsePrompt={(content) => { setTab('chat') }}
 />
 ```
-- 프롬프트 적용 시 chat 탭 전환
-- TODO: 입력창에 프롬프트 주입 (현재 미구현)
 
-#### 키보드 단축키 플로우
-
-```
-사용자가 Ctrl+N 누름
-→ useShortcuts hook의 handler 실행
-→ matchShortcut()로 'new-chat' 매칭
-→ shortcutActions['new-chat']() 실행
-→ setTab('chat') + chatNewRef.current?.()
-→ ChatView에서 startNew() 호출
-→ 새 대화 시작
+**MessageSearchModal**
+```typescript
+<MessageSearchModal
+  open={showSearch}
+  onClose={() => setShowSearch(false)}
+  onSelect={(convId) => { setLoadConvId(convId); setTab('chat') }}
+/>
 ```
 
-## 데이터 플로우
+## 데이터 흐름
 
 ### 대화 로드
 ```
 HistoryView에서 대화 클릭
-→ onSelect(id) 호출
-→ setLoadConvId(id) + setTab('chat')
-→ ChatView의 useEffect 실행
-→ loadConv(id) 호출
-→ ChatHistory.get(id)
-→ 메시지 화면 표시
+→ onSelect(id) → setLoadConvId(id) + setTab('chat')
+→ ChatView의 useEffect: loadConv(id)
+→ ChatHistory.get(id) → 메시지 표시
 ```
 
 ### 대화 분기
 ```
 ChatView에서 분기 버튼 클릭
-→ ChatHistory.fork(convId, msgId)
-→ 새 대화 ID 반환
-→ onForkConv(newId) 호출
-→ setLoadConvId(newId) + setTab('chat')
+→ ChatHistory.fork(convId, msgId) → 새 대화 ID 반환
+→ onForkConv(newId) → setLoadConvId(newId) + setTab('chat')
 → 새 대화 로드
 ```
 
 ### 메시지 검색
 ```
-Ctrl+K 또는 🔍 버튼 클릭
-→ setShowSearch(true)
-→ MessageSearchModal 표시
-→ 검색어 입력 (디바운스 300ms)
-→ searchMessages() 호출
-→ 결과 클릭
-→ onSelect(convId) 호출
-→ setLoadConvId(convId) + setTab('chat')
-→ 해당 대화 로드
+Ctrl+K 또는 🔍 클릭
+→ setShowSearch(true) → MessageSearchModal 표시
+→ 검색어 입력 (300ms 디바운스) → searchMessages()
+→ 결과 클릭 → onSelect(convId) → setLoadConvId(convId) + setTab('chat')
 ```
 
-### 페이지 컨텍스트 토글
+### 키보드 단축키
 ```
-Ctrl+Shift+P 누름
-→ setContextEnabled((v) => !v)
-→ ChatView의 contextEnabled prop 변경
-→ sendMessage() 호출 시 pageContext 포함 여부 결정
+사용자가 Ctrl+N 누름
+→ useShortcuts 훅의 keydown 핸들러
+→ matchShortcut() → 'new-chat' 매칭
+→ shortcutActions['new-chat']() 실행
+→ setTab('chat') + chatNewRef.current?.()
+→ ChatView에서 startNew() 호출
 ```
-
-## 스타일링
-
-### 레이아웃
-```css
-.app {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-}
-
-.topbar {
-  flex-shrink: 0;
-  height: 56px;
-}
-
-.content {
-  flex: 1;
-  overflow-y: auto;
-}
-```
-- 전체 높이 사용
-- Topbar 고정
-- Content 스크롤 가능
-
-### 탭 버튼
-```css
-.tab-btn {
-  padding: 8px 12px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  transition: all 0.12s;
-}
-
-.tab-btn.active {
-  background: var(--accent-dim);
-  color: var(--accent);
-}
-```
-- 활성 탭 하이라이트
-- 호버 효과
-
-### 반응형
-- 고정 너비 사이드패널 (Chrome의 사이드패널 규격)
-- 수직 스크롤만 지원
-
-## 성능 최적화
-
-### 조건부 렌더링
-- 현재 탭만 렌더링 (다른 탭은 unmount)
-- 메모리 효율적
-
-### useMemo/useCallback
-- `shortcutActions`: 불필요한 재생성 방지
-- `cycleTab`: 안정적인 참조 유지
-
-### Lazy Loading
-- 각 탭 컴포넌트는 필요할 때만 렌더링
-- 초기 로딩 속도 향상
-
-## 에러 처리
-
-### 설정 미완료
-- `!hasAnyKey`: 초기 설정 화면 표시
-- 명확한 안내 및 액션 버튼
-
-### 로딩 상태
-- `!loaded`: 스피너 표시
-- 설정 로드 완료 전 UI 차단
-
-## 테스트 시나리오
-
-1. **초기 로드**
-   - 설정 로드 → 로딩 화면
-   - AWS 키 없음 → 안내 화면
-   - AWS 키 있음 → 메인 앱
-
-2. **탭 전환**
-   - 탭 버튼 클릭 → 해당 뷰 표시
-   - Ctrl+] → 다음 탭
-   - Ctrl+[ → 이전 탭
-
-3. **대화 로드**
-   - 기록 탭에서 대화 선택 → chat 탭으로 이동 및 로드
-   - 검색에서 대화 선택 → chat 탭으로 이동 및 로드
-
-4. **키보드 단축키**
-   - Ctrl+N → 새 대화
-   - / → 입력창 포커스
-   - ESC → 생성 중지
-   - Ctrl+K → 검색 모달
-   - Ctrl+Shift+P → 컨텍스트 토글
-
-## 개선 가능성
-
-1. **탭 상태 보존**: 탭 전환 시 스크롤 위치, 입력 상태 보존
-2. **북마크**: 자주 사용하는 탭 북마크
-3. **알림**: 새 메시지, 에러 등 토스트 알림
-4. **테마**: 라이트/다크 모드 전환
-5. **다국어**: i18n 지원
-
-## 의존성
-
-### React
-- useState, useCallback, useRef, useMemo, useEffect
-
-### Hooks
-- useConfig: 설정 관리
-- useShortcuts: 키보드 단축키
-
-### Components
-- ChatView, GroupChatView, ToolsView
-- PromptLibraryView, HistoryView, BookmarksView, SettingsView
-- MessageSearchModal
-
-### 스타일
-- ../styles/global.css
 
 ## 아키텍처 패턴
 
-### Props Drilling 최소화
-- useConfig: 최상위에서 로드, 필요한 컴포넌트에만 전달
-- useShortcuts: 액션 맵만 전달, 세부 로직은 각 컴포넌트
+### 조건부 렌더링
+현재 활성 탭만 렌더링하고, 나머지 탭은 unmount한다. 메모리 효율적이지만 탭 전환 시 상태가 초기화된다.
 
-### Unidirectional Data Flow
-- App (상태) → Component (Props) → User Action → App (상태 업데이트)
+### Ref 기반 명령형 통신
+키보드 단축키 → App → ref → ChatView 구조로, Props 변경 없이 자식 컴포넌트의 메서드를 직접 호출한다.
 
-### Separation of Concerns
-- App: 라우팅 및 전역 상태
-- Components: 개별 기능 UI
-- Hooks: 비즈니스 로직
-- Lib: 데이터 계층
+### 단방향 데이터 흐름
+```
+App (전역 상태: tab, loadConvId, contextEnabled, showSearch)
+  ↓ Props
+Components (개별 상태: messages, input, etc.)
+  ↓ 콜백 Props
+App (상태 업데이트)
+```
 
-### Event-driven Communication
-- 콜백 Props로 자식 → 부모 통신
-- Ref로 부모 → 자식 액션 호출 (단축키용)
+## 의존성
+
+| 모듈 | 사용 목적 |
+|------|----------|
+| `../hooks/useConfig` | 설정 로드 (`config`, `loaded`, `hasAwsKey()`) |
+| `../hooks/useShortcuts` | 키보드 단축키 바인딩 |
+| `../components/*` | 11개 UI 컴포넌트 |
+| `../lib/shortcuts` | `ShortcutAction` 타입 |
+| `../styles/global.css` | CSS 디자인 시스템 |

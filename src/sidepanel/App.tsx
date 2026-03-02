@@ -149,7 +149,7 @@ export function App() {
         {tab === 'debate' && <DebateView config={config} />}
         {tab === 'prompts' && (
           <PromptLibraryView
-            onUsePrompt={(content) => {
+            onUsePrompt={(_content) => {
               setTab('chat')
               // TODO: pass to chat view
             }}

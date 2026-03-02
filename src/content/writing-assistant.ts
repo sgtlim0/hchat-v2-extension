@@ -12,7 +12,7 @@ const WRITING_TRANSFORMS = [
   { id: 'translate-ko', icon: '🇰🇷', labelKey: 'writingAssistant.translateKo' },
 ]
 
-const PROMPTS: Record<string, (text: string) => string> = {
+const PROMPTS_KO: Record<string, (text: string) => string> = {
   improve: (t) => `다음 텍스트를 더 자연스럽고 명확하게 다듬어줘. 원래 의미를 유지하되, 가독성을 높여줘. 결과만 출력:\n\n${t}`,
   shorter: (t) => `다음 텍스트를 핵심만 남겨 짧게 줄여줘. 결과만 출력:\n\n${t}`,
   longer: (t) => `다음 텍스트를 더 상세하고 풍부하게 확장해줘. 결과만 출력:\n\n${t}`,
@@ -20,6 +20,16 @@ const PROMPTS: Record<string, (text: string) => string> = {
   casual: (t) => `다음 텍스트를 캐주얼하고 친근한 말투로 변환해줘. 결과만 출력:\n\n${t}`,
   'translate-en': (t) => `Translate the following text to natural English. Output only the translation:\n\n${t}`,
   'translate-ko': (t) => `다음 텍스트를 자연스러운 한국어로 번역해줘. 번역 결과만 출력:\n\n${t}`,
+}
+
+const PROMPTS_EN: Record<string, (text: string) => string> = {
+  improve: (t) => `Improve the following text to be more natural and clear. Keep the original meaning but enhance readability. Output only the result:\n\n${t}`,
+  shorter: (t) => `Shorten the following text to its key points. Output only the result:\n\n${t}`,
+  longer: (t) => `Expand the following text with more detail and depth. Output only the result:\n\n${t}`,
+  formal: (t) => `Rewrite the following text in a formal tone. Output only the result:\n\n${t}`,
+  casual: (t) => `Rewrite the following text in a casual, friendly tone. Output only the result:\n\n${t}`,
+  'translate-en': (t) => `Translate the following text to natural English. Output only the translation:\n\n${t}`,
+  'translate-ko': (t) => `Translate the following text to natural Korean. Output only the translation:\n\n${t}`,
 }
 
 let activeButton: HTMLElement | null = null
@@ -101,7 +111,8 @@ function createPopup(el: HTMLElement, text: string, btnRect: DOMRect, locale: Lo
 }
 
 function runTransform(el: HTMLElement, text: string, transformId: string, popup: HTMLElement, locale: Locale) {
-  const promptFn = PROMPTS[transformId]
+  const prompts = locale === 'en' ? PROMPTS_EN : PROMPTS_KO
+  const promptFn = prompts[transformId]
   if (!promptFn) return
 
   // Show loading

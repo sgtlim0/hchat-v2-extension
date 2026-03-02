@@ -1,6 +1,6 @@
 // providers/model-router.ts — Auto-route prompts to optimal models
 
-import type { ModelDef, ModelCapability, AIProvider } from './types'
+import type { ModelDef, AIProvider } from './types'
 import { getAllModels, getProviderForModel } from './provider-factory'
 
 interface RouteContext {

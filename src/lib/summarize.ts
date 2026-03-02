@@ -1,6 +1,6 @@
 /** AI-powered conversation summarization */
 
-import { streamChatLive, MODELS, type Message } from './models'
+import { streamChatLive, type Message } from './models'
 import type { AwsCredentials } from '../hooks/useConfig'
 import type { Conversation } from './chatHistory'
 

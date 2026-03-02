@@ -17,6 +17,24 @@ interface ActionDef {
   prompt: (text: string) => string
 }
 
+const PROMPTS_KO: Record<string, (t: string) => string> = {
+  explain: (t) => `다음을 쉽게 설명해줘:\n\n${t}`,
+  translate: (t) => `다음을 한국어로 번역해줘:\n\n${t}`,
+  summarize: (t) => `다음을 3줄로 요약해줘:\n\n${t}`,
+  rewrite: (t) => `다음 문장을 더 명확하게 다듬어줘:\n\n${t}`,
+  formal: (t) => `다음을 격식 있는 문체로 바꿔줘:\n\n${t}`,
+  grammar: (t) => `다음의 문법과 맞춤법을 교정해줘:\n\n${t}`,
+}
+
+const PROMPTS_EN: Record<string, (t: string) => string> = {
+  explain: (t) => `Explain the following in simple terms:\n\n${t}`,
+  translate: (t) => `Translate the following to English:\n\n${t}`,
+  summarize: (t) => `Summarize the following in 3 sentences:\n\n${t}`,
+  rewrite: (t) => `Rewrite the following to be clearer and more concise:\n\n${t}`,
+  formal: (t) => `Rewrite the following in a formal tone:\n\n${t}`,
+  grammar: (t) => `Check and correct the grammar and spelling of the following:\n\n${t}`,
+}
+
 const ACTIONS: ActionDef[] = [
   { id: 'explain', icon: '💡', label: '설명', prompt: (t) => `다음을 쉽게 설명해줘:\n\n${t}` },
   { id: 'translate', icon: '🌐', label: '번역', prompt: (t) => `다음을 한국어로 번역해줘:\n\n${t}` },
@@ -236,7 +254,6 @@ function positionElement(el: HTMLElement, x: number, y: number) {
   document.body.appendChild(el)
   const rect = el.getBoundingClientRect()
   const vw = window.innerWidth
-  const vh = window.innerHeight
   let left = x
   let top = y - rect.height - 12
   if (left + rect.width > vw - 10) left = vw - rect.width - 10
@@ -283,7 +300,9 @@ async function runAction(actionId: string, selectedText: string, x: number, y: n
     return
   }
 
-  const prompt = action.prompt(selectedText)
+  const prompts = locale === 'en' ? PROMPTS_EN : PROMPTS_KO
+  const promptFn = prompts[actionId] ?? action.prompt
+  const prompt = promptFn(selectedText)
   let text = ''
   body.innerHTML = '<span class="hchat-cursor">▌</span>'
 

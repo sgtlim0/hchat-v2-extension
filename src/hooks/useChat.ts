@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react'
-import { streamChatLive, type Message, MODELS } from '../lib/models'
+import { getGlobalLocale } from '../i18n'
+import { streamChatLive, type Message } from '../lib/models'
 import type { AIProvider, ProviderType } from '../lib/providers/types'
 import { createAllProviders, getProviderForModel, getModelDef } from '../lib/providers/provider-factory'
 import { routeModel } from '../lib/providers/model-router'
@@ -13,10 +14,11 @@ import { Usage } from '../lib/usage'
 import type { Config } from './useConfig'
 
 function formatAgentContent(steps: AgentStep[]): string {
+  const isEn = getGlobalLocale() === 'en'
   return steps.map((s) => {
     if (s.type === 'tool_call') return `🔧 ${s.toolName}: ${s.content}`
-    if (s.type === 'tool_result') return `📋 결과: ${s.content.slice(0, 200)}${s.content.length > 200 ? '...' : ''}`
-    if (s.type === 'thinking') return s.content ? `💭 ${s.content}` : '💭 사고 중...'
+    if (s.type === 'tool_result') return `📋 ${isEn ? 'Result' : '결과'}: ${s.content.slice(0, 200)}${s.content.length > 200 ? '...' : ''}`
+    if (s.type === 'thinking') return s.content ? `💭 ${s.content}` : `💭 ${isEn ? 'Thinking...' : '사고 중...'}`
     return s.content
   }).join('\n\n')
 }

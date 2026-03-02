@@ -3,7 +3,7 @@
 
 import { BedrockProvider } from './providers/bedrock-provider'
 import type { AwsCredentials } from '../hooks/useConfig'
-import type { ProviderType, ModelDef as NewModelDef } from './providers/types'
+import type { ProviderType } from './providers/types'
 
 // Re-export types for backward compatibility
 export type Provider = ProviderType | 'claude'

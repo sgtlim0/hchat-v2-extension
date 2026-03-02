@@ -1,7 +1,6 @@
 // Background Service Worker
 // Handles: icon click, context menus, alarms, streaming via providers
 
-import { signRequest } from '../lib/aws-sigv4'
 import { BedrockProvider } from '../lib/providers/bedrock-provider'
 import { OpenAIProvider } from '../lib/providers/openai-provider'
 import { GeminiProvider } from '../lib/providers/gemini-provider'

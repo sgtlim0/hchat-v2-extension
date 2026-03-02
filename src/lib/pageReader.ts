@@ -33,7 +33,7 @@ export async function getCurrentPageContent(): Promise<PageContent> {
   return { url, title, text, isYouTube, youtubeId }
 }
 
-export async function getYouTubeTranscript(videoId: string): Promise<string> {
+export async function getYouTubeTranscript(_videoId: string): Promise<string> {
   // Extract captions from the YouTube tab via executeScript
   // This avoids CORS issues and bot detection by reading from the already-loaded page
   try {
@@ -138,7 +138,7 @@ export function formatTimestamp(seconds: number): string {
 /**
  * Get structured transcript with timestamps
  */
-export async function getYouTubeTranscriptStructured(videoId: string): Promise<TranscriptSegment[]> {
+export async function getYouTubeTranscriptStructured(_videoId: string): Promise<TranscriptSegment[]> {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
     if (!tab?.id) return []

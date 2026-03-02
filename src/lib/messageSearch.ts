@@ -1,6 +1,6 @@
 /** Full-text search across all conversation messages */
 
-import { ChatHistory, type ChatMessage, type Conversation } from './chatHistory'
+import { ChatHistory, type ChatMessage } from './chatHistory'
 
 export interface SearchResult {
   convId: string

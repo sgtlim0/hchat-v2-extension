@@ -180,7 +180,7 @@ export default function DocTranslateTool({
         <input
           ref={fileInputRef}
           type="file"
-          accept=".txt,.csv,.xlsx,.xls"
+          accept=".txt,.csv,.xlsx,.xls,.pptx,.ppt,.pdf"
           style={{ display: 'none' }}
           onChange={handleFileInput}
         />
@@ -213,6 +213,13 @@ export default function DocTranslateTool({
               </select>
             </div>
           </div>
+
+          {/* PDF note */}
+          {format === 'pdf' && (
+            <div style={{ fontSize: 11, color: 'var(--warning, #e8a838)', padding: '4px 0' }}>
+              {t('tools.docTranslate.pdfNote')}
+            </div>
+          )}
 
           {/* Cost estimate */}
           {costInfo && (

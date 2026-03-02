@@ -21,8 +21,9 @@ import DataAnalysisTool from './tools/DataAnalysisTool'
 import ImageGenTool from './tools/ImageGenTool'
 import DocWriteTool from './tools/DocWriteTool'
 import DocTranslateTool from './tools/DocTranslateTool'
+import DocTemplateTool from './tools/DocTemplateTool'
 
-type ToolId = 'summarize' | 'multitab' | 'translate' | 'write' | 'docWrite' | 'youtube' | 'ocr' | 'batchOcr' | 'grammar' | 'comments' | 'pdf' | 'insight' | 'dataAnalysis' | 'imageGen' | 'docTranslate'
+type ToolId = 'summarize' | 'multitab' | 'translate' | 'write' | 'docWrite' | 'youtube' | 'ocr' | 'batchOcr' | 'grammar' | 'comments' | 'pdf' | 'insight' | 'dataAnalysis' | 'imageGen' | 'docTranslate' | 'docTemplate'
 
 interface Props { config: Config }
 
@@ -46,6 +47,7 @@ export default function ToolsView({ config }: Props) {
     { id: 'batchOcr', icon: '📸' },
     { id: 'dataAnalysis', icon: '📊' },
     { id: 'imageGen', icon: '🎨' },
+    { id: 'docTemplate', icon: '📋' },
   ]
 
   const LANGS = locale === 'en' ? en.tools.langs : ko.tools.langs
@@ -191,6 +193,7 @@ export default function ToolsView({ config }: Props) {
       case 'dataAnalysis': return <DataAnalysisTool {...commonProps} />
       case 'imageGen': return <ImageGenTool {...commonProps} config={config} />
       case 'docTranslate': return <DocTranslateTool {...commonProps} runStreamDirect={runStreamDirect} />
+      case 'docTemplate': return <DocTemplateTool {...commonProps} runStreamDirect={runStreamDirect} />
     }
   }
 

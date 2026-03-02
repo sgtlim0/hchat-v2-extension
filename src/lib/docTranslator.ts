@@ -1,6 +1,6 @@
 // lib/docTranslator.ts — Document translation pipeline orchestrator
 
-export type SupportedFormat = 'txt' | 'xlsx' | 'csv'
+export type SupportedFormat = 'txt' | 'xlsx' | 'csv' | 'pptx' | 'pdf'
 
 export interface TranslationProgress {
   current: number
@@ -30,6 +30,8 @@ export function detectFormat(file: File): SupportedFormat {
   if (ext === 'txt') return 'txt'
   if (ext === 'csv') return 'csv'
   if (ext === 'xlsx' || ext === 'xls') return 'xlsx'
+  if (ext === 'pptx' || ext === 'ppt') return 'pptx'
+  if (ext === 'pdf') return 'pdf'
   throw new DocTranslateError(`Unsupported format: .${ext ?? ''}`)
 }
 
@@ -96,6 +98,18 @@ async function extractXlsxChunks(file: File): Promise<string[]> {
   return chunks
 }
 
+async function extractPptxChunksFromFile(file: File): Promise<string[]> {
+  const { parsePptx, extractPptxChunks } = await import('./pptxParser')
+  const parsed = await parsePptx(file)
+  return extractPptxChunks(parsed)
+}
+
+async function extractPdfChunks(file: File): Promise<string[]> {
+  const { extractPdfText } = await import('./pdfParser')
+  const text = await extractPdfText(file)
+  return splitTextIntoChunks(text, CHUNK_SIZE)
+}
+
 export async function extractTexts(
   file: File,
   format: SupportedFormat,
@@ -110,6 +124,10 @@ export async function extractTexts(
       return extractTextChunks(file)
     case 'xlsx':
       return extractXlsxChunks(file)
+    case 'pptx':
+      return extractPptxChunksFromFile(file)
+    case 'pdf':
+      return extractPdfChunks(file)
   }
 }
 
@@ -172,6 +190,32 @@ function buildCsvOutput(translatedChunks: string[]): Blob {
   )
 }
 
+async function buildPptxOutput(
+  translatedChunks: string[],
+  originalFile: File,
+): Promise<Blob> {
+  const { parsePptx, rebuildPptx, splitChunkToSlideTexts } = await import('./pptxParser')
+  const parsed = await parsePptx(originalFile)
+
+  // Map translated chunks back to slides (only slides with text)
+  const slidesWithText = parsed.slides.filter((s) => s.texts.length > 0)
+  const translatedSlides = slidesWithText.map((slide, i) => ({
+    ...slide,
+    texts: i < translatedChunks.length
+      ? splitChunkToSlideTexts(translatedChunks[i])
+      : slide.texts,
+  }))
+
+  return rebuildPptx(parsed, translatedSlides)
+}
+
+function buildPdfMarkdownOutput(translatedChunks: string[]): Blob {
+  return new Blob(
+    [translatedChunks.join('\n\n')],
+    { type: 'text/markdown;charset=utf-8' },
+  )
+}
+
 async function buildXlsxOutput(
   translatedChunks: string[],
   originalFile: File,
@@ -227,18 +271,30 @@ export async function buildOutput(
   format: SupportedFormat,
 ): Promise<TranslationResult> {
   const baseName = originalFile.name.replace(/\.[^.]+$/, '')
-  const ext = format === 'xlsx' ? 'xlsx' : format
 
   let blob: Blob
+  let ext: string
   switch (format) {
     case 'txt':
       blob = buildTextOutput(translatedChunks)
+      ext = 'txt'
       break
     case 'csv':
       blob = buildCsvOutput(translatedChunks)
+      ext = 'csv'
       break
     case 'xlsx':
       blob = await buildXlsxOutput(translatedChunks, originalFile)
+      ext = 'xlsx'
+      break
+    case 'pptx':
+      blob = await buildPptxOutput(translatedChunks, originalFile)
+      ext = 'pptx'
+      break
+    case 'pdf':
+      // PDF → Markdown output (layout cannot be preserved)
+      blob = buildPdfMarkdownOutput(translatedChunks)
+      ext = 'md'
       break
   }
 

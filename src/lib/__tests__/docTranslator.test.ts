@@ -36,8 +36,33 @@ describe('detectFormat', () => {
     expect(detectFormat(file)).toBe('txt')
   })
 
+  it('PPTX 파일 감지', () => {
+    const file = new File([''], 'slides.pptx')
+    expect(detectFormat(file)).toBe('pptx')
+  })
+
+  it('PPT 파일도 pptx로 감지', () => {
+    const file = new File([''], 'slides.ppt')
+    expect(detectFormat(file)).toBe('pptx')
+  })
+
+  it('PDF 파일 감지', () => {
+    const file = new File([''], 'document.pdf')
+    expect(detectFormat(file)).toBe('pdf')
+  })
+
+  it('대문자 PPTX 감지', () => {
+    const file = new File([''], 'SLIDES.PPTX')
+    expect(detectFormat(file)).toBe('pptx')
+  })
+
+  it('대문자 PDF 감지', () => {
+    const file = new File([''], 'DOC.PDF')
+    expect(detectFormat(file)).toBe('pdf')
+  })
+
   it('미지원 확장자 에러', () => {
-    const file = new File([''], 'doc.pdf')
+    const file = new File([''], 'doc.docx')
     expect(() => detectFormat(file)).toThrow(DocTranslateError)
     expect(() => detectFormat(file)).toThrow('Unsupported format')
   })
@@ -258,5 +283,64 @@ describe('extractTexts - XLSX', () => {
     const result = await extractTexts(file, 'xlsx')
     expect(Array.isArray(result)).toBe(true)
     expect(result.length).toBe(0)
+  })
+})
+
+// --- buildOutput - PPTX ---
+
+describe('buildOutput - PPTX', () => {
+  async function createTestPptx(): Promise<File> {
+    const JSZip = (await import('jszip')).default
+    const zip = new JSZip()
+    zip.file('[Content_Types].xml', '<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"/>')
+    zip.file('ppt/slides/slide1.xml', `<?xml version="1.0"?>
+<p:sld xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
+       xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+  <p:cSld><p:spTree><p:sp><p:txBody>
+    <a:p><a:r><a:t>Hello</a:t></a:r></a:p>
+    <a:p><a:r><a:t>World</a:t></a:r></a:p>
+  </p:txBody></p:sp></p:spTree></p:cSld>
+</p:sld>`)
+    const blob = await zip.generateAsync({ type: 'blob' })
+    return new File([blob], 'test.pptx')
+  }
+
+  it('PPTX 번역 결과 파일명', async () => {
+    const file = await createTestPptx()
+    const result = await buildOutput(['안녕\n세계'], file, 'pptx')
+    expect(result.filename).toBe('test_translated.pptx')
+    expect(result.format).toBe('pptx')
+  })
+
+  it('PPTX 번역 결과 Blob 생성', async () => {
+    const file = await createTestPptx()
+    const result = await buildOutput(['안녕\n세계'], file, 'pptx')
+    expect(result.blob).toBeInstanceOf(Blob)
+    expect(result.blob.size).toBeGreaterThan(0)
+  })
+})
+
+// --- buildOutput - PDF ---
+
+describe('buildOutput - PDF', () => {
+  it('PDF 번역 결과는 Markdown 파일', async () => {
+    const file = new File(['pdf content'], 'document.pdf')
+    const chunks = ['번역된 텍스트 1', '번역된 텍스트 2']
+    const result = await buildOutput(chunks, file, 'pdf')
+
+    expect(result.filename).toBe('document_translated.md')
+    expect(result.format).toBe('pdf')
+    expect(result.blob).toBeInstanceOf(Blob)
+    expect(result.blob.type).toBe('text/markdown;charset=utf-8')
+  })
+
+  it('PDF 번역 결과에 모든 청크 포함', async () => {
+    const file = new File(['pdf'], 'doc.pdf')
+    const chunks = ['Part 1', 'Part 2', 'Part 3']
+    const result = await buildOutput(chunks, file, 'pdf')
+    const text = await result.blob.text()
+    expect(text).toContain('Part 1')
+    expect(text).toContain('Part 2')
+    expect(text).toContain('Part 3')
   })
 })

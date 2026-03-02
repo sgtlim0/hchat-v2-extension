@@ -2,10 +2,12 @@
 
 ## 개요
 
-모든 웹페이지에 주입되는 콘텐츠 스크립트. 두 가지 핵심 역할을 수행한다:
+모든 웹페이지에 주입되는 콘텐츠 스크립트. 네 가지 핵심 역할을 수행한다:
 
 1. **페이지 컨텍스트 추적** — 현재 페이지의 URL, 제목, 본문, 선택 텍스트를 추출하여 스토리지에 저장
 2. **플로팅 AI 툴바** — 텍스트 선택 시 나타나는 AI 도구 툴바 (설명/번역/요약/다듬기/교정/하이라이트)
+3. **검색 엔진 AI 카드** — Google/Bing/Naver 검색 결과 페이지에 AI 요약 카드 주입 [v3 신규]
+4. **글쓰기 어시스턴트** — 모든 textarea에 플로팅 글쓰기 툴바 추가 [v3 신규]
 
 ## 파일 목록
 
@@ -13,6 +15,8 @@
 |------|-------|------|
 | `index.ts` | 136 | 엔트리 포인트 — 페이지 컨텍스트 추적, 하이라이트 복원 |
 | `toolbar.ts` | 439 | 플로팅 AI 툴바 — 순수 DOM 조작 (React 미사용) |
+| `search-injector.ts` | 300+ | 검색 엔진 AI 카드 주입 [v3 신규] |
+| `writing-assistant.ts` | 250+ | Textarea 글쓰기 툴바 [v3 신규] |
 
 ## index.ts — 페이지 컨텍스트 추적
 
@@ -118,9 +122,69 @@ toolbar 버튼 클릭
 | `hchat:page-context` | 현재 페이지 컨텍스트 (`url`, `title`, `text`, `selection`, `meta`, `ts`) |
 | `hchat:config` | 설정 조회 (`enableContentScript` 여부 확인) |
 
+## search-injector.ts [v3 신규]
+
+검색 엔진 결과 페이지에 AI 요약 카드를 주입하는 스크립트.
+
+### 지원 검색 엔진
+- **Google**: `#search` 첫 번째 결과 위에 카드 삽입
+- **Bing**: `.b_algo` 첫 번째 결과 위에 카드 삽입
+- **Naver**: `#main_pack` 위에 카드 삽입
+
+### 주요 기능
+- 검색 쿼리 자동 감지 (URL 파라미터)
+- AI 요약 생성 (선택된 모델 사용)
+- 접을 수 있는 카드 UI
+- "전체 채팅 열기" 버튼으로 사이드패널 연동
+
+### 동작 흐름
+```
+검색 페이지 로드
+→ URL에서 검색 쿼리 추출
+→ AI 카드 DOM 생성 및 삽입
+→ 백그라운드에 스트리밍 요청
+→ 실시간 답변 렌더링
+```
+
+---
+
+## writing-assistant.ts [v3 신규]
+
+웹페이지의 모든 textarea에 플로팅 글쓰기 툴바를 추가하는 스크립트.
+
+### 7가지 글쓰기 액션
+| 액션 | 아이콘 | 설명 |
+|------|--------|------|
+| improve | ✨ | 문장 개선 |
+| shorter | 📉 | 축약 |
+| longer | 📈 | 확장 |
+| professional | 💼 | 전문적으로 |
+| casual | 😊 | 캐주얼하게 |
+| fix_grammar | ✅ | 문법 교정 |
+| translate | 🌐 | 번역 (한↔영 자동 감지) |
+
+### 동작 흐름
+```
+textarea 포커스
+→ 플로팅 툴바 표시 (textarea 우측 상단)
+→ 액션 버튼 클릭
+→ 현재 텍스트를 AI로 변환
+→ 결과를 textarea에 자동 삽입
+```
+
+### UI 특징
+- 최소 z-index로 다른 툴바와 충돌 방지
+- textarea blur 시 자동 숨김
+- 스트리밍 중 로딩 인디케이터
+- ESC 키로 취소
+
+---
+
 ## 주의사항
 
 1. **Performance**: `MutationObserver`는 전체 DOM을 감시하므로 콜백을 최소화함
 2. **XPath 복원 실패**: DOM 구조 변경 시 하이라이트 복원 불가 (무시 처리)
 3. **CSP 제한**: Content Security Policy가 엄격한 사이트에서는 스타일 주입 불가
 4. **iframe 불가**: Same-origin policy로 iframe 내부 접근 불가
+5. **검색 엔진 변경**: 검색 엔진 DOM 구조 변경 시 카드 삽입 위치 조정 필요
+6. **Textarea 감지**: SPA에서 동적으로 생성된 textarea는 MutationObserver로 감지

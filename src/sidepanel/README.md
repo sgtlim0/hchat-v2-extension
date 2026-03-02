@@ -2,7 +2,7 @@
 
 ## 개요
 
-확장의 메인 UI. Chrome 사이드패널에 렌더링되는 탭 기반 SPA로, 채팅/그룹채팅/도구/프롬프트/기록/북마크/설정 7개 탭으로 구성된다. 모든 핵심 기능은 이 사이드패널을 통해 제공된다.
+확장의 메인 UI. Chrome 사이드패널에 렌더링되는 탭 기반 SPA로, 채팅/그룹채팅/토론/도구/프롬프트/기록/북마크/설정 8개 탭으로 구성된다. 모든 핵심 기능은 이 사이드패널을 통해 제공된다.
 
 ## 파일 목록
 
@@ -23,16 +23,17 @@ React 18 `createRoot` + StrictMode 사용.
 
 ## App.tsx
 
-### 탭 정의
+### 탭 정의 [v3 업데이트]
 
 ```typescript
-type Tab = 'chat' | 'group' | 'tools' | 'prompts' | 'history' | 'bookmarks' | 'settings'
+type Tab = 'chat' | 'group' | 'debate' | 'tools' | 'prompts' | 'history' | 'bookmarks' | 'settings'
 ```
 
 | 탭 ID | 아이콘 | 라벨 | 렌더링 컴포넌트 |
 |--------|--------|------|----------------|
 | `chat` | 💬 | 채팅 | `ChatView` |
 | `group` | 🤖 | 그룹 | `GroupChatView` |
+| `debate` | 🎭 | 토론 | `DebateView` [v3 신규] |
 | `tools` | 🛠 | 도구 | `ToolsView` |
 | `prompts` | 📚 | 프롬프트 | `PromptLibraryView` |
 | `history` | 🕐 | 기록 | `HistoryView` |
@@ -90,8 +91,8 @@ useShortcuts(shortcutActions)
 설정 로딩 중 (!loaded)
   → 스피너 표시
 
-AWS 키 미설정 (!hasAnyKey && tab !== 'settings')
-  → 환영 화면 + "AWS 자격증명 설정하기" 버튼
+모든 프로바이더 키 미설정 (!hasAnyKey && tab !== 'settings') [v3 업데이트]
+  → 환영 화면 + "AI 프로바이더 설정하기" 버튼
 
 정상 상태
   → Topbar (로고 + 탭바 + 검색 버튼)
@@ -99,11 +100,11 @@ AWS 키 미설정 (!hasAnyKey && tab !== 'settings')
   → MessageSearchModal (오버레이)
 ```
 
-### UI 구조
+### UI 구조 [v3 업데이트]
 
 ```
 ┌─────────────────────────────────────┐
-│ [H]  💬 🤖 🛠 📚 🕐 🔖 ⚙️    [🔍] │  Topbar
+│ [H]  💬 🤖 🎭 🛠 📚 🕐 🔖 ⚙️  [🔍] │  Topbar (8탭)
 ├─────────────────────────────────────┤
 │                                     │
 │   (현재 활성 탭 컴포넌트)            │  Content

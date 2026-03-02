@@ -2,62 +2,142 @@
 
 ## 개요
 
-비즈니스 로직과 유틸리티 함수를 캡슐화하는 라이브러리 모듈. 총 20개 파일, 약 2,500줄. API 통신, 데이터 관리, AI 기능, 검색, 음성, 내보내기/가져오기를 담당한다. 모든 모듈은 `Storage` 래퍼를 통해 `chrome.storage.local`에 접근한다.
+비즈니스 로직과 유틸리티 함수를 캡슐화하는 라이브러리 모듈. 총 30+ 파일, 약 3,500줄. 멀티 프로바이더 API 통신, 데이터 관리, AI 기능, 검색, 음성, 내보내기/가져오기를 담당한다. 모든 모듈은 `Storage` 래퍼를 통해 `chrome.storage.local`에 접근한다.
 
 ## 파일 목록
 
-| 파일 | 줄 수 | 카테고리 | 설명 |
-|------|-------|----------|------|
-| `models.ts` | 178 | API | AI 모델 정의 + Bedrock 스트리밍 (Event Stream 파싱) |
-| `aws-sigv4.ts` | 94 | API | AWS Signature V4 서명 (Web Crypto API) |
-| `chatHistory.ts` | 204 | 데이터 | 대화 기록 CRUD, 메시지 관리, 분기, 고정 |
-| `agent.ts` | 240 | AI | 다중 턴 에이전트 루프 (XML 기반 도구 호출) |
-| `agentTools.ts` | 100 | AI | 내장 도구 5종 (web_search, read_page, fetch_url, calculate, get_datetime) |
-| `webSearch.ts` | 131 | 검색 | DuckDuckGo HTML 스크레이핑 + Google CSE, 1시간 캐시 |
-| `searchIntent.ts` | 52 | 검색 | 규칙 기반 웹 검색 의도 감지 (패턴 매칭) |
-| `bookmarks.ts` | 148 | 데이터 | 하이라이트 CRUD, XPath 유틸, 상대 시간 포맷 |
-| `shortcuts.ts` | 66 | 설정 | 키보드 단축키 정의, 파싱, 매칭, 커스터마이징 |
-| `pageContext.ts` | 55 | 컨텍스트 | 페이지 유형 감지, 시스템 프롬프트 생성, 컨텍스트 토글 |
-| `pageReader.ts` | 137 | 컨텍스트 | 현재 탭 콘텐츠 추출, YouTube 자막 추출 (3단계) |
-| `exportChat.ts` | 128 | 내보내기 | Markdown/HTML/JSON/TXT 내보내기, 클립보드 복사 |
-| `importChat.ts` | 188 | 가져오기 | ChatGPT/Claude/H Chat JSON 가져오기 |
-| `messageSearch.ts` | 74 | 검색 | 전체 대화 전문 검색, 스니펫 + 하이라이팅 |
-| `usage.ts` | 139 | 추적 | 토큰 사용량/비용 추적, 추정, 90일 보관 |
-| `promptLibrary.ts` | 67 | 설정 | 프롬프트 CRUD, 기본 8개, 단축키 검색 |
-| `personas.ts` | 124 | 설정 | 페르소나 관리, 내장 6종 + 커스텀 CRUD |
-| `summarize.ts` | 78 | AI | AI 대화 요약 (Haiku 모델, 최근 30개 메시지) |
-| `writingTools.ts` | 33 | 상수 | 글쓰기 액션 11종 정의 (프롬프트 템플릿) |
-| `tags.ts` | 59 | 데이터 | 대화 태그 CRUD, 자동 색상 할당, 사용 횟수 |
-| `storage.ts` | 20 | 인프라 | chrome.storage.local 래퍼 (get/set/remove/getAll) |
-| `stt.ts` | 114 | 음성 | Web Speech Recognition API 래퍼 (한국어, 연속 모드) |
-| `tts.ts` | 105 | 음성 | Web Speech Synthesis API 래퍼 (마크다운 정리, 한국어 음성) |
+### 프로바이더 시스템 (v3 신규)
+
+| 파일 | 줄 수 | 설명 |
+|------|-------|------|
+| `providers/types.ts` | 100+ | AIProvider 인터페이스, ModelDef, ProviderType, StreamOptions |
+| `providers/bedrock-provider.ts` | 200+ | AWS Bedrock Claude 프로바이더 (SigV4 서명, Event Stream 파싱) |
+| `providers/openai-provider.ts` | 150+ | OpenAI GPT 프로바이더 (SSE 스트리밍) |
+| `providers/gemini-provider.ts` | 150+ | Google Gemini 프로바이더 (SSE 스트리밍) |
+| `providers/provider-factory.ts` | 120+ | 프로바이더 생성, 모델 탐색 (createAllProviders, getProviderForModel, getAllModels) |
+| `providers/model-router.ts` | 80+ | 자동 모델 라우팅 (프롬프트 패턴 분석) |
+
+### 기존 API 모듈
+
+| 파일 | 줄 수 | 설명 |
+|------|-------|------|
+| `aws-sigv4.ts` | 94 | AWS Signature V4 서명 (Web Crypto API) |
+### AI 기능 모듈
+
+| 파일 | 줄 수 | 설명 |
+|------|-------|------|
+| `chatHistory.ts` | 204 | 대화 기록 CRUD, 메시지 관리, 분기, 고정 |
+| `agent.ts` | 240 | 다중 턴 에이전트 루프 (XML 기반 도구 호출) |
+| `agentTools.ts` | 100 | 내장 도구 5종 (web_search, read_page, fetch_url, calculate, get_datetime) |
+| `commentAnalyzer.ts` | 200+ | YouTube 댓글 추출 및 분석 (감정, 토픽, 인사이트) [v3 신규] |
+| `pdfParser.ts` | 150+ | PDF 텍스트 추출 (pdfjs-dist 기반) [v3 신규] |
+| `insightReport.ts` | 180+ | YouTube 자막 + 댓글 통합 리포트 생성 [v3 신규] |
+| `debate.ts` | 250+ | 크로스 모델 토론 엔진 (3라운드: 초기 → 비평 → 종합) [v3 신규] |
+| `summarize.ts` | 78 | AI 대화 요약 (최근 30개 메시지) |
+| `writingTools.ts` | 60+ | 글쓰기 액션 7종 정의 (프롬프트 템플릿) [v3 업데이트] |
+
+### 검색 모듈
+
+| 파일 | 줄 수 | 설명 |
+|------|-------|------|
+| `webSearch.ts` | 131 | DuckDuckGo HTML 스크레이핑 + Google CSE, 1시간 캐시 |
+| `searchIntent.ts` | 52 | 규칙 기반 웹 검색 의도 감지 (패턴 매칭) |
+| `messageSearch.ts` | 74 | 전체 대화 전문 검색, 스니펫 + 하이라이팅 |
+
+### 데이터 관리 모듈
+
+| 파일 | 줄 수 | 설명 |
+|------|-------|------|
+| `bookmarks.ts` | 148 | 하이라이트 CRUD, XPath 유틸, 상대 시간 포맷 |
+| `tags.ts` | 59 | 대화 태그 CRUD, 자동 색상 할당, 사용 횟수 |
+| `storage.ts` | 20 | chrome.storage.local 래퍼 (get/set/remove/getAll) |
+
+### 설정/UI 모듈
+
+| 파일 | 줄 수 | 설명 |
+|------|-------|------|
+| `shortcuts.ts` | 66 | 키보드 단축키 정의, 파싱, 매칭, 커스터마이징 |
+| `promptLibrary.ts` | 67 | 프롬프트 CRUD, 기본 8개, 단축키 검색 |
+| `personas.ts` | 124 | 페르소나 관리, 내장 6종 + 커스텀 CRUD |
+
+### 컨텍스트 추출 모듈
+
+| 파일 | 줄 수 | 설명 |
+|------|-------|------|
+| `pageContext.ts` | 55 | 페이지 유형 감지, 시스템 프롬프트 생성, 컨텍스트 토글 |
+| `pageReader.ts` | 137 | 현재 탭 콘텐츠 추출, YouTube 자막 추출 (3단계) |
+
+### 내보내기/가져오기 모듈
+
+| 파일 | 줄 수 | 설명 |
+|------|-------|------|
+| `exportChat.ts` | 128 | Markdown/HTML/JSON/TXT 내보내기, 클립보드 복사 |
+| `importChat.ts` | 188 | ChatGPT/Claude/H Chat JSON 가져오기 |
+
+### 사용량 추적 모듈
+
+| 파일 | 줄 수 | 설명 |
+|------|-------|------|
+| `usage.ts` | 180+ | 토큰 사용량/비용 추적 (프로바이더별, 기능별), 90일 보관 [v3 강화] |
+
+### 음성 모듈
+
+| 파일 | 줄 수 | 설명 |
+|------|-------|------|
+| `stt.ts` | 114 | Web Speech Recognition API 래퍼 (한국어, 연속 모드) |
+| `tts.ts` | 105 | Web Speech Synthesis API 래퍼 (마크다운 정리, 한국어 음성) |
 
 ## 주요 인터페이스
 
-### models.ts — AI 모델 및 스트리밍
+### providers/types.ts — 통합 프로바이더 인터페이스 [v3 신규]
 
 ```typescript
-type Provider = 'claude'
+type ProviderType = 'bedrock' | 'openai' | 'gemini'
 
 interface ModelDef {
-  id: string; provider: Provider; label: string; shortLabel: string; emoji: string
+  id: string
+  provider: ProviderType
+  label: string
+  shortLabel: string
+  emoji: string
+  contextWindow: number
+  inputCostPer1M: number   // USD per 1M tokens
+  outputCostPer1M: number
 }
-
-const MODELS: ModelDef[] = [
-  { id: 'us.anthropic.claude-sonnet-4-6', shortLabel: 'Sonnet 4.6', ... },
-  { id: 'us.anthropic.claude-opus-4-6-v1', shortLabel: 'Opus 4.6', ... },
-  { id: 'us.anthropic.claude-haiku-4-5-20251001-v1:0', shortLabel: 'Haiku 4.5', ... },
-]
 
 interface StreamOptions {
-  aws: AwsCredentials; model: string; messages: Message[];
-  systemPrompt?: string; maxTokens?: number; onChunk: (text: string) => void
+  prompt: string
+  modelId: string
+  systemPrompt?: string
+  maxTokens?: number
+  temperature?: number
 }
 
-function streamChatLive(opts: StreamOptions): Promise<string>
+interface AIProvider {
+  type: ProviderType
+  models: ModelDef[]
+  stream(options: StreamOptions): AsyncGenerator<string, string>
+  isConfigured(): boolean
+}
 ```
 
-AWS Bedrock Event Stream 바이너리 프로토콜을 직접 파싱: `[4B totalLen][4B headersLen][4B preludeCRC][headers...][payload...][4B msgCRC]`
+### providers/bedrock-provider.ts
+
+AWS Bedrock Event Stream 바이너리 프로토콜 직접 파싱:
+- `[4B totalLen][4B headersLen][4B preludeCRC][headers...][payload...][4B msgCRC]`
+- SigV4 서명 자동 처리
+
+### providers/openai-provider.ts
+
+OpenAI SSE 스트리밍:
+- `data: {"choices": [{"delta": {"content": "..."}}]}`
+- 표준 Authorization Bearer 헤더
+
+### providers/gemini-provider.ts
+
+Google Gemini SSE 스트리밍:
+- JSON Lines 형식
+- API Key를 URL 쿼리 파라미터로 전달
 
 ### chatHistory.ts — 대화 기록
 
@@ -100,18 +180,28 @@ XML 태그 기반 도구 호출 파싱:
 <tool_call><name>web_search</name><params>{"query": "..."}</params></tool_call>
 ```
 
-### usage.ts — 사용량 추적
+### usage.ts — 사용량 추적 [v3 강화]
 
 ```typescript
 interface UsageRecord {
-  date: string; provider: Provider; model: string;
-  inputTokens: number; outputTokens: number; requests: number; estimatedCost: number
+  date: string
+  provider: ProviderType
+  model: string
+  feature: 'chat' | 'group' | 'tool' | 'agent' | 'debate' | 'report'  // [v3 신규]
+  inputTokens: number
+  outputTokens: number
+  requests: number
+  estimatedCost: number
 }
 
-// 가격표 (1M tokens 당 USD)
+// 가격표 (1M tokens 당 USD) — 전체 프로바이더
 'claude-sonnet-4-6':       { input: 3.0, output: 15.0 }
 'claude-opus-4-6':         { input: 15.0, output: 75.0 }
-'claude-haiku-4-5-20251001': { input: 0.8, output: 4.0 }
+'claude-haiku-4-5':        { input: 0.8, output: 4.0 }
+'gpt-4o':                  { input: 2.5, output: 10.0 }
+'gpt-4o-mini':             { input: 0.15, output: 0.6 }
+'gemini-2.0-flash-exp':    { input: 0.0, output: 0.0 }  // 무료 (실험)
+'gemini-1.5-pro':          { input: 1.25, output: 5.0 }
 
 // 토큰 추정: 한글 2자 ≈ 1토큰, 영문 4자 ≈ 1토큰
 ```
@@ -130,11 +220,17 @@ interface UsageRecord {
 | `calculate` | JavaScript 수식 평가 | 정규식 안전 검증 |
 | `get_datetime` | 현재 날짜/시간 (한국어) | 순수 함수 |
 
-## 모듈 간 의존성
+## 모듈 간 의존성 [v3 업데이트]
 
 ```
-models.ts ←── aws-sigv4.ts
-    ↑
+providers/
+├── types.ts (기본 인터페이스)
+├── bedrock-provider.ts ←── aws-sigv4.ts
+├── openai-provider.ts
+├── gemini-provider.ts
+├── provider-factory.ts ←── 위 3개 프로바이더
+└── model-router.ts
+
 agent.ts ←── agentTools.ts ←── webSearch.ts
     ↑
 chatHistory.ts ←── storage.ts
@@ -143,8 +239,10 @@ messageSearch.ts    bookmarks.ts
 importChat.ts       tags.ts
 exportChat.ts       personas.ts
 summarize.ts        promptLibrary.ts
-                    usage.ts
-                    shortcuts.ts (chrome.storage 직접)
+debate.ts          usage.ts (프로바이더별)
+insightReport.ts   shortcuts.ts (chrome.storage 직접)
+commentAnalyzer.ts
+pdfParser.ts
 
 pageContext.ts      (chrome.storage 직접)
 pageReader.ts       (chrome.scripting, chrome.tabs)

@@ -2,7 +2,7 @@
 
 ## 개요
 
-H Chat v2의 전역 CSS 디자인 시스템. 단일 파일(`global.css`)에 CSS 변수 기반 다크 테마, 20개 이상의 컴포넌트 스타일, 애니메이션, 타이포그래피를 정의한다. 외부 CSS 프레임워크 없이 순수 CSS로 구현.
+H Chat v3의 전역 CSS 디자인 시스템. 단일 파일(`global.css`)에 CSS 변수 기반 다크 테마, 25개 이상의 컴포넌트 스타일, 애니메이션, 타이포그래피를 정의한다. 외부 CSS 프레임워크 없이 순수 CSS로 구현. v3에서는 프로바이더별 색상 코드, 토론 UI, 글쓰기 어시스턴트 스타일이 추가되었다.
 
 ## 파일 목록
 
@@ -34,6 +34,9 @@ H Chat v2의 전역 CSS 디자인 시스템. 단일 파일(`global.css`)에 CSS 
 | 1741-1875 | **Message Search Modal** | 검색 모달 오버레이, 결과 하이라이팅 |
 | 1876-1920 | **Summary Panel** | 대화 요약 패널 |
 | 1921-1986 | **Pinned Messages Panel** | 고정 메시지 사이드 패널 |
+| 1987-2050 | **Provider Colors** | 프로바이더별 색상 코드 (AWS, OpenAI, Google) [v3 신규] |
+| 2051-2150 | **Debate UI** | 토론 타임라인, 라운드 카드, 모델별 구분 [v3 신규] |
+| 2151-2200 | **Writing Assistant** | Textarea 플로팅 툴바 스타일 [v3 신규] |
 
 ## 디자인 토큰 (CSS 변수)
 
@@ -72,6 +75,11 @@ H Chat v2의 전역 CSS 디자인 시스템. 단일 파일(`global.css`)에 CSS 
   --amber:  #fbbf24;
   --red:    #f87171;
   --red-dim: rgba(248,113,113,0.1);
+
+  /* 프로바이더 색상 [v3 신규] */
+  --provider-bedrock:  #ff9900;  /* AWS 주황 */
+  --provider-openai:   #10a37f;  /* OpenAI 청록 */
+  --provider-gemini:   #4285f4;  /* Google 파랑 */
 }
 ```
 

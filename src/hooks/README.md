@@ -2,14 +2,15 @@
 
 ## 개요
 
-사이드패널과 팝업에서 사용하는 React 커스텀 훅 3개. 채팅 상태 관리, 설정 관리, 키보드 단축키 처리를 담당한다.
+사이드패널과 팝업에서 사용하는 React 커스텀 훅 4개. 채팅 상태 관리, 설정 관리, 프로바이더 관리, 키보드 단축키 처리를 담당한다.
 
 ## 파일 목록
 
 | 파일 | 줄 수 | 설명 |
 |------|-------|------|
 | `useChat.ts` | 256 | 채팅 상태 관리 — 메시지 전송/수신, 에이전트 모드, 웹 검색, 스트리밍 |
-| `useConfig.ts` | 62 | 설정 관리 — AWS 자격증명, 기본 모델, 기능 토글 |
+| `useConfig.ts` | 80+ | 설정 관리 — 다중 프로바이더 자격증명, 기본 모델, 기능 토글 [v3 강화] |
+| `useProvider.ts` | 100+ | 프로바이더 관리 — 메모이제이션된 인스턴스, 모델 리스트, 자동 라우팅 [v3 신규] |
 | `useShortcuts.ts` | 40 | 키보드 단축키 바인딩 |
 
 ## useChat.ts
@@ -86,9 +87,9 @@ if (config.enableWebSearch && needsWebSearch(text)) {
 
 ---
 
-## useConfig.ts
+## useConfig.ts [v3 강화]
 
-확장 설정을 `chrome.storage.local`에서 로드하고 업데이트하는 훅.
+확장 설정을 `chrome.storage.local`에서 로드하고 업데이트하는 훅. 다중 프로바이더 지원.
 
 ### 주요 타입
 
@@ -99,9 +100,20 @@ export interface AwsCredentials {
   region: string              // 기본값: 'us-east-1'
 }
 
+export interface OpenAICredentials {
+  apiKey: string
+}
+
+export interface GeminiCredentials {
+  apiKey: string
+}
+
 export interface Config {
-  aws: AwsCredentials
-  defaultModel: string        // 기본값: 'us.anthropic.claude-sonnet-4-6'
+  aws?: AwsCredentials
+  openai?: OpenAICredentials
+  gemini?: GeminiCredentials
+  defaultModel: string        // 모든 프로바이더 모델 ID
+  autoRouting: boolean        // 자동 모델 라우팅 활성화 [v3 신규]
   theme: 'dark' | 'light'
   language: string            // 기본값: 'ko'
   enableContentScript: boolean  // 텍스트 선택 도구
@@ -119,12 +131,66 @@ export interface Config {
 | `config` | 현재 설정 객체 |
 | `update(patch)` | 부분 업데이트 → 즉시 상태 변경 → Storage 저장 → `CONFIG_UPDATED` 전송 |
 | `loaded` | 스토리지에서 로드 완료 여부 |
-| `hasAwsKey()` | AWS 자격증명 설정 여부 확인 |
+| `hasAwsKey()` | AWS 자격증명 설정 여부 |
+| `hasOpenAIKey()` | OpenAI API 키 설정 여부 [v3 신규] |
+| `hasGeminiKey()` | Gemini API 키 설정 여부 [v3 신규] |
+| `hasAnyKey()` | 최소 1개 프로바이더 설정 여부 [v3 신규] |
 
 ### 설정 저장 구조
 
 - `hchat:config` — 전체 설정 객체
 - `hchat:config:aws` — AWS 자격증명 (백그라운드 서비스 워커 접근용)
+- `hchat:config:openai` — OpenAI 자격증명
+- `hchat:config:gemini` — Gemini 자격증명
+
+---
+
+## useProvider.ts [v3 신규]
+
+프로바이더 인스턴스 생성 및 관리, 모델 라우팅을 담당하는 훅.
+
+### 반환값
+
+```typescript
+interface UseProviderReturn {
+  providers: Map<string, AIProvider>  // modelId → provider 맵
+  allModels: ModelDef[]               // 사용 가능한 모든 모델
+  getProvider: (modelId: string) => AIProvider | undefined
+  routeModel: (prompt: string) => string  // 프롬프트 기반 자동 라우팅
+}
+```
+
+### 주요 기능
+
+1. **프로바이더 인스턴스 생성**
+   - Config 기반으로 활성 프로바이더만 생성
+   - useMemo로 메모이제이션 (자격증명 변경 시에만 재생성)
+
+2. **모델 탐색**
+   - `getAllModels()` 호출로 모든 프로바이더의 모델 수집
+   - 프로바이더별 색상, 아이콘 메타데이터 포함
+
+3. **자동 라우팅**
+   - `config.autoRouting` 활성화 시 `routeModel()` 사용
+   - 프롬프트 패턴 분석 (코드/추론/속도) → 최적 모델 선택
+   - 비활성화 시 `config.defaultModel` 반환
+
+### 사용 예시
+
+```typescript
+const { providers, allModels, getProvider, routeModel } = useProvider(config)
+
+// 특정 모델 프로바이더 가져오기
+const provider = getProvider('gpt-4o')
+
+// 자동 라우팅
+const modelId = routeModel('다음 파이썬 코드를 최적화해줘')
+
+// 스트리밍
+for await (const chunk of provider.stream({ prompt, modelId, ... })) {
+  console.log(chunk)
+}
+```
 
 ---
 

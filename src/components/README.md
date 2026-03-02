@@ -2,22 +2,23 @@
 
 ## 개요
 
-사이드패널의 각 탭과 공용 UI 요소를 구성하는 11개 React 컴포넌트. 채팅 인터페이스, 도구 뷰, 설정, 히스토리, 북마크, 프롬프트 라이브러리, 사용량 통계 등 모든 사용자 인터페이스를 포함한다.
+사이드패널의 각 탭과 공용 UI 요소를 구성하는 12개 React 컴포넌트. 채팅 인터페이스, 크로스 모델 그룹 채팅, 크로스 모델 토론, 도구 뷰, 설정, 히스토리, 북마크, 프롬프트 라이브러리, 사용량 통계 등 모든 사용자 인터페이스를 포함한다.
 
 ## 파일 목록
 
 | 파일 | 줄 수 | 설명 |
 |------|-------|------|
-| `ChatView.tsx` | 700 | 메인 채팅 인터페이스 — 메시지, 스트리밍, 에이전트, TTS/STT, 내보내기, 분기 |
-| `GroupChatView.tsx` | 158 | 그룹 채팅 — 여러 모델 동시 질의 및 응답 비교 |
-| `ToolsView.tsx` | 268 | AI 도구 모음 — 요약, YouTube 요약, 번역, 글쓰기, 문법, OCR |
+| `ChatView.tsx` | 700+ | 메인 채팅 인터페이스 — 메시지, 스트리밍, 에이전트, TTS/STT, 내보내기, 분기 |
+| `GroupChatView.tsx` | 200+ | 크로스 모델 그룹 채팅 — 모든 프로바이더 모델 동시 비교 [v3 강화] |
+| `DebateView.tsx` | 300+ | 크로스 모델 토론 — 3라운드 토론 엔진, 토론 기록 시각화 [v3 신규] |
+| `ToolsView.tsx` | 400+ | AI 도구 모음 — 페이지 요약, YouTube 분석, 번역, 글쓰기, 문법, OCR, PDF 채팅 [v3 강화] |
 | `PromptLibraryView.tsx` | 139 | 프롬프트 라이브러리 — CRUD, 카테고리 필터, 단축키 |
 | `HistoryView.tsx` | 204 | 대화 기록 — 검색, 태그 필터, 고정, 가져오기 |
 | `BookmarksView.tsx` | 165 | 하이라이트 북마크 — 색상, 메모, 태그, 검색 |
-| `SettingsView.tsx` | 244 | 설정 — AWS Bedrock 자격증명, 기능 토글, 웹 검색 설정, 단축키 |
-| `UsageView.tsx` | 101 | 사용량 통계 — 요청/토큰/비용, 프로바이더별, 일별 차트 |
+| `SettingsView.tsx` | 300+ | 설정 — 다중 프로바이더 자격증명, 기능 토글, 웹 검색 설정, 단축키 [v3 강화] |
+| `UsageView.tsx` | 150+ | 사용량 통계 — 프로바이더별/기능별 분류, 일별 비용 차트 [v3 강화] |
 | `MessageSearchModal.tsx` | 111 | 전체 대화 검색 모달 — 디바운스, 키보드 네비게이션, 하이라이팅 |
-| `ModelSelector.tsx` | 87 | 모델 선택 드롭다운 — Sonnet 4.6, Opus 4.6, Haiku 4.5 |
+| `ModelSelector.tsx` | 120+ | 모델 선택 드롭다운 — 9개 모델 (AWS, OpenAI, Google) [v3 강화] |
 | `PersonaSelector.tsx` | 128 | 페르소나 선택/생성 — 내장 6종 + 커스텀 생성 |
 
 ## 상세 설명
@@ -67,14 +68,15 @@ interface Props {
 
 ---
 
-### GroupChatView.tsx (158줄)
+### GroupChatView.tsx (200+줄) [v3 강화]
 
-여러 Claude 모델에 동시에 질문하여 응답을 비교하는 뷰.
+모든 프로바이더의 모델에 동시에 질문하여 응답을 비교하는 뷰.
 
 #### 인터페이스
 ```typescript
 interface ModelResponse {
   modelId: string
+  provider: ProviderType  // 'bedrock' | 'openai' | 'gemini'
   text: string
   loading: boolean
   error?: string
@@ -83,25 +85,65 @@ interface ModelResponse {
 ```
 
 #### 특징
-- 모델 선택 토글 (Sonnet/Opus/Haiku)
-- 병렬 `streamChatLive()` 호출
+- 모든 프로바이더 모델 선택 가능 (최대 9개)
+- 병렬 스트리밍 호출 (각 프로바이더의 stream 메서드)
+- 프로바이더별 색상 구분
 - 각 모델별 응답 시간 측정 및 표시
 - 그리드 레이아웃으로 나란히 비교
 
 ---
 
-### ToolsView.tsx (268줄)
+### DebateView.tsx (300+줄) [v3 신규]
 
-6개 AI 도구를 제공하는 도구 모음 뷰.
+서로 다른 AI 모델 간 토론을 진행하는 뷰.
+
+#### 토론 구조
+```typescript
+interface DebateRound {
+  round: number
+  type: 'initial' | 'critique' | 'synthesis'
+  responses: Array<{
+    modelId: string
+    provider: ProviderType
+    text: string
+  }>
+}
+```
+
+#### 3라운드 토론 엔진
+1. **라운드 1**: 각 모델이 질문에 독립적으로 답변
+2. **라운드 2**: 각 모델이 다른 모델들의 답변을 비평
+3. **라운드 3**: 각 모델이 최종 종합 의견 제시
+
+#### 특징
+- 최소 2개, 최대 4개 모델 선택
+- 토론 기록 타임라인 시각화
+- 라운드별 접기/펼치기
+- 전체 토론 내보내기 (Markdown)
+
+---
+
+### ToolsView.tsx (400+줄) [v3 강화]
+
+7개 AI 도구를 제공하는 도구 모음 뷰.
 
 | 도구 | 아이콘 | 설명 |
 |------|--------|------|
 | 페이지 요약 | 📄 | `getCurrentPageContent()`로 현재 탭 요약 |
-| YouTube 요약 | ▶️ | `getYouTubeTranscript()`로 자막 기반 요약 |
+| YouTube 분석 | ▶️ | 자막 요약 + 댓글 분석 (최대 200개) + 통합 리포트 [v3 강화] |
 | 텍스트 번역 | 🌐 | 50개 언어 지원 드롭다운 |
-| 글쓰기 도구 | ✏️ | 11가지 Writing Action 버튼 그리드 |
+| 글쓰기 도구 | ✏️ | 7가지 Writing Action (개선, 축약, 확장, 전문적, 캐주얼, 교정, 번역) |
 | 문법 교정 | ✅ | 맞춤법/문법/표현 교정 + 이유 설명 |
-| 이미지 OCR | 🔍 | Claude Sonnet 4.6 비전 모델 사용 |
+| 이미지 OCR | 🔍 | Vision 모델 사용 (Claude, GPT) |
+| PDF 채팅 | 📄 | PDF 업로드 → pdfjs-dist 텍스트 추출 → 질의응답 [v3 신규] |
+
+#### YouTube 분석 (v3 강화)
+- **자막 요약**: 기존 3단계 fallback 유지
+- **댓글 분석**: YouTube Data API로 최대 200개 댓글 추출
+  - 감정 분석 (긍정/부정/중립 비율)
+  - 주요 토픽 추출
+  - 대표 댓글 선정
+- **통합 리포트**: 자막 + 댓글 종합 분석 Markdown 리포트 생성
 
 ---
 
@@ -139,26 +181,31 @@ interface ModelResponse {
 
 ---
 
-### SettingsView.tsx (244줄)
+### SettingsView.tsx (300+줄) [v3 강화]
 
 | 섹션 | 내용 |
 |------|------|
 | AWS Bedrock 설정 | Access Key ID, Secret Access Key (마스킹), Region, 연결 테스트 |
-| 기본 설정 | 기본 모델, 텍스트 선택 도구 토글, 검색 엔진 강화, 웹 검색 (RAG) |
+| OpenAI 설정 | API Key (마스킹), 연결 테스트 [v3 신규] |
+| Google Gemini 설정 | API Key (마스킹), 연결 테스트 [v3 신규] |
+| 기본 설정 | 기본 모델 (모든 프로바이더), 자동 라우팅 토글, 텍스트 선택 도구 토글, 검색 엔진 강화, 웹 검색 (RAG) |
 | 웹 검색 설정 | Google Search API Key, CSE Engine ID (선택, 기본 DuckDuckGo) |
 | 키보드 단축키 | 전체 단축키 목록, Mac/Windows 자동 표시 |
 | 사용량 통계 | `UsageView` 컴포넌트 임베드 |
-| 정보 | H Chat v2.0 로고, 지원 모델 표시 |
+| 정보 | H Chat v3.0 로고, 지원 프로바이더 및 모델 표시 |
 
 ---
 
-### UsageView.tsx (101줄)
+### UsageView.tsx (150+줄) [v3 강화]
 
 토큰 사용량 및 비용 추정 대시보드.
 
 - **요약 카드**: 총 요청, 총 토큰, 예상 비용 (USD)
-- **프로바이더별**: 색상 코드 + 요청/토큰/비용
-- **일별 차트**: 최근 14일 바 차트 (툴팁)
+- **프로바이더별 분류**: AWS Bedrock, OpenAI, Google Gemini 개별 표시
+  - 각 프로바이더 색상 코드
+  - 요청/토큰/비용 통계
+- **기능별 분류**: 채팅, 그룹 채팅, 도구, 에이전트, 토론, 리포트 [v3 신규]
+- **일별 비용 차트**: 최근 14일 바 차트 (프로바이더별 색상 스택)
 - **기간 선택**: 7일/30일/90일
 
 ---
@@ -173,17 +220,30 @@ interface ModelResponse {
 
 ---
 
-### ModelSelector.tsx (87줄)
+### ModelSelector.tsx (120+줄) [v3 강화]
 
-모델 선택 드롭다운. AWS 자격증명 없으면 선택 불가.
+모델 선택 드롭다운. 프로바이더별 그룹화, 자격증명 없으면 해당 프로바이더 비활성화.
 
 ```typescript
 MODELS = [
+  // AWS Bedrock
   'Claude Sonnet 4.6 (권장)',
-  'Claude Opus 4.6 (최고 성능)',
-  'Claude Haiku 4.5 (빠름)'
+  'Claude Opus 4.6 (최고 추론)',
+  'Claude Haiku 4.5 (빠름)',
+  // OpenAI
+  'GPT-4o (코드)',
+  'GPT-4o mini (경제적)',
+  // Google Gemini
+  'Flash 2.0 (초고속)',
+  'Pro 1.5 (긴 컨텍스트)'
 ]
 ```
+
+#### 특징
+- 프로바이더별 섹션 구분
+- 각 프로바이더 아이콘 표시
+- 자격증명 상태에 따라 활성/비활성
+- 자동 라우팅 모드 토글
 
 ---
 

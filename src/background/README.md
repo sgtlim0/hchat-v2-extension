@@ -2,7 +2,7 @@
 
 ## 개요
 
-Chrome Extension MV3 서비스 워커. 확장의 백그라운드 로직을 담당하며, 컨텍스트 메뉴 등록, 사이드패널 제어, 하이라이트 저장/조회, 탭 컨텍스트 갱신, 플로팅 툴바 스트리밍, 키보드 커맨드를 처리한다.
+Chrome Extension MV3 서비스 워커. 확장의 백그라운드 로직을 담당하며, 컨텍스트 메뉴 등록, 사이드패널 제어, 하이라이트 저장/조회, 탭 컨텍스트 갱신, 플로팅 툴바 스트리밍 (멀티 프로바이더), 키보드 커맨드를 처리한다.
 
 ## 파일 목록
 
@@ -61,7 +61,7 @@ async function handleSaveHighlight(data: {
 
 `chrome.tabs.onActivated` 이벤트에서 콘텐츠 스크립트에 `UPDATE_PAGE_CONTEXT` 메시지를 전송한다. 콘텐츠 스크립트가 로드되지 않은 탭(예: `chrome://` 페이지)은 에러를 무시한다.
 
-### 6. 툴바 스트리밍 (Bedrock)
+### 6. 툴바 스트리밍 (멀티 프로바이더) [v3 강화]
 
 ```typescript
 chrome.runtime.onConnect.addListener((port) => {
@@ -70,11 +70,11 @@ chrome.runtime.onConnect.addListener((port) => {
 })
 ```
 
-AWS Bedrock `invoke-with-response-stream` API를 호출하고, AWS Event Stream 바이너리 프로토콜을 직접 파싱한다:
+선택된 AI 프로바이더에 따라 적절한 스트리밍 API를 호출한다:
 
-- Binary event stream format: `[4B totalLen][4B headersLen][4B preludeCRC][headers...][payload...][4B msgCRC]`
-- Base64 디코딩 후 JSON 파싱
-- `content_block_delta` 이벤트에서 텍스트 추출
+- **AWS Bedrock**: AWS Event Stream 바이너리 프로토콜 파싱 (SigV4 서명)
+- **OpenAI**: SSE 스트리밍 (`data: {...}` 라인 파싱)
+- **Google Gemini**: SSE 스트리밍 (JSON Lines)
 
 포트 메시지 프로토콜:
 - `{ type: 'chunk', text }` — 텍스트 청크

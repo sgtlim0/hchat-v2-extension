@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Usage, formatCost, formatTokens, type UsageSummary, type UsageFeature } from '../lib/usage'
+import { Usage, formatCost, formatTokens, exportUsageAsCSV, type UsageSummary, type UsageFeature } from '../lib/usage'
+import { downloadBlob } from '../lib/exportChat'
 import { useLocale } from '../i18n'
 
 const PROVIDER_COLORS: Record<string, string> = {
@@ -140,7 +141,21 @@ export function UsageView() {
         </div>
       )}
 
-      <div style={{ padding: '8px 0' }}>
+      <div style={{ padding: '8px 0', display: 'flex', gap: 8, alignItems: 'center' }}>
+        <button className="btn btn-ghost btn-xs" onClick={async () => {
+          try {
+            const records = await Usage.getRecords()
+            if (records.length === 0) return
+            const csv = exportUsageAsCSV(records)
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
+            const date = new Date().toISOString().slice(0, 10)
+            downloadBlob(blob, `h-chat-usage-${date}.csv`)
+          } catch (error) {
+            console.error('CSV export failed:', error)
+          }
+        }}>
+          {t('usage.exportCSV')}
+        </button>
         <button className="btn btn-ghost btn-xs" style={{ color: 'var(--red)' }} onClick={handleClear}>
           {t('usage.clearAll')}
         </button>

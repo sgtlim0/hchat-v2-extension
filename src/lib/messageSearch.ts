@@ -10,6 +10,8 @@ export interface SearchResult {
   matchIndex: number
 }
 
+const BATCH_SIZE = 5
+
 /** Search across all conversations for messages containing the query */
 export async function searchMessages(query: string, maxResults = 50): Promise<SearchResult[]> {
   if (!query.trim()) return []
@@ -18,26 +20,34 @@ export async function searchMessages(query: string, maxResults = 50): Promise<Se
   const index = await ChatHistory.listIndex()
   const results: SearchResult[] = []
 
-  for (const item of index) {
+  for (let i = 0; i < index.length; i += BATCH_SIZE) {
     if (results.length >= maxResults) break
 
-    const conv = await ChatHistory.get(item.id)
-    if (!conv) continue
+    const batch = index.slice(i, i + BATCH_SIZE)
+    const settled = await Promise.allSettled(batch.map((item) => ChatHistory.get(item.id)))
+    const convs = settled
+      .filter((r): r is PromiseFulfilledResult<Awaited<ReturnType<typeof ChatHistory.get>>> => r.status === 'fulfilled')
+      .map((r) => r.value)
 
-    for (const msg of conv.messages) {
+    for (const conv of convs) {
+      if (!conv) continue
       if (results.length >= maxResults) break
 
-      const lowerContent = msg.content.toLowerCase()
-      const matchIdx = lowerContent.indexOf(lowerQuery)
-      if (matchIdx === -1) continue
+      for (const msg of conv.messages) {
+        if (results.length >= maxResults) break
 
-      results.push({
-        convId: conv.id,
-        convTitle: conv.title,
-        message: msg,
-        matchSnippet: buildSnippet(msg.content, matchIdx, query.length),
-        matchIndex: matchIdx,
-      })
+        const lowerContent = msg.content.toLowerCase()
+        const matchIdx = lowerContent.indexOf(lowerQuery)
+        if (matchIdx === -1) continue
+
+        results.push({
+          convId: conv.id,
+          convTitle: conv.title,
+          message: msg,
+          matchSnippet: buildSnippet(msg.content, matchIdx, query.length),
+          matchIndex: matchIdx,
+        })
+      }
     }
   }
 

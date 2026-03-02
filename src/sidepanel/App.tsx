@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useMemo } from 'react'
+import { useState, useCallback, useRef, useMemo, useEffect } from 'react'
 import { useConfig } from '../hooks/useConfig'
 import { useShortcuts } from '../hooks/useShortcuts'
 import { useLocale } from '../i18n'
@@ -35,11 +35,34 @@ export function App() {
   const [tab, setTab] = useState<Tab>('chat')
   const [loadConvId, setLoadConvId] = useState<string | undefined>()
   const [contextEnabled, setContextEnabled] = useState(true)
+  const [pendingPrompt, setPendingPrompt] = useState<string | undefined>()
   const [showSearch, setShowSearch] = useState(false)
   const chatNewRef = useRef<() => void>()
   const chatStopRef = useRef<() => void>()
   const chatInputRef = useRef<() => void>()
   const hasAnyKey = !!(config.aws.accessKeyId && config.aws.secretAccessKey) || !!config.openai.apiKey || !!config.gemini.apiKey
+
+  // Apply theme to <html> element
+  useEffect(() => {
+    const apply = (theme: string) => {
+      const root = document.documentElement
+      if (theme === 'light') {
+        root.classList.add('light')
+      } else if (theme === 'dark') {
+        root.classList.remove('light')
+      } else {
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+        root.classList.toggle('light', !prefersDark)
+      }
+    }
+    const theme = config.theme ?? 'system'
+    apply(theme)
+
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    const handler = () => apply(theme)
+    if (theme === 'system') mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [config.theme])
 
   const cycleTab = useCallback((dir: 1 | -1) => {
     setTab((current) => {
@@ -136,6 +159,8 @@ export function App() {
             onNewConv={() => setLoadConvId(undefined)}
             contextEnabled={contextEnabled}
             onToggleContext={() => setContextEnabled((v) => !v)}
+            initialPrompt={pendingPrompt}
+            onConsumePrompt={() => setPendingPrompt(undefined)}
             onRegisterActions={(actions) => {
               chatNewRef.current = actions.startNew
               chatStopRef.current = actions.stop
@@ -149,9 +174,9 @@ export function App() {
         {tab === 'debate' && <DebateView config={config} />}
         {tab === 'prompts' && (
           <PromptLibraryView
-            onUsePrompt={(_content) => {
+            onUsePrompt={(content) => {
+              setPendingPrompt(content)
               setTab('chat')
-              // TODO: pass to chat view
             }}
           />
         )}

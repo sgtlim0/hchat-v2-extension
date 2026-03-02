@@ -13,7 +13,7 @@ export interface Config {
   gemini: { apiKey: string }
   defaultModel: string
   autoRouting: boolean
-  theme: 'dark' | 'light'
+  theme: 'system' | 'dark' | 'light'
   language: string
   enableContentScript: boolean
   enableSearchEnhance: boolean
@@ -28,7 +28,7 @@ const DEFAULTS: Config = {
   gemini: { apiKey: '' },
   defaultModel: 'us.anthropic.claude-sonnet-4-6',
   autoRouting: false,
-  theme: 'dark',
+  theme: 'system',
   language: 'ko',
   enableContentScript: true,
   enableSearchEnhance: true,

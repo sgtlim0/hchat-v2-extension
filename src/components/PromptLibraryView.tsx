@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { PromptLibrary, type Prompt } from '../lib/promptLibrary'
+import { downloadBlob } from '../lib/exportChat'
 import { useLocale } from '../i18n'
 
 interface Props {
@@ -16,6 +17,8 @@ export function PromptLibraryView({ onUsePrompt }: Props) {
   const [adding, setAdding] = useState(false)
   const [form, setForm] = useState({ title: '', content: '', shortcut: '', category: '글쓰기' })
   const [editing, setEditing] = useState<string | null>(null)
+  const [importMsg, setImportMsg] = useState('')
+  const importRef = useRef<HTMLInputElement>(null)
 
   // Category display mapping for i18n
   const categoryDisplay = (cat: string): string => {
@@ -61,14 +64,42 @@ export function PromptLibraryView({ onUsePrompt }: Props) {
     setAdding(true)
   }
 
+  const handleExport = async () => {
+    const data = await PromptLibrary.exportPrompts()
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json;charset=utf-8' })
+    const date = new Date().toISOString().slice(0, 10)
+    downloadBlob(blob, `h-chat-prompts-${date}.json`)
+  }
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    try {
+      const count = await PromptLibrary.importPrompts(file)
+      setImportMsg(t('prompts.importSuccess', { n: count }))
+      load()
+    } catch {
+      setImportMsg(t('prompts.importFail'))
+    }
+    e.target.value = ''
+    setTimeout(() => setImportMsg(''), 3000)
+  }
+
   return (
     <div className="panel">
       <div className="panel-header">
         <span className="panel-title">{t('prompts.title')}</span>
-        <button className="btn btn-primary btn-xs" onClick={() => { setAdding(!adding); setEditing(null); setForm({ title: '', content: '', shortcut: '', category: '글쓰기' }) }}>
-          {adding ? t('common.cancel') : `+ ${t('common.add')}`}
-        </button>
+        <div style={{ display: 'flex', gap: 4 }}>
+          <button className="btn btn-ghost btn-xs" onClick={handleExport} title={t('prompts.export')}>📤</button>
+          <button className="btn btn-ghost btn-xs" onClick={() => importRef.current?.click()} title={t('prompts.import')}>📥</button>
+          <input ref={importRef} type="file" accept=".json" style={{ display: 'none' }} onChange={handleImport} />
+          <button className="btn btn-primary btn-xs" onClick={() => { setAdding(!adding); setEditing(null); setForm({ title: '', content: '', shortcut: '', category: '글쓰기' }) }}>
+            {adding ? t('common.cancel') : `+ ${t('common.add')}`}
+          </button>
+        </div>
       </div>
+
+      {importMsg && <div style={{ fontSize: 11, color: 'var(--accent)', padding: '4px 0' }}>{importMsg}</div>}
 
       {/* Add / Edit form */}
       {adding && (

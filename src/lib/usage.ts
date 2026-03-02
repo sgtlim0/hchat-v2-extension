@@ -129,6 +129,14 @@ export const Usage = {
   },
 }
 
+export function exportUsageAsCSV(records: UsageRecord[]): string {
+  const header = 'Date,Provider,Model,InputTokens,OutputTokens,Requests,Cost(USD),Feature'
+  const rows = records.map((r) =>
+    [r.date, r.provider, r.model, r.inputTokens, r.outputTokens, r.requests, r.estimatedCost.toFixed(6), r.feature ?? ''].join(',')
+  )
+  return [header, ...rows].join('\n')
+}
+
 export function formatCost(usd: number): string {
   if (usd < 0.01) return '< $0.01'
   return `$${usd.toFixed(2)}`

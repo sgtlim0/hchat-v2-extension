@@ -79,4 +79,49 @@ export const PromptLibrary = {
       p.category.toLowerCase().includes(lq)
     )
   },
+
+  async exportPrompts(): Promise<PromptExportData> {
+    const prompts = await this.list()
+    return { version: '1.0', exportedAt: new Date().toISOString(), prompts }
+  },
+
+  async importPrompts(file: File): Promise<number> {
+    if (file.size > 10 * 1024 * 1024) {
+      throw new Error('File too large (max 10MB)')
+    }
+    const text = await file.text()
+    let data: PromptExportData
+    try {
+      data = JSON.parse(text) as PromptExportData
+    } catch {
+      throw new Error('Invalid JSON file format')
+    }
+    if (!data.version || !Array.isArray(data.prompts)) {
+      throw new Error('Invalid prompt file format')
+    }
+    const existing = await this.list()
+    const existingIds = new Set(existing.map((p) => p.id))
+    const sanitize = (s: string) => s.replace(/<script[\s>]/gi, '').replace(/on\w+\s*=/gi, '')
+    const newPrompts = data.prompts
+      .filter((p) => p.title && p.content)
+      .map((p): Prompt => ({
+        ...p,
+        id: existingIds.has(p.id) ? crypto.randomUUID() : p.id,
+        title: sanitize(String(p.title)).slice(0, 200),
+        content: sanitize(String(p.content)).slice(0, 10000),
+        shortcut: p.shortcut ? String(p.shortcut).slice(0, 20) : undefined,
+        usageCount: p.usageCount ?? 0,
+        createdAt: p.createdAt ?? Date.now(),
+        category: p.category ?? '글쓰기',
+      }))
+    const merged = [...existing, ...newPrompts]
+    await Storage.set(KEY, merged)
+    return newPrompts.length
+  },
+}
+
+export interface PromptExportData {
+  version: string
+  exportedAt: string
+  prompts: Prompt[]
 }

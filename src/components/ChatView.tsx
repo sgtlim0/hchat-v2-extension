@@ -24,11 +24,13 @@ interface Props {
   loadConvId?: string
   contextEnabled?: boolean
   onToggleContext?: () => void
+  initialPrompt?: string
+  onConsumePrompt?: () => void
   onRegisterActions?: (actions: { startNew: () => void; stop: () => void; focusInput: () => void }) => void
   onForkConv?: (newConvId: string) => void
 }
 
-export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onToggleContext, onRegisterActions, onForkConv }: Props) {
+export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onToggleContext, initialPrompt, onConsumePrompt, onRegisterActions, onForkConv }: Props) {
   const { t } = useLocale()
   const { conv, messages, isLoading, isSearching, agentMode, setAgentMode, personaId, setPersonaId, error, currentModel, setCurrentModel, sendMessage, startNew, loadConv, stop, editAndResend, regenerate } = useChat(config)
   const [, setTTSRefresh] = useState(0)
@@ -83,6 +85,14 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
     STT.onStateChange(() => setSTTRefresh((n) => n + 1))
     return () => { STT.stop(); STT.onStateChange(() => {}) }
   }, [])
+
+  useEffect(() => {
+    if (initialPrompt) {
+      setInput(initialPrompt.replace('{{content}}', ''))
+      textareaRef.current?.focus()
+      onConsumePrompt?.()
+    }
+  }, [initialPrompt]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleTTS = useCallback((msgId: string, text: string) => {
     if (TTS.isPlaying(msgId)) TTS.stop()

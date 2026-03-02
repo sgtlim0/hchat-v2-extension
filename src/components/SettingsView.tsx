@@ -259,6 +259,15 @@ export function SettingsView() {
             <option value="en">English</option>
           </select>
         </div>
+
+        <div className="field" style={{ padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
+          <label className="field-label">{t('settings.themeLabel')}</label>
+          <select className="select" value={config.theme ?? 'system'} onChange={(e) => update({ theme: e.target.value })}>
+            <option value="system">{t('settings.themeSystem')}</option>
+            <option value="dark">{t('settings.themeDark')}</option>
+            <option value="light">{t('settings.themeLight')}</option>
+          </select>
+        </div>
       </div>
 
       {config.enableWebSearch && (

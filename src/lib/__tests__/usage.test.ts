@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { Usage, estimateTokens, formatCost, formatTokens } from '../usage'
+import { Usage, estimateTokens, formatCost, formatTokens, exportUsageAsCSV, type UsageRecord } from '../usage'
 
 describe('estimateTokens', () => {
   it('estimates English text (~4 chars per token)', () => {
@@ -142,5 +142,36 @@ describe('Usage', () => {
       await Usage.clearAll()
       expect(await Usage.getRecords()).toEqual([])
     })
+  })
+})
+
+describe('exportUsageAsCSV', () => {
+  it('returns header only for empty records', () => {
+    const csv = exportUsageAsCSV([])
+    expect(csv).toBe('Date,Provider,Model,InputTokens,OutputTokens,Requests,Cost(USD),Feature')
+  })
+
+  it('formats records as CSV rows', () => {
+    const records: UsageRecord[] = [
+      { date: '2026-03-01', provider: 'bedrock', model: 'claude-sonnet-4-6', inputTokens: 100, outputTokens: 50, requests: 3, estimatedCost: 0.001075, feature: 'chat' },
+      { date: '2026-03-02', provider: 'openai', model: 'gpt-4o', inputTokens: 200, outputTokens: 100, requests: 1, estimatedCost: 0.0015 },
+    ]
+    const csv = exportUsageAsCSV(records)
+    const lines = csv.split('\n')
+    expect(lines).toHaveLength(3)
+    expect(lines[0]).toBe('Date,Provider,Model,InputTokens,OutputTokens,Requests,Cost(USD),Feature')
+    expect(lines[1]).toContain('2026-03-01')
+    expect(lines[1]).toContain('bedrock')
+    expect(lines[1]).toContain('chat')
+    expect(lines[2]).toContain('gpt-4o')
+    expect(lines[2].endsWith(',')).toBe(true)  // empty feature
+  })
+
+  it('formats cost to 6 decimal places', () => {
+    const records: UsageRecord[] = [
+      { date: '2026-03-01', provider: 'openai', model: 'gpt-4o', inputTokens: 10, outputTokens: 5, requests: 1, estimatedCost: 0.000123 },
+    ]
+    const csv = exportUsageAsCSV(records)
+    expect(csv).toContain('0.000123')
   })
 })

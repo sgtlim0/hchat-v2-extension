@@ -1,21 +1,13 @@
 // Floating AI toolbar that appears on text selection
-// All DOM manipulation - no React needed here
+// Uses Shadow DOM to avoid CSP conflicts with host pages
 
 import { getLocale, tSync, type Locale } from '../i18n'
 
-const TOOLBAR_ID = 'hchat-toolbar'
-const RESULT_ID = 'hchat-result'
-
+let shadowHost: HTMLElement | null = null
+let shadowRoot: ShadowRoot | null = null
 let toolbar: HTMLElement | null = null
 let resultPanel: HTMLElement | null = null
 let hideTimer: ReturnType<typeof setTimeout> | null = null
-
-interface ActionDef {
-  id: string
-  icon: string
-  label: string
-  prompt: (text: string) => string
-}
 
 const PROMPTS_KO: Record<string, (t: string) => string> = {
   explain: (t) => `다음을 쉽게 설명해줘:\n\n${t}`,
@@ -35,19 +27,16 @@ const PROMPTS_EN: Record<string, (t: string) => string> = {
   grammar: (t) => `Check and correct the grammar and spelling of the following:\n\n${t}`,
 }
 
-const ACTIONS: ActionDef[] = [
-  { id: 'explain', icon: '💡', label: '설명', prompt: (t) => `다음을 쉽게 설명해줘:\n\n${t}` },
-  { id: 'translate', icon: '🌐', label: '번역', prompt: (t) => `다음을 한국어로 번역해줘:\n\n${t}` },
-  { id: 'summarize', icon: '📄', label: '요약', prompt: (t) => `다음을 3줄로 요약해줘:\n\n${t}` },
-  { id: 'rewrite', icon: '✏️', label: '다듬기', prompt: (t) => `다음 문장을 더 명확하게 다듬어줘:\n\n${t}` },
-  { id: 'formal', icon: '🎩', label: '격식체', prompt: (t) => `다음을 격식 있는 문체로 바꿔줘:\n\n${t}` },
-  { id: 'grammar', icon: '✅', label: '교정', prompt: (t) => `다음의 문법과 맞춤법을 교정해줘:\n\n${t}` },
-  { id: 'highlight', icon: '🖍️', label: '하이라이트', prompt: () => '' },
-]
+const ACTION_IDS = ['explain', 'translate', 'summarize', 'rewrite', 'formal', 'grammar', 'highlight'] as const
+const ACTION_ICONS: Record<string, string> = {
+  explain: '💡', translate: '🌐', summarize: '📄',
+  rewrite: '✏️', formal: '🎩', grammar: '✅', highlight: '🖍️',
+}
 
 function getStyles(): string {
   return `
-    #hchat-toolbar {
+    :host { all: initial; }
+    .hchat-toolbar {
       position: fixed;
       z-index: 2147483647;
       background: #0e1318;
@@ -61,7 +50,7 @@ function getStyles(): string {
       font-family: 'IBM Plex Sans KR', 'Noto Sans KR', sans-serif;
       transition: opacity 0.15s;
     }
-    #hchat-toolbar button {
+    .hchat-toolbar button {
       background: transparent;
       border: none;
       border-radius: 6px;
@@ -76,11 +65,11 @@ function getStyles(): string {
       transition: all 0.12s;
       font-family: inherit;
     }
-    #hchat-toolbar button:hover {
+    .hchat-toolbar button:hover {
       background: rgba(52,211,153,0.1);
       color: #34d399;
     }
-    #hchat-toolbar .h-logo {
+    .h-logo {
       width: 22px;
       height: 22px;
       background: linear-gradient(135deg, #34d399, #10b981);
@@ -94,13 +83,13 @@ function getStyles(): string {
       color: #061210;
       flex-shrink: 0;
     }
-    #hchat-toolbar .divider {
+    .divider {
       width: 1px;
       background: rgba(255,255,255,0.07);
       margin: 4px 2px;
       align-self: stretch;
     }
-    #hchat-result {
+    .hchat-result {
       position: fixed;
       z-index: 2147483646;
       background: #0e1318;
@@ -114,7 +103,7 @@ function getStyles(): string {
       display: flex;
       flex-direction: column;
     }
-    #hchat-result .r-header {
+    .r-header {
       display: flex;
       align-items: center;
       gap: 8px;
@@ -123,14 +112,22 @@ function getStyles(): string {
       background: rgba(52,211,153,0.05);
       flex-shrink: 0;
     }
-    #hchat-result .r-title {
+    .r-logo {
+      width: 20px; height: 20px;
+      background: linear-gradient(135deg, #34d399, #10b981);
+      border-radius: 5px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: monospace; font-weight: 700; font-size: 10px;
+      color: #061210; flex-shrink: 0;
+    }
+    .r-title {
       font-size: 12px;
       font-weight: 600;
       color: #34d399;
       flex: 1;
       font-family: 'IBM Plex Mono', monospace;
     }
-    #hchat-result .r-close {
+    .r-close {
       background: transparent;
       border: none;
       color: #6b7c93;
@@ -140,8 +137,8 @@ function getStyles(): string {
       border-radius: 4px;
       font-family: inherit;
     }
-    #hchat-result .r-close:hover { background: rgba(255,255,255,0.06); color: #eef1f5; }
-    #hchat-result .r-body {
+    .r-close:hover { background: rgba(255,255,255,0.06); color: #eef1f5; }
+    .r-body {
       flex: 1;
       overflow-y: auto;
       padding: 12px 14px;
@@ -152,14 +149,14 @@ function getStyles(): string {
       scrollbar-width: thin;
       scrollbar-color: #2a3a52 transparent;
     }
-    #hchat-result .r-footer {
+    .r-footer {
       display: flex;
       gap: 6px;
       padding: 8px 12px;
       border-top: 1px solid rgba(255,255,255,0.06);
       flex-shrink: 0;
     }
-    #hchat-result .r-btn {
+    .r-btn {
       flex: 1;
       background: rgba(255,255,255,0.04);
       border: 1px solid rgba(255,255,255,0.07);
@@ -171,23 +168,31 @@ function getStyles(): string {
       font-family: inherit;
       transition: all 0.12s;
     }
-    #hchat-result .r-btn:hover { background: rgba(52,211,153,0.08); color: #34d399; border-color: rgba(52,211,153,0.2); }
+    .r-btn:hover { background: rgba(52,211,153,0.08); color: #34d399; border-color: rgba(52,211,153,0.2); }
     .hchat-cursor { display: inline-block; animation: hchat-blink 0.8s step-end infinite; color: #34d399; }
     @keyframes hchat-blink { 0%,100%{opacity:1} 50%{opacity:0} }
   `
 }
 
-function injectStyles() {
-  if (document.getElementById('hchat-styles')) return
+function ensureShadowHost(): ShadowRoot {
+  if (shadowRoot) return shadowRoot
+  shadowHost = document.createElement('div')
+  shadowHost.id = 'hchat-toolbar-host'
+  shadowHost.style.cssText = 'position:fixed;top:0;left:0;width:0;height:0;z-index:2147483647;pointer-events:none;'
+  document.body.appendChild(shadowHost)
+  shadowRoot = shadowHost.attachShadow({ mode: 'closed' })
+
   const style = document.createElement('style')
-  style.id = 'hchat-styles'
   style.textContent = getStyles()
-  document.head.appendChild(style)
+  shadowRoot.appendChild(style)
+
+  return shadowRoot
 }
 
 function createToolbar(locale: Locale): HTMLElement {
   const el = document.createElement('div')
-  el.id = TOOLBAR_ID
+  el.className = 'hchat-toolbar'
+  el.style.pointerEvents = 'auto'
 
   const logo = document.createElement('div')
   logo.className = 'h-logo'
@@ -198,24 +203,40 @@ function createToolbar(locale: Locale): HTMLElement {
   div.className = 'divider'
   el.appendChild(div)
 
-  ACTIONS.forEach((action) => {
+  for (const id of ACTION_IDS) {
     const btn = document.createElement('button')
-    const label = tSync(locale, 'toolbar.' + action.id)
-    btn.innerHTML = `<span>${action.icon}</span><span>${label}</span>`
-    btn.dataset.action = action.id
+    const label = tSync(locale, 'toolbar.' + id)
+    const iconSpan = document.createElement('span')
+    iconSpan.textContent = ACTION_ICONS[id]
+    const labelSpan = document.createElement('span')
+    labelSpan.textContent = label
+    btn.appendChild(iconSpan)
+    btn.appendChild(labelSpan)
+    btn.dataset.action = id
     el.appendChild(btn)
-  })
+  }
 
   return el
 }
 
 function createResultPanel(title: string, locale: Locale): HTMLElement {
   const el = document.createElement('div')
-  el.id = RESULT_ID
+  el.className = 'hchat-result'
+  el.style.pointerEvents = 'auto'
 
   const header = document.createElement('div')
   header.className = 'r-header'
-  header.innerHTML = `<div class="r-logo" style="width:20px;height:20px;background:linear-gradient(135deg,#34d399,#10b981);border-radius:5px;display:flex;align-items:center;justify-content:center;font-family:monospace;font-weight:700;font-size:10px;color:#061210;flex-shrink:0">H</div><span class="r-title">${title}</span>`
+
+  const logoDiv = document.createElement('div')
+  logoDiv.className = 'r-logo'
+  logoDiv.textContent = 'H'
+  header.appendChild(logoDiv)
+
+  const titleSpan = document.createElement('span')
+  titleSpan.className = 'r-title'
+  titleSpan.textContent = title
+  header.appendChild(titleSpan)
+
   const closeBtn = document.createElement('button')
   closeBtn.className = 'r-close'
   closeBtn.textContent = '✕'
@@ -227,6 +248,7 @@ function createResultPanel(title: string, locale: Locale): HTMLElement {
 
   const footer = document.createElement('div')
   footer.className = 'r-footer'
+
   const copyBtn = document.createElement('button')
   copyBtn.className = 'r-btn'
   copyBtn.textContent = `📋 ${tSync(locale, 'toolbar.copyBtn')}`
@@ -235,12 +257,14 @@ function createResultPanel(title: string, locale: Locale): HTMLElement {
     copyBtn.textContent = `✓ ${tSync(locale, 'toolbar.copiedBtn')}`
     setTimeout(() => { copyBtn.textContent = `📋 ${tSync(locale, 'toolbar.copyBtn')}` }, 1500)
   }
+
   const chatBtn = document.createElement('button')
   chatBtn.className = 'r-btn'
   chatBtn.textContent = `💬 ${tSync(locale, 'toolbar.continueChat')}`
   chatBtn.onclick = () => {
     chrome.runtime.sendMessage({ type: 'OPEN_SIDEPANEL' })
   }
+
   footer.appendChild(copyBtn)
   footer.appendChild(chatBtn)
 
@@ -250,8 +274,8 @@ function createResultPanel(title: string, locale: Locale): HTMLElement {
   return el
 }
 
-function positionElement(el: HTMLElement, x: number, y: number) {
-  document.body.appendChild(el)
+function positionElement(el: HTMLElement, root: ShadowRoot, x: number, y: number) {
+  root.appendChild(el)
   const rect = el.getBoundingClientRect()
   const vw = window.innerWidth
   let left = x
@@ -274,20 +298,23 @@ function removeResult() {
 }
 
 async function runAction(actionId: string, selectedText: string, x: number, y: number) {
-  const action = ACTIONS.find((a) => a.id === actionId)
-  if (!action) return
+  if (!ACTION_IDS.includes(actionId as typeof ACTION_IDS[number])) return
 
   const locale = await getLocale()
+  const root = ensureShadowHost()
 
   removeResult()
   removeToolbar()
 
   const panel = createResultPanel(tSync(locale, 'toolbar.' + actionId), locale)
-  positionElement(panel, x, y + 30)
+  positionElement(panel, root, x, y + 30)
   resultPanel = panel
 
   const body = panel.querySelector('.r-body') as HTMLElement
-  body.innerHTML = '<span class="hchat-cursor">▌</span>'
+  const cursor = document.createElement('span')
+  cursor.className = 'hchat-cursor'
+  cursor.textContent = '▌'
+  body.appendChild(cursor)
 
   // Get config
   const result = await chrome.storage.local.get('hchat:config')
@@ -296,18 +323,17 @@ async function runAction(actionId: string, selectedText: string, x: number, y: n
   const model = cfg?.defaultModel ?? 'us.anthropic.claude-sonnet-4-6'
 
   if (!aws.accessKeyId || !aws.secretAccessKey) {
-    body.innerHTML = `❌ ${tSync(locale, 'toolbar.noCredentials')}`
+    body.textContent = `❌ ${tSync(locale, 'toolbar.noCredentials')}`
     return
   }
 
   const prompts = locale === 'en' ? PROMPTS_EN : PROMPTS_KO
-  const promptFn = prompts[actionId] ?? action.prompt
+  const promptFn = prompts[actionId]
+  if (!promptFn) return
   const prompt = promptFn(selectedText)
   let text = ''
-  body.innerHTML = '<span class="hchat-cursor">▌</span>'
 
   try {
-    // Use background service worker for Bedrock API call via message passing
     const port = chrome.runtime.connect({ name: 'toolbar-stream' })
 
     port.postMessage({
@@ -372,7 +398,6 @@ function saveHighlight(text: string) {
   const xpath = getXPathForNode(range.startContainer)
   const textOffset = range.startOffset
 
-  // Visual highlight
   try {
     const mark = document.createElement('mark')
     mark.className = 'hchat-highlight hchat-highlight-yellow'
@@ -382,7 +407,6 @@ function saveHighlight(text: string) {
     // Can't surround if range crosses elements
   }
 
-  // Save via background
   chrome.runtime.sendMessage({
     type: 'SAVE_HIGHLIGHT',
     data: {
@@ -413,17 +437,16 @@ document.addEventListener('mouseup', () => {
       return
     }
 
-    // Check if enabled
     chrome.storage.local.get('hchat:config', async (r) => {
       if (!r['hchat:config']?.enableContentScript) return
 
       const locale = await getLocale()
+      const root = ensureShadowHost()
 
-      injectStyles()
       removeToolbar()
 
       const el = createToolbar(locale)
-      positionElement(el, mouseX, mouseY)
+      positionElement(el, root, mouseX, mouseY)
       toolbar = el
 
       el.addEventListener('click', (ev) => {
@@ -442,12 +465,14 @@ document.addEventListener('mouseup', () => {
 })
 
 document.addEventListener('mousedown', (e) => {
-  if (!(e.target as HTMLElement).closest(`#${TOOLBAR_ID}, #${RESULT_ID}`)) {
-    if (hideTimer) clearTimeout(hideTimer)
-    hideTimer = setTimeout(() => {
-      removeToolbar()
-      // Don't auto-remove result panel
-    }, 200)
+  if (shadowRoot) {
+    const path = e.composedPath()
+    const isInsideToolbar = toolbar && path.includes(toolbar)
+    const isInsideResult = resultPanel && path.includes(resultPanel)
+    if (!isInsideToolbar && !isInsideResult) {
+      if (hideTimer) clearTimeout(hideTimer)
+      hideTimer = setTimeout(() => { removeToolbar() }, 200)
+    }
   }
 })
 
@@ -455,7 +480,6 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') { removeToolbar(); removeResult() }
 })
 
-// Listen for messages from background
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg.type === 'SELECTION_ACTION') {
     const text = window.getSelection()?.toString().trim()

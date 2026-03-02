@@ -1,4 +1,5 @@
 // content/writing-assistant.ts — AI writing toolbar for textarea/contenteditable
+// Uses Shadow DOM to avoid CSP conflicts with host pages
 
 import { getLocale, tSync, type Locale } from '../i18n'
 
@@ -32,8 +33,86 @@ const PROMPTS_EN: Record<string, (text: string) => string> = {
   'translate-ko': (t) => `Translate the following text to natural Korean. Output only the translation:\n\n${t}`,
 }
 
+let shadowHost: HTMLElement | null = null
+let shadowRoot: ShadowRoot | null = null
 let activeButton: HTMLElement | null = null
 let activePopup: HTMLElement | null = null
+
+const SHADOW_STYLES = `
+  :host { all: initial; }
+  .hchat-writing-btn {
+    position: absolute; z-index: 999999;
+    width: 28px; height: 28px;
+    background: linear-gradient(135deg, #34d399, #10b981);
+    border-radius: 50%; display: flex; align-items: center;
+    justify-content: center; cursor: pointer; font-size: 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    transition: transform 0.15s; user-select: none;
+    pointer-events: auto;
+  }
+  .hchat-writing-btn:hover { transform: scale(1.15); }
+  .hchat-writing-popup {
+    position: absolute; z-index: 999999;
+    background: #1e1e2e; border: 1px solid #333; border-radius: 10px;
+    padding: 8px; display: flex; flex-wrap: wrap; gap: 4px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3); max-width: 280px;
+    pointer-events: auto;
+  }
+  .transform-chip {
+    background: #2a2a3e; color: #e0e0e0; border: 1px solid #444;
+    border-radius: 6px; padding: 4px 8px; font-size: 12px;
+    cursor: pointer; white-space: nowrap; transition: background 0.1s;
+  }
+  .transform-chip:hover { background: #3a3a5e; }
+  .popup-loading {
+    color: #aaa; font-size: 12px; padding: 8px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .popup-content {
+    color: #e0e0e0; font-size: 12px; padding: 8px;
+    max-height: 200px; overflow-y: auto;
+    white-space: pre-wrap; line-height: 1.5;
+  }
+  .popup-actions {
+    display: flex; gap: 6px; padding: 4px 8px;
+  }
+  .btn-accept {
+    background: #10b981; color: #fff; border: none;
+    border-radius: 6px; padding: 4px 12px; font-size: 11px; cursor: pointer;
+  }
+  .btn-copy {
+    background: #333; color: #ccc; border: 1px solid #555;
+    border-radius: 6px; padding: 4px 12px; font-size: 11px; cursor: pointer;
+  }
+  .btn-close {
+    background: none; color: #888; border: none;
+    padding: 4px 8px; font-size: 11px; cursor: pointer;
+  }
+  .hchat-cursor {
+    animation: hchat-blink 0.7s infinite;
+  }
+  .spinner {
+    display: inline-block;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes hchat-blink { 0%,100%{opacity:1} 50%{opacity:0} }
+  @keyframes spin { from{transform:rotate(0)} to{transform:rotate(360deg)} }
+`
+
+function ensureShadowHost(): ShadowRoot {
+  if (shadowRoot) return shadowRoot
+  shadowHost = document.createElement('div')
+  shadowHost.id = 'hchat-writing-host'
+  shadowHost.style.cssText = 'position:absolute;top:0;left:0;width:0;height:0;z-index:999999;pointer-events:none;'
+  document.body.appendChild(shadowHost)
+  shadowRoot = shadowHost.attachShadow({ mode: 'closed' })
+
+  const style = document.createElement('style')
+  style.textContent = SHADOW_STYLES
+  shadowRoot.appendChild(style)
+
+  return shadowRoot
+}
 
 function getSelectedText(el: HTMLElement): string {
   if (el instanceof HTMLTextAreaElement || el instanceof HTMLInputElement) {
@@ -62,43 +141,22 @@ function replaceText(el: HTMLElement, newText: string) {
 function createButton(): HTMLElement {
   const btn = document.createElement('div')
   btn.className = 'hchat-writing-btn'
-  btn.innerHTML = '✨'
-  btn.style.cssText = `
-    position: absolute; z-index: 999999;
-    width: 28px; height: 28px;
-    background: linear-gradient(135deg, #34d399, #10b981);
-    border-radius: 50%; display: flex; align-items: center;
-    justify-content: center; cursor: pointer; font-size: 14px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-    transition: transform 0.15s; user-select: none;
-  `
-  btn.addEventListener('mouseenter', () => { btn.style.transform = 'scale(1.15)' })
-  btn.addEventListener('mouseleave', () => { btn.style.transform = 'scale(1)' })
+  btn.textContent = '✨'
   return btn
 }
 
 function createPopup(el: HTMLElement, text: string, btnRect: DOMRect, locale: Locale): HTMLElement {
+  const root = ensureShadowHost()
   const popup = document.createElement('div')
   popup.className = 'hchat-writing-popup'
-  popup.style.cssText = `
-    position: absolute; z-index: 999999;
-    top: ${btnRect.bottom + 4}px; left: ${btnRect.left}px;
-    background: #1e1e2e; border: 1px solid #333; border-radius: 10px;
-    padding: 8px; display: flex; flex-wrap: wrap; gap: 4px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.3); max-width: 280px;
-  `
+  popup.style.top = `${btnRect.bottom + 4}px`
+  popup.style.left = `${btnRect.left}px`
 
   for (const t of WRITING_TRANSFORMS) {
     const chip = document.createElement('button')
+    chip.className = 'transform-chip'
     const label = tSync(locale, t.labelKey)
     chip.textContent = `${t.icon} ${label}`
-    chip.style.cssText = `
-      background: #2a2a3e; color: #e0e0e0; border: 1px solid #444;
-      border-radius: 6px; padding: 4px 8px; font-size: 12px;
-      cursor: pointer; white-space: nowrap; transition: background 0.1s;
-    `
-    chip.addEventListener('mouseenter', () => { chip.style.background = '#3a3a5e' })
-    chip.addEventListener('mouseleave', () => { chip.style.background = '#2a2a3e' })
     chip.addEventListener('click', (e) => {
       e.stopPropagation()
       runTransform(el, text, t.id, popup, locale)
@@ -106,8 +164,15 @@ function createPopup(el: HTMLElement, text: string, btnRect: DOMRect, locale: Lo
     popup.appendChild(chip)
   }
 
-  document.body.appendChild(popup)
+  root.appendChild(popup)
   return popup
+}
+
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
 }
 
 function runTransform(el: HTMLElement, text: string, transformId: string, popup: HTMLElement, locale: Locale) {
@@ -116,13 +181,15 @@ function runTransform(el: HTMLElement, text: string, transformId: string, popup:
   if (!promptFn) return
 
   // Show loading
-  popup.innerHTML = `
-    <div style="color: #aaa; font-size: 12px; padding: 8px; display: flex; align-items: center; gap: 8px;">
-      <span style="animation: spin 1s linear infinite; display:inline-block;">⏳</span>
-      ${tSync(locale, 'writingAssistant.processing')}
-    </div>
-    <style>@keyframes spin { from{transform:rotate(0)} to{transform:rotate(360deg)} }</style>
-  `
+  popup.innerHTML = ''
+  const loadingDiv = document.createElement('div')
+  loadingDiv.className = 'popup-loading'
+  const spinnerSpan = document.createElement('span')
+  spinnerSpan.className = 'spinner'
+  spinnerSpan.textContent = '⏳'
+  loadingDiv.appendChild(spinnerSpan)
+  loadingDiv.appendChild(document.createTextNode(` ${tSync(locale, 'writingAssistant.processing')}`))
+  popup.appendChild(loadingDiv)
 
   const port = chrome.runtime.connect({ name: 'inline-stream' })
   port.postMessage({
@@ -135,46 +202,56 @@ function runTransform(el: HTMLElement, text: string, transformId: string, popup:
   port.onMessage.addListener((msg) => {
     if (msg.type === 'chunk') {
       result += msg.text
-      popup.innerHTML = `
-        <div style="color: #e0e0e0; font-size: 12px; padding: 8px; max-height: 200px; overflow-y: auto; white-space: pre-wrap; line-height: 1.5;">
-          ${escapeHtml(result)}<span style="animation: blink 0.7s infinite;">▌</span>
-        </div>
-        <style>@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }</style>
-      `
+      popup.innerHTML = ''
+      const contentDiv = document.createElement('div')
+      contentDiv.className = 'popup-content'
+      contentDiv.innerHTML = escapeHtml(result)
+      const cursorSpan = document.createElement('span')
+      cursorSpan.className = 'hchat-cursor'
+      cursorSpan.textContent = '▌'
+      contentDiv.appendChild(cursorSpan)
+      popup.appendChild(contentDiv)
     }
     if (msg.type === 'done' || msg.type === 'error') {
-      const finalText = msg.type === 'error' ? `⚠ ${tSync(locale, 'writingAssistant.error')} ` + msg.message : result
+      const finalText = msg.type === 'error' ? `⚠ ${tSync(locale, 'writingAssistant.error')} ${msg.message}` : result
 
-      popup.innerHTML = `
-        <div style="color: #e0e0e0; font-size: 12px; padding: 8px; max-height: 200px; overflow-y: auto; white-space: pre-wrap; line-height: 1.5;">
-          ${escapeHtml(finalText)}
-        </div>
-        <div style="display: flex; gap: 6px; padding: 4px 8px;">
-          <button id="hchat-accept" style="background: #10b981; color: #fff; border: none; border-radius: 6px; padding: 4px 12px; font-size: 11px; cursor: pointer;">${tSync(locale, 'writingAssistant.apply')}</button>
-          <button id="hchat-copy" style="background: #333; color: #ccc; border: 1px solid #555; border-radius: 6px; padding: 4px 12px; font-size: 11px; cursor: pointer;">${tSync(locale, 'writingAssistant.copy')}</button>
-          <button id="hchat-close" style="background: none; color: #888; border: none; padding: 4px 8px; font-size: 11px; cursor: pointer;">${tSync(locale, 'writingAssistant.close')}</button>
-        </div>
-      `
+      popup.innerHTML = ''
 
-      popup.querySelector('#hchat-accept')?.addEventListener('click', () => {
+      const contentDiv = document.createElement('div')
+      contentDiv.className = 'popup-content'
+      contentDiv.textContent = finalText
+      popup.appendChild(contentDiv)
+
+      const actionsDiv = document.createElement('div')
+      actionsDiv.className = 'popup-actions'
+
+      const acceptBtn = document.createElement('button')
+      acceptBtn.className = 'btn-accept'
+      acceptBtn.textContent = tSync(locale, 'writingAssistant.apply')
+      acceptBtn.addEventListener('click', () => {
         replaceText(el, result)
         cleanup()
       })
-      popup.querySelector('#hchat-copy')?.addEventListener('click', () => {
+
+      const copyBtn = document.createElement('button')
+      copyBtn.className = 'btn-copy'
+      copyBtn.textContent = tSync(locale, 'writingAssistant.copy')
+      copyBtn.addEventListener('click', () => {
         navigator.clipboard.writeText(result)
-        const btn = popup.querySelector('#hchat-copy') as HTMLElement
-        if (btn) btn.textContent = `✓ ${tSync(locale, 'writingAssistant.copied')}`
+        copyBtn.textContent = `✓ ${tSync(locale, 'writingAssistant.copied')}`
       })
-      popup.querySelector('#hchat-close')?.addEventListener('click', cleanup)
+
+      const closeBtn = document.createElement('button')
+      closeBtn.className = 'btn-close'
+      closeBtn.textContent = tSync(locale, 'writingAssistant.close')
+      closeBtn.addEventListener('click', cleanup)
+
+      actionsDiv.appendChild(acceptBtn)
+      actionsDiv.appendChild(copyBtn)
+      actionsDiv.appendChild(closeBtn)
+      popup.appendChild(actionsDiv)
     }
   })
-}
-
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
 }
 
 function cleanup() {
@@ -198,6 +275,7 @@ async function showButton(el: HTMLElement) {
   if (!text || text.length < 2) return
 
   const locale = await getLocale()
+  const root = ensureShadowHost()
 
   const rect = el.getBoundingClientRect()
   const sel = window.getSelection()
@@ -206,7 +284,7 @@ async function showButton(el: HTMLElement) {
   const btn = createButton()
   btn.style.top = `${window.scrollY + selRect.top - 32}px`
   btn.style.left = `${window.scrollX + selRect.right + 4}px`
-  document.body.appendChild(btn)
+  root.appendChild(btn)
   activeButton = btn
 
   btn.addEventListener('click', (e) => {
@@ -223,7 +301,6 @@ document.addEventListener('mouseup', (e) => {
   const target = e.target as Element
   if (!target) return
 
-  // Find closest editable element
   const editable = target.closest('textarea, [contenteditable="true"], input[type="text"]')
   if (editable && isEditableElement(editable)) {
     setTimeout(() => showButton(editable), 100)
@@ -232,9 +309,13 @@ document.addEventListener('mouseup', (e) => {
 
 // Cleanup on click outside
 document.addEventListener('mousedown', (e) => {
-  const target = e.target as Element
-  if (activeButton && !activeButton.contains(target) && activePopup && !activePopup.contains(target)) {
-    cleanup()
+  if (shadowRoot) {
+    const path = e.composedPath()
+    const isInsideBtn = activeButton && path.includes(activeButton)
+    const isInsidePopup = activePopup && path.includes(activePopup)
+    if (!isInsideBtn && !isInsidePopup) {
+      cleanup()
+    }
   }
 })
 
@@ -243,7 +324,6 @@ const observer = new MutationObserver((mutations) => {
   for (const mutation of mutations) {
     for (const node of mutation.addedNodes) {
       if (node instanceof HTMLElement) {
-        // Mark new editables for potential button attachment
         const editables = node.querySelectorAll('textarea, [contenteditable="true"]')
         editables.forEach((el) => {
           el.addEventListener('mouseup', () => {

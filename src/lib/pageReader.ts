@@ -41,8 +41,10 @@ export async function getYouTubeTranscript(videoId: string): Promise<string> {
     if (!tab?.id) return ''
 
     // Step 1: Extract caption track URL from YouTube's player data
+    // Must use MAIN world to access page-level JS variables like ytInitialPlayerResponse
     const captionResults = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
+      world: 'MAIN' as any,
       func: (preferLang: string) => {
         try {
           // Method 1: Global variable (most reliable, works on initial load)

@@ -495,6 +495,7 @@ const ko = {
     pdfChat: '다음은 PDF 문서의 내용입니다:\n\n{pdfContent}\n\n---\n질문: {question}\n\n위 문서 내용을 기반으로 정확하게 답변해줘.',
     respondInLang: '한국어로 답변하세요.',
     searchContext: '다음 웹 검색 결과를 참고하여 답변하세요. 정보의 출처를 인용해주세요.',
+    deepResearchSystem: '다음은 "{question}"에 대한 심층 리서치 결과입니다. 이 내용을 바탕으로 답변하세요:\n\n{report}',
   },
 
   timeAgo: {
@@ -534,6 +535,13 @@ const ko = {
     generating: '검색 쿼리 생성 중...',
     searching: '웹 검색 중...',
     writing: '리포트 작성 중...',
+    searchingDetail: '검색 중: "{query}" ({current}/{total})',
+    noQueries: '검색 쿼리를 생성할 수 없습니다',
+    cancelled: '취소됨',
+    noSearchResults: '검색 결과가 충분하지 않습니다. 일반 지식을 기반으로 답변합니다.',
+    excerpt: '발췌',
+    queryPrompt: '다음 질문을 조사하기 위한 효과적인 검색 쿼리를 3-5개 생성해줘.\nJSON 배열 형태로 반환해줘 (예: ["query1", "query2", "query3"]).\n질문에 대해 다양한 관점과 측면을 커버하는 쿼리를 만들어줘.\n\n질문: {question}',
+    reportPrompt: '다음 질문에 대해 구조화된 리서치 리포트를 작성해줘.\n\n질문: {question}\n\n참고 자료:\n{sources}\n\n리포트 형식:\n1. ## 개요 — 질문에 대한 핵심 답변 (2-3문장)\n2. ## 주요 발견사항 — 핵심 내용을 항목별로 정리\n3. ## 상세 분석 — 각 발견사항에 대한 심층 설명\n4. ## 결론 및 시사점 — 종합 결론과 실행 가능한 시사점\n5. ## 출처 — 참고한 자료의 URL과 제목\n\nMarkdown 형식으로 작성하고, 출처를 인용할 때 [1], [2] 형태로 번호를 매겨줘.',
   },
   storage: {
     title: '스토리지 관리',

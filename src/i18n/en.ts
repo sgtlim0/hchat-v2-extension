@@ -495,6 +495,7 @@ const en = {
     pdfChat: 'The following is the content of a PDF document:\n\n{pdfContent}\n\n---\nQuestion: {question}\n\nAnswer accurately based on the document above.',
     respondInLang: 'Please respond in English.',
     searchContext: 'Use the following web search results as reference. Cite the sources of information.',
+    deepResearchSystem: 'Below is the in-depth research result for "{question}". Please answer based on this content:\n\n{report}',
   },
 
   timeAgo: {
@@ -534,6 +535,13 @@ const en = {
     generating: 'Generating search queries...',
     searching: 'Searching the web...',
     writing: 'Writing report...',
+    searchingDetail: 'Searching: "{query}" ({current}/{total})',
+    noQueries: 'Failed to generate search queries',
+    cancelled: 'Cancelled',
+    noSearchResults: 'Insufficient search results. Answering based on general knowledge.',
+    excerpt: 'Excerpt',
+    queryPrompt: 'Generate 3-5 effective search queries to research the following question.\nReturn them as a JSON array (e.g., ["query1", "query2", "query3"]).\nCreate queries that cover diverse perspectives and aspects of the question.\n\nQuestion: {question}',
+    reportPrompt: 'Write a structured research report on the following question.\n\nQuestion: {question}\n\nReference materials:\n{sources}\n\nReport format:\n1. ## Overview — Core answer to the question (2-3 sentences)\n2. ## Key Findings — Key points organized by topic\n3. ## Detailed Analysis — In-depth explanation of each finding\n4. ## Conclusions & Implications — Overall conclusions and actionable insights\n5. ## Sources — URLs and titles of referenced materials\n\nWrite in Markdown format and cite sources using [1], [2] numbering.',
   },
   storage: {
     title: 'Storage Management',

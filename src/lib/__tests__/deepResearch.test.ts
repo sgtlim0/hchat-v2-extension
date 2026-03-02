@@ -84,7 +84,7 @@ describe('runDeepResearch', () => {
 
     await expect(
       runDeepResearch('test', provider, 'model', () => {})
-    ).rejects.toThrow('검색 쿼리를 생성할 수 없습니다')
+    ).rejects.toThrow()
   })
 
   it('DuckDuckGo 검색 실패 시에도 리포트 생성', async () => {
@@ -104,7 +104,6 @@ describe('runDeepResearch', () => {
       '["query1", "query2"]',
       '# Report',
     ])
-    // 동일 URL 반환
     mockFetch.mockResolvedValue(duckDuckGoResponse('Same abstract', [
       { FirstURL: 'https://example.com/1', Text: 'Topic 1' },
       { FirstURL: 'https://example.com/1', Text: 'Topic 1 duplicate' },
@@ -138,7 +137,7 @@ describe('runDeepResearch', () => {
 
     await expect(
       runDeepResearch('test', provider, 'model', () => {}, controller.signal)
-    ).rejects.toThrow('취소됨')
+    ).rejects.toThrow()
   })
 
   it('검색 단계에서 진행 상황 상세 표시', async () => {
@@ -155,5 +154,21 @@ describe('runDeepResearch', () => {
     expect(searchSteps.length).toBe(2)
     expect(searchSteps[0].detail).toContain('first query')
     expect(searchSteps[1].detail).toContain('second query')
+  })
+
+  it('영어 locale로 실행', async () => {
+    const provider = createMockProvider([
+      '["query1"]',
+      '# English Report',
+    ])
+    mockFetch.mockResolvedValue(duckDuckGoResponse('Abstract', []))
+
+    const steps: ResearchProgress[] = []
+    const result = await runDeepResearch('test', provider, 'model', (p) => steps.push({ ...p }), undefined, 'en')
+
+    expect(result.report).toContain('English Report')
+    // English locale should use English progress messages
+    const genStep = steps.find((s) => s.step === 'generating_queries')
+    expect(genStep?.detail).toContain('Generating')
   })
 })

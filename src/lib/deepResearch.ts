@@ -1,6 +1,7 @@
 // lib/deepResearch.ts — Multi-step research orchestration
 
 import type { AIProvider } from './providers/types'
+import { tSync, type Locale } from '../i18n'
 
 export interface ResearchProgress {
   step: 'generating_queries' | 'searching' | 'writing_report'
@@ -94,31 +95,30 @@ export async function runDeepResearch(
   model: string,
   onProgress: (progress: ResearchProgress) => void,
   signal?: AbortSignal,
+  locale: Locale = 'ko',
 ): Promise<ResearchResult> {
+  const t = (key: string, params?: Record<string, string | number>) => tSync(locale, key, params)
+
   // Step 1: Generate search queries
-  onProgress({ step: 'generating_queries', detail: '검색 쿼리 생성 중...', current: 0, total: 3 })
+  onProgress({ step: 'generating_queries', detail: t('deepResearch.generating'), current: 0, total: 3 })
 
-  const queryPrompt = `다음 질문을 조사하기 위한 효과적인 검색 쿼리를 3-5개 생성해줘.
-JSON 배열 형태로 반환해줘 (예: ["query1", "query2", "query3"]).
-질문에 대해 다양한 관점과 측면을 커버하는 쿼리를 만들어줘.
-
-질문: ${question}`
+  const queryPrompt = t('deepResearch.queryPrompt', { question })
 
   const queryText = await collectStreamText(provider, model, queryPrompt, signal)
   const queries = parseQueries(queryText)
 
   if (queries.length === 0) {
-    throw new Error('검색 쿼리를 생성할 수 없습니다')
+    throw new Error(t('deepResearch.noQueries'))
   }
 
   // Step 2: Search for each query
   const allSources: SourceRef[] = []
 
   for (let i = 0; i < queries.length; i++) {
-    if (signal?.aborted) throw new Error('취소됨')
+    if (signal?.aborted) throw new Error(t('deepResearch.cancelled'))
     onProgress({
       step: 'searching',
-      detail: `검색 중: "${queries[i]}" (${i + 1}/${queries.length})`,
+      detail: t('deepResearch.searchingDetail', { query: queries[i], current: i + 1, total: queries.length }),
       current: 1,
       total: 3,
     })
@@ -133,27 +133,14 @@ JSON 배열 형태로 반환해줘 (예: ["query1", "query2", "query3"]).
   }, []).slice(0, 15)
 
   // Step 3: Generate report
-  onProgress({ step: 'writing_report', detail: '리포트 작성 중...', current: 2, total: 3 })
+  onProgress({ step: 'writing_report', detail: t('deepResearch.writing'), current: 2, total: 3 })
 
+  const excerptLabel = t('deepResearch.excerpt')
   const sourcesContext = uniqueSources.length > 0
-    ? uniqueSources.map((s, i) => `[${i + 1}] ${s.title}\nURL: ${s.url}\n발췌: ${s.snippet}`).join('\n\n')
-    : '검색 결과가 충분하지 않습니다. 일반 지식을 기반으로 답변합니다.'
+    ? uniqueSources.map((s, i) => `[${i + 1}] ${s.title}\nURL: ${s.url}\n${excerptLabel}: ${s.snippet}`).join('\n\n')
+    : t('deepResearch.noSearchResults')
 
-  const reportPrompt = `다음 질문에 대해 구조화된 리서치 리포트를 작성해줘.
-
-질문: ${question}
-
-참고 자료:
-${sourcesContext}
-
-리포트 형식:
-1. ## 개요 — 질문에 대한 핵심 답변 (2-3문장)
-2. ## 주요 발견사항 — 핵심 내용을 항목별로 정리
-3. ## 상세 분석 — 각 발견사항에 대한 심층 설명
-4. ## 결론 및 시사점 — 종합 결론과 실행 가능한 시사점
-5. ## 출처 — 참고한 자료의 URL과 제목
-
-Markdown 형식으로 작성하고, 출처를 인용할 때 [1], [2] 형태로 번호를 매겨줘.`
+  const reportPrompt = t('deepResearch.reportPrompt', { question, sources: sourcesContext })
 
   const report = await collectStreamText(provider, model, reportPrompt, signal)
 

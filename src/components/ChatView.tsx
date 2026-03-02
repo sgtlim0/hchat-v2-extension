@@ -38,7 +38,7 @@ interface Props {
 }
 
 export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onToggleContext, initialPrompt, onConsumePrompt, onRegisterActions, onForkConv }: Props) {
-  const { t } = useLocale()
+  const { t, locale } = useLocale()
   const { conv, messages, isLoading, isSearching, agentMode, setAgentMode, personaId, setPersonaId, error, currentModel, setCurrentModel, sendMessage, startNew, loadConv, stop, editAndResend, regenerate } = useChat(config)
   const [, setTTSRefresh] = useState(0)
   const [, setSTTRefresh] = useState(0)
@@ -290,14 +290,15 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
     }
     try {
       setResearchProgress({ step: 'generating_queries', detail: '', current: 0, total: 3 })
-      const result = await runDeepResearch(question, provider, currentModel, setResearchProgress)
+      const result = await runDeepResearch(question, provider, currentModel, setResearchProgress, undefined, locale)
       setResearchProgress(null)
-      await sendMessage(question, { systemPrompt: `다음은 "${question}"에 대한 심층 리서치 결과입니다. 이 내용을 바탕으로 답변하세요:\n\n${result.report}` })
+      await sendMessage(question, { systemPrompt: t('aiPrompts.deepResearchSystem', { question, report: result.report }) })
     } catch (err) {
       setResearchProgress(null)
-      if (String(err) !== '취소됨') showToast(t('deepResearch.failed', { error: String(err) }))
+      const errMsg = String(err)
+      if (!errMsg.includes(t('deepResearch.cancelled'))) showToast(t('deepResearch.failed', { error: errMsg }))
     }
-  }, [config, currentModel, sendMessage, t])
+  }, [config, currentModel, sendMessage, t, locale])
 
   const handleSend = async () => {
     const text = input.trim()

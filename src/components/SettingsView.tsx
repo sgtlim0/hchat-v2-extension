@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { useConfig } from '../hooks/useConfig'
 import { useProvider } from '../hooks/useProvider'
 import { signRequest } from '../lib/aws-sigv4'
@@ -7,6 +7,8 @@ import { UsageView } from './UsageView'
 import { StorageManagement } from './StorageManagement'
 import type { ProviderType } from '../lib/providers/types'
 import { useLocale } from '../i18n'
+
+const PluginManagerView = lazy(() => import('./PluginManagerView'))
 
 export default function SettingsView() {
   const { t } = useLocale()
@@ -362,6 +364,13 @@ export default function SettingsView() {
             {t('settings.webhookEnable')}
           </label>
         </div>
+      </div>
+
+      <div className="settings-section">
+        <div className="settings-section-title">🧩 {t('plugins.manage')}</div>
+        <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', padding: 16 }}><span className="spinner-sm" /></div>}>
+          <PluginManagerView />
+        </Suspense>
       </div>
 
       <div className="settings-section">

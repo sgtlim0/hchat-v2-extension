@@ -7,6 +7,7 @@ import { GroupChatView } from '../components/GroupChatView'
 import { MessageSearchModal } from '../components/MessageSearchModal'
 import type { ShortcutAction } from '../lib/shortcuts'
 import ErrorBoundary from '../components/ErrorBoundary'
+import { OfflineBanner } from '../components/OfflineBanner'
 import '../styles/global.css'
 
 const ToolsView = lazy(() => import('../components/ToolsView'))
@@ -156,6 +157,8 @@ export function App() {
           <button className="icon-btn" title={t('chat.searchMessages')} onClick={() => setShowSearch(true)}>🔍</button>
         </div>
       </div>
+
+      <OfflineBanner />
 
       <MessageSearchModal
         open={showSearch}

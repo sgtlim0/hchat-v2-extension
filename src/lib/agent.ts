@@ -27,6 +27,7 @@ export interface AgentOptions {
   model: string
   userMessage: string
   tools: Tool[]
+  customTools?: Tool[]
   history?: Message[]
   systemPrompt?: string
   maxSteps?: number
@@ -174,13 +175,15 @@ async function streamStep(
 export async function runAgent(opts: AgentOptions): Promise<{ finalText: string; steps: AgentStep[] }> {
   const {
     tools,
+    customTools,
     maxSteps = 10,
     onStep,
     onChunk,
     signal,
   } = opts
 
-  const systemPrompt = buildAgentSystemPrompt(tools, opts.systemPrompt)
+  const allTools = [...tools, ...(customTools ?? [])]
+  const systemPrompt = buildAgentSystemPrompt(allTools, opts.systemPrompt)
   const steps: AgentStep[] = []
 
   const history: Message[] = [
@@ -245,7 +248,7 @@ export async function runAgent(opts: AgentOptions): Promise<{ finalText: string;
       onStep(callStep)
       steps.push(callStep)
 
-      const tool = tools.find((t) => t.name === call.name)
+      const tool = allTools.find((t) => t.name === call.name)
       let result: string
 
       if (!tool) {

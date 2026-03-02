@@ -177,4 +177,76 @@ export const BUILTIN_TOOLS: Tool[] = [
       ].join('\n')
     },
   },
+  {
+    name: 'translate',
+    get description() { return isEn() ? 'Translate text into a specified language. Returns a prompt for the AI to perform translation.' : '텍스트를 지정된 언어로 번역합니다. AI가 번역을 수행할 프롬프트를 반환합니다.' },
+    parameters: {
+      text: { type: 'string', get description() { return isEn() ? 'Text to translate' : '번역할 텍스트' }, required: true },
+      targetLang: { type: 'string', get description() { return isEn() ? 'Target language (e.g. English, Korean, Japanese)' : '대상 언어 (예: 영어, 한국어, 일본어)' }, required: true },
+    },
+    execute: async (params) => {
+      const text = String(params.text ?? '')
+      const lang = String(params.targetLang ?? 'English')
+      if (!text) return isEn() ? 'Error: No text provided' : '오류: 텍스트가 없습니다'
+      return isEn()
+        ? `Please translate the following text into ${lang}:\n\n${text}`
+        : `다음 텍스트를 ${lang}로 번역해주세요:\n\n${text}`
+    },
+  },
+  {
+    name: 'summarize_text',
+    get description() { return isEn() ? 'Summarize given text. Returns a prompt for the AI to perform summarization.' : '주어진 텍스트를 요약합니다. AI가 요약을 수행할 프롬프트를 반환합니다.' },
+    parameters: {
+      text: { type: 'string', get description() { return isEn() ? 'Text to summarize' : '요약할 텍스트' }, required: true },
+      maxLength: { type: 'string', get description() { return isEn() ? 'Maximum length hint (e.g. "3 sentences", "100 words")' : '최대 길이 힌트 (예: "3문장", "100단어")' } },
+    },
+    execute: async (params) => {
+      const text = String(params.text ?? '')
+      const maxLength = params.maxLength ? String(params.maxLength) : undefined
+      if (!text) return isEn() ? 'Error: No text provided' : '오류: 텍스트가 없습니다'
+      const lengthHint = maxLength
+        ? (isEn() ? ` Keep it within ${maxLength}.` : ` ${maxLength} 이내로 작성해주세요.`)
+        : ''
+      return isEn()
+        ? `Please summarize the following text concisely.${lengthHint}\n\n${text}`
+        : `다음 텍스트를 간결하게 요약해주세요.${lengthHint}\n\n${text}`
+    },
+  },
+  {
+    name: 'timestamp_convert',
+    get description() { return isEn() ? 'Convert between Unix timestamp and human-readable date. Auto-detects input format.' : 'Unix 타임스탬프와 사람이 읽을 수 있는 날짜 간 변환합니다. 입력 형식을 자동 감지합니다.' },
+    parameters: {
+      value: { type: 'string', get description() { return isEn() ? 'Unix timestamp (number) or date string' : 'Unix 타임스탬프(숫자) 또는 날짜 문자열' }, required: true },
+    },
+    execute: async (params) => {
+      const value = String(params.value ?? '').trim()
+      if (!value) return isEn() ? 'Error: No value provided' : '오류: 값이 없습니다'
+
+      // Detect if it's a numeric timestamp
+      if (/^\d{10,13}$/.test(value)) {
+        const ms = value.length <= 10 ? Number(value) * 1000 : Number(value)
+        const date = new Date(ms)
+        if (isNaN(date.getTime())) return isEn() ? 'Error: Invalid timestamp' : '오류: 유효하지 않은 타임스탬프'
+        return [
+          `Unix: ${value}`,
+          `UTC: ${date.toUTCString()}`,
+          `Local: ${date.toLocaleString('ko-KR', { timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone })}`,
+          `ISO: ${date.toISOString()}`,
+        ].join('\n')
+      }
+
+      // Try parsing as date string
+      const date = new Date(value)
+      if (isNaN(date.getTime())) {
+        return isEn() ? `Error: Cannot parse "${value}" as a date` : `오류: "${value}"를 날짜로 파싱할 수 없습니다`
+      }
+      return [
+        `Input: ${value}`,
+        `Unix (seconds): ${Math.floor(date.getTime() / 1000)}`,
+        `Unix (ms): ${date.getTime()}`,
+        `ISO: ${date.toISOString()}`,
+        `UTC: ${date.toUTCString()}`,
+      ].join('\n')
+    },
+  },
 ]

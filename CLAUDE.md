@@ -12,9 +12,11 @@ H Chat is a Chrome Extension (Manifest V3) that provides a multi-AI sidebar assi
 npm run build    # Production build to dist/
 npm run dev      # Watch mode (vite build --watch)
 npm run clean    # Remove dist/
+npm test         # Run all tests (Vitest, 365 tests, 25 files)
+npm run lint     # ESLint (flat config)
 ```
 
-There are no lint or test commands configured. After building, load `dist/` as an unpacked Chrome extension.
+After building, load `dist/` as an unpacked Chrome extension.
 
 ## Architecture
 
@@ -42,7 +44,8 @@ All AI providers implement the `AIProvider` interface (`types.ts`), which uses `
 ### Key Hooks (`src/hooks/`)
 
 - `useConfig.ts` — Config stored in `chrome.storage.local` under `hchat:config`. Deep-merges nested objects (aws/openai/gemini) on load and update.
-- `useChat.ts` — Core chat logic. Uses provider.stream() with `for await...of`. Falls back to legacy `streamChatLive()` from `models.ts` if provider not configured.
+- `useChat.ts` — Core chat logic. Uses provider.stream() with `for await...of`. Includes offline message queueing and custom plugin integration for agent mode.
+- `useNetworkStatus.ts` — Online/offline detection via `navigator.onLine` + events.
 - `useProvider.ts` — Memoized provider instances, model lists, routing. Wraps provider-factory and model-router.
 
 ### Data Flow for Streaming
@@ -51,13 +54,20 @@ All AI providers implement the `AIProvider` interface (`types.ts`), which uses `
 
 **Content scripts**: `chrome.runtime.connect({ name: 'inline-stream' })` → background service worker creates provider → streams back via `port.postMessage()`
 
+### Agent System (`src/lib/agent.ts` + `agentTools.ts`)
+
+XML-based tool calling (`<tool_call>`) supporting 8 built-in tools + user-defined custom tools via `pluginRegistry.ts`. Plugin types: webhook, javascript, prompt template. Custom tools merge with built-ins in agent mode.
+
 ### Storage Pattern
 
 All persistence uses `chrome.storage.local` via `src/lib/storage.ts` wrapper. Key prefixes:
 - `hchat:config` — User configuration
-- `hchat:conversations:*` — Chat history
+- `hchat:conv:*` / `hchat:conv-index` — Chat history
 - `hchat:bookmarks` — Saved messages
 - `hchat:usage:*` — Usage tracking records
+- `hchat:plugins` — Custom tool/plugin definitions
+- `hchat:message-queue` — Offline message queue
+- `hchat:search-index` — Inverted search index cache
 
 ### Styling
 
@@ -72,9 +82,14 @@ Opus 4.6:   us.anthropic.claude-opus-4-6-v1          (-v1 only)
 Haiku 4.5:  us.anthropic.claude-haiku-4-5-20251001-v1:0  (-v1:0)
 ```
 
+### Internationalization (`src/i18n/`)
+
+3 locales: Korean (primary), English, Japanese. Lightweight custom implementation — `t()` function + `useLocale()` hook. 420+ keys per locale. Content scripts use `tSync()` + `getLocale()`.
+
 ## Key Constraints
 
 - No external AI SDKs — all provider communication uses `fetch()` directly
-- `models.ts` maintains backward-compatible exports (`streamChatLive`, `MODELS`, `Message`) wrapping `BedrockProvider`
 - Files should stay under 800 lines; extract into separate files if approaching limit
-- All UI text is in Korean
+- Korean is the primary UI language, with English and Japanese translations
+- Immutable patterns throughout (never mutate objects)
+- Tests: Vitest with chrome.storage.local mock, 365 tests across 25 files

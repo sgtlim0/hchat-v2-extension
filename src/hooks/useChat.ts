@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { getGlobalLocale } from '../i18n'
 import type { AIProvider, Message, ProviderType, ThinkingDepth } from '../lib/providers/types'
 import { BedrockProvider } from '../lib/providers/bedrock-provider'
@@ -10,8 +10,10 @@ import { needsWebSearch, extractSearchQuery } from '../lib/searchIntent'
 import { webSearch, buildSearchContext } from '../lib/webSearch'
 import { runAgent, type AgentStep } from '../lib/agent'
 import { BUILTIN_TOOLS } from '../lib/agentTools'
+import { PluginRegistry } from '../lib/pluginRegistry'
 import { Personas } from '../lib/personas'
 import { Usage } from '../lib/usage'
+import { MessageQueue } from '../lib/messageQueue'
 import type { Config } from './useConfig'
 
 function formatAgentContent(steps: AgentStep[]): string {
@@ -94,6 +96,35 @@ export function useChat(config: Config) {
       activeConv = await startNew(opts?.forcedModel ?? currentModel)
     }
 
+    // Offline: queue message and show placeholder
+    if (!navigator.onLine) {
+      const userMsg = await ChatHistory.addMessage(activeConv.id, {
+        role: 'user',
+        content: text,
+        imageUrl: opts?.imageBase64?.startsWith('data:') ? opts.imageBase64 : undefined,
+      })
+      setMessages((prev) => [...prev, userMsg])
+
+      await MessageQueue.enqueue({
+        convId: activeConv.id,
+        text,
+        model: opts?.forcedModel ?? currentModel,
+        opts: opts as Record<string, unknown> | undefined,
+      })
+
+      const offlinePlaceholder: ChatMessage = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: '(오프라인 — 연결 후 전송됩니다)',
+        ts: Date.now(),
+        streaming: false,
+        model: opts?.forcedModel ?? currentModel,
+      }
+      setMessages((prev) => [...prev, offlinePlaceholder])
+      setIsLoading(false)
+      return
+    }
+
     // Build providers from current config
     const providers = createAllProviders({
       bedrock: config.aws,
@@ -155,12 +186,14 @@ export function useChat(config: Config) {
       if (agentMode) {
         // ── Agent mode: multi-turn tool calling loop ──
         const agentSteps: AgentStep[] = []
+        const customTools = await PluginRegistry.toAgentTools()
 
         const { finalText, steps } = await runAgent({
           aws: config.aws,
           model,
           userMessage: text,
           tools: BUILTIN_TOOLS,
+          customTools,
           history: historyMsgs.slice(0, -1),
           systemPrompt: opts?.systemPrompt,
           maxSteps: 10,
@@ -324,6 +357,17 @@ export function useChat(config: Config) {
 
     await sendMessage(userText)
   }, [conv, isLoading, messages, sendMessage])
+
+  // Process queued messages when back online
+  useEffect(() => {
+    const handleOnline = () => {
+      MessageQueue.processQueue(async (msg) => {
+        await sendMessage(msg.text, msg.opts as { imageBase64?: string; systemPrompt?: string; forcedModel?: string; thinkingDepth?: ThinkingDepth } | undefined)
+      }).catch(() => {})
+    }
+    window.addEventListener('online', handleOnline)
+    return () => window.removeEventListener('online', handleOnline)
+  }, [sendMessage])
 
   return { conv, messages, isLoading, isSearching, agentMode, setAgentMode, personaId, setPersonaId, error, currentModel, setCurrentModel, sendMessage, startNew, loadConv, stop, editAndResend, regenerate }
 }

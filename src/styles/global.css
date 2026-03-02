@@ -1760,6 +1760,32 @@ kbd {
   margin-bottom: 12px;
 }
 
+/* ── Assistant Selector Extensions ── */
+.assistant-category-header {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 6px 10px 2px;
+}
+.assistant-model-badge {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--accent);
+  background: var(--accent-dim);
+  padding: 1px 5px;
+  border-radius: 4px;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+.assistant-usage-count {
+  font-size: 9px;
+  color: var(--text3);
+  margin-left: 6px;
+}
+
 /* ── History Tags ── */
 .history-meta-row {
   display: flex;

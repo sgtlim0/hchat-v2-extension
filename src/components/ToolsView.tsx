@@ -16,9 +16,10 @@ import TranslateTool from './tools/TranslateTool'
 import WriteTool from './tools/WriteTool'
 import GrammarTool from './tools/GrammarTool'
 import OcrTool from './tools/OcrTool'
+import BatchOcrTool from './tools/BatchOcrTool'
 import DataAnalysisTool from './tools/DataAnalysisTool'
 
-type ToolId = 'summarize' | 'multitab' | 'translate' | 'write' | 'youtube' | 'ocr' | 'grammar' | 'comments' | 'pdf' | 'insight' | 'dataAnalysis'
+type ToolId = 'summarize' | 'multitab' | 'translate' | 'write' | 'youtube' | 'ocr' | 'batchOcr' | 'grammar' | 'comments' | 'pdf' | 'insight' | 'dataAnalysis'
 
 interface Props { config: Config }
 
@@ -37,6 +38,7 @@ export default function ToolsView({ config }: Props) {
     { id: 'write', icon: '✏️' },
     { id: 'grammar', icon: '✅' },
     { id: 'ocr', icon: '🔍' },
+    { id: 'batchOcr', icon: '📸' },
     { id: 'dataAnalysis', icon: '📊' },
   ]
 
@@ -108,6 +110,29 @@ export default function ToolsView({ config }: Props) {
     }
   }
 
+  const runVisionDirect = async (imageBase64: string, prompt: string): Promise<string> => {
+    const visionModel = 'us.anthropic.claude-sonnet-4-6'
+    const provider = getProvider(visionModel)
+    if (!provider?.isConfigured()) throw new Error(t('tools.bedrockKeyRequired'))
+
+    let fullText = ''
+    const gen = provider.stream({
+      model: visionModel,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image_url', image_url: { url: imageBase64 } },
+          { type: 'text', text: prompt },
+        ],
+      }],
+    })
+    for await (const chunk of gen) {
+      fullText += chunk
+    }
+    Usage.track(visionModel, 'bedrock', prompt, fullText, 'tool').catch(() => {})
+    return fullText
+  }
+
   // --- Tool Grid (no active tool) ---
   if (!activeTool) {
     return (
@@ -144,6 +169,7 @@ export default function ToolsView({ config }: Props) {
       case 'write': return <WriteTool {...commonProps} />
       case 'grammar': return <GrammarTool {...commonProps} />
       case 'ocr': return <OcrTool {...commonProps} runVisionStream={runVisionStream} />
+      case 'batchOcr': return <BatchOcrTool {...commonProps} runVisionDirect={runVisionDirect} />
       case 'dataAnalysis': return <DataAnalysisTool {...commonProps} />
     }
   }

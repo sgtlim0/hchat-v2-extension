@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useChat } from '../hooks/useChat'
 import { useLocale } from '../i18n'
 import { ModelSelector } from './ModelSelector'
-import { PersonaSelector } from './PersonaSelector'
+import { AssistantSelector } from './AssistantSelector'
 import { PromptLibrary, type Prompt } from '../lib/promptLibrary'
 import { fileToBase64, getCurrentPageContent } from '../lib/pageReader'
 import { exportConversation, downloadBlob, copyConversationAsMarkdown, type ExportFormat } from '../lib/exportChat'
@@ -39,7 +39,7 @@ interface Props {
 
 export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onToggleContext, initialPrompt, onConsumePrompt, onRegisterActions, onForkConv }: Props) {
   const { t, locale } = useLocale()
-  const { conv, messages, isLoading, isSearching, agentMode, setAgentMode, personaId, setPersonaId, error, currentModel, setCurrentModel, sendMessage, startNew, loadConv, stop, editAndResend, regenerate } = useChat(config)
+  const { conv, messages, isLoading, isSearching, agentMode, setAgentMode, assistantId, setAssistantId, error, currentModel, setCurrentModel, sendMessage, startNew, loadConv, stop, editAndResend, regenerate } = useChat(config)
   const [, setTTSRefresh] = useState(0)
   const [, setSTTRefresh] = useState(0)
   const [voiceMode, setVoiceMode] = useState(false)
@@ -494,7 +494,7 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
       <div className="input-meta">
         <ModelSelector value={currentModel} onChange={setCurrentModel} config={config} />
         <ThinkingDepthSelector depth={thinkingDepth} onChange={setThinkingDepth} model={currentModel} />
-        <PersonaSelector value={personaId} onChange={setPersonaId} />
+        <AssistantSelector value={assistantId} onChange={setAssistantId} />
         <DeepResearchToggle enabled={deepResearch} onToggle={() => setDeepResearch(!deepResearch)} progress={researchProgress} sources={researchSources} streamingReport={researchReport} />
         {agentMode && <span className="agent-badge">🤖 {t('chat.agentMode')}</span>}
         {voiceMode && <span className="agent-badge voice">🎙️ {t('chat.voiceModeBadge')}</span>}

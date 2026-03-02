@@ -12,6 +12,7 @@ import { runAgent, type AgentStep } from '../lib/agent'
 import { BUILTIN_TOOLS } from '../lib/agentTools'
 import { PluginRegistry } from '../lib/pluginRegistry'
 import { Personas } from '../lib/personas'
+import { AssistantRegistry } from '../lib/assistantBuilder'
 import { Usage } from '../lib/usage'
 import { MessageQueue } from '../lib/messageQueue'
 import type { Config } from './useConfig'
@@ -64,6 +65,7 @@ export function useChat(config: Config) {
   const [error, setError] = useState('')
   const [currentModel, setCurrentModel] = useState(config.defaultModel)
   const [personaId, setPersonaId] = useState('default')
+  const [assistantId, setAssistantId] = useState('ast-default')
   const abortRef = useRef<AbortController | null>(null)
 
   const startNew = useCallback(async (model?: string) => {
@@ -183,19 +185,30 @@ export function useChat(config: Config) {
 
       abortRef.current = new AbortController()
 
+      // Load active assistant for model/prompt/tool overrides
+      const assistant = await AssistantRegistry.getById(assistantId)
+
       if (agentMode) {
         // ── Agent mode: multi-turn tool calling loop ──
         const agentSteps: AgentStep[] = []
         const customTools = await PluginRegistry.toAgentTools()
 
+        // Filter built-in tools if assistant has tool bindings
+        const agentBuiltinTools = (assistant && assistant.tools.length > 0)
+          ? BUILTIN_TOOLS.filter((tool) => assistant.tools.includes(tool.name))
+          : BUILTIN_TOOLS
+
+        // Use assistant system prompt if no explicit systemPrompt
+        const agentSystemPrompt = opts?.systemPrompt ?? assistant?.systemPrompt ?? undefined
+
         const { finalText, steps } = await runAgent({
           aws: config.aws,
           model,
           userMessage: text,
-          tools: BUILTIN_TOOLS,
+          tools: agentBuiltinTools,
           customTools,
           history: historyMsgs.slice(0, -1),
-          systemPrompt: opts?.systemPrompt,
+          systemPrompt: agentSystemPrompt,
           maxSteps: 10,
           signal: abortRef.current.signal,
           onStep: (step) => {
@@ -232,10 +245,15 @@ export function useChat(config: Config) {
         })
 
         Usage.track(model, providerType, text, finalText, 'agent').catch(() => {})
+        // Increment assistant usage on successful agent response
+        if (assistant && !assistant.isBuiltIn) {
+          AssistantRegistry.incrementUsage(assistant.id).catch(() => {})
+        }
       } else {
         // ── Normal chat mode ──
         const persona = await Personas.getById(personaId)
-        let systemPrompt = opts?.systemPrompt ?? persona?.systemPrompt ?? '당신은 도움이 되는 AI 어시스턴트입니다. 한국어로 답변해주세요.'
+        // Assistant system prompt takes priority over persona
+        let systemPrompt = opts?.systemPrompt ?? assistant?.systemPrompt ?? persona?.systemPrompt ?? '당신은 도움이 되는 AI 어시스턴트입니다. 한국어로 답변해주세요.'
         let searchSources: { title: string; url: string }[] | undefined
 
         if (config.enableWebSearch && needsWebSearch(text)) {
@@ -300,6 +318,11 @@ export function useChat(config: Config) {
           }
           return prev.map((m) => m.id === placeholderId ? { ...m, streaming: false, searchSources } : m)
         })
+
+        // Increment assistant usage on successful chat response
+        if (assistant && !assistant.isBuiltIn) {
+          AssistantRegistry.incrementUsage(assistant.id).catch(() => {})
+        }
       }
     } catch (err) {
       const msg = String(err)
@@ -308,7 +331,7 @@ export function useChat(config: Config) {
     } finally {
       setIsLoading(false)
     }
-  }, [conv, isLoading, agentMode, currentModel, personaId, config, startNew])
+  }, [conv, isLoading, agentMode, currentModel, personaId, assistantId, config, startNew])
 
   const stop = useCallback(() => {
     abortRef.current?.abort()
@@ -369,5 +392,5 @@ export function useChat(config: Config) {
     return () => window.removeEventListener('online', handleOnline)
   }, [sendMessage])
 
-  return { conv, messages, isLoading, isSearching, agentMode, setAgentMode, personaId, setPersonaId, error, currentModel, setCurrentModel, sendMessage, startNew, loadConv, stop, editAndResend, regenerate }
+  return { conv, messages, isLoading, isSearching, agentMode, setAgentMode, personaId, setPersonaId, assistantId, setAssistantId, error, currentModel, setCurrentModel, sendMessage, startNew, loadConv, stop, editAndResend, regenerate }
 }

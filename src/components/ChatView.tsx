@@ -19,7 +19,7 @@ import { PinnedPanel } from './chat/PinnedPanel'
 import { ThinkingDepthSelector } from './chat/ThinkingDepthSelector'
 import { UsageAlertBanner } from './chat/UsageAlertBanner'
 import { DeepResearchToggle } from './chat/DeepResearchToggle'
-import { runDeepResearch, type ResearchProgress } from '../lib/deepResearch'
+import { streamDeepResearch, type ResearchProgress, type SourceRef } from '../lib/deepResearch'
 import { createAllProviders, getProviderForModel } from '../lib/providers/provider-factory'
 import { checkUsageAlert, type UsageAlertState } from '../lib/usageAlert'
 import type { Config } from '../hooks/useConfig'
@@ -62,6 +62,8 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
   const [alertDismissed, setAlertDismissed] = useState(false)
   const [deepResearch, setDeepResearch] = useState(false)
   const [researchProgress, setResearchProgress] = useState<ResearchProgress | null>(null)
+  const [researchSources, setResearchSources] = useState<SourceRef[]>([])
+  const [researchReport, setResearchReport] = useState('')
   const endRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -290,11 +292,44 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
     }
     try {
       setResearchProgress({ step: 'generating_queries', detail: '', current: 0, total: 3 })
-      const result = await runDeepResearch(question, provider, currentModel, setResearchProgress, undefined, locale)
-      setResearchProgress(null)
-      await sendMessage(question, { systemPrompt: t('aiPrompts.deepResearchSystem', { question, report: result.report }) })
+      setResearchSources([])
+      setResearchReport('')
+
+      const gen = streamDeepResearch({
+        question,
+        provider,
+        model: currentModel,
+        locale,
+        googleApiKey: config.googleSearchApiKey || undefined,
+        googleEngineId: config.googleSearchEngineId || undefined,
+      })
+
+      let finalReport = ''
+
+      for await (const event of gen) {
+        switch (event.type) {
+          case 'progress':
+            setResearchProgress(event.progress)
+            break
+          case 'sources_found':
+            setResearchSources((prev) => [...prev, ...event.sources])
+            break
+          case 'report_chunk':
+            finalReport += event.chunk
+            setResearchReport(finalReport)
+            break
+          case 'done':
+            setResearchProgress(null)
+            setResearchSources([])
+            setResearchReport('')
+            await sendMessage(question, { systemPrompt: t('aiPrompts.deepResearchSystem', { question, report: event.result.report }) })
+            break
+        }
+      }
     } catch (err) {
       setResearchProgress(null)
+      setResearchSources([])
+      setResearchReport('')
       const errMsg = String(err)
       if (!errMsg.includes(t('deepResearch.cancelled'))) showToast(t('deepResearch.failed', { error: errMsg }))
     }
@@ -460,7 +495,7 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
         <ModelSelector value={currentModel} onChange={setCurrentModel} config={config} />
         <ThinkingDepthSelector depth={thinkingDepth} onChange={setThinkingDepth} model={currentModel} />
         <PersonaSelector value={personaId} onChange={setPersonaId} />
-        <DeepResearchToggle enabled={deepResearch} onToggle={() => setDeepResearch(!deepResearch)} progress={researchProgress} />
+        <DeepResearchToggle enabled={deepResearch} onToggle={() => setDeepResearch(!deepResearch)} progress={researchProgress} sources={researchSources} streamingReport={researchReport} />
         {agentMode && <span className="agent-badge">🤖 {t('chat.agentMode')}</span>}
         {voiceMode && <span className="agent-badge voice">🎙️ {t('chat.voiceModeBadge')}</span>}
         <span className="text-xs">{t('chat.promptHint')}</span>

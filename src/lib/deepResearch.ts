@@ -1,6 +1,7 @@
-// lib/deepResearch.ts — Multi-step research orchestration
+// lib/deepResearch.ts — Multi-step research orchestration with streaming
 
 import type { AIProvider } from './providers/types'
+import { webSearch, type SearchResult } from './webSearch'
 import { tSync, type Locale } from '../i18n'
 
 export interface ResearchProgress {
@@ -20,6 +21,23 @@ export interface ResearchResult {
   report: string
   sources: SourceRef[]
   queriesUsed: string[]
+}
+
+/** Events yielded by the streaming deep research generator */
+export type ResearchEvent =
+  | { type: 'progress'; progress: ResearchProgress }
+  | { type: 'sources_found'; query: string; sources: SourceRef[] }
+  | { type: 'report_chunk'; chunk: string }
+  | { type: 'done'; result: ResearchResult }
+
+export interface DeepResearchOptions {
+  question: string
+  provider: AIProvider
+  model: string
+  signal?: AbortSignal
+  locale?: Locale
+  googleApiKey?: string
+  googleEngineId?: string
 }
 
 async function collectStreamText(
@@ -58,52 +76,27 @@ function parseQueries(text: string): string[] {
   return lines.slice(0, 5)
 }
 
-async function searchDuckDuckGo(query: string): Promise<SourceRef[]> {
-  try {
-    const encoded = encodeURIComponent(query)
-    const res = await fetch(`https://api.duckduckgo.com/?q=${encoded}&format=json&no_html=1&skip_disambig=1`)
-    if (!res.ok) return []
-    const data = await res.json()
-
-    const results: SourceRef[] = []
-
-    if (data.AbstractURL && data.AbstractText) {
-      results.push({ url: data.AbstractURL, title: data.Heading || query, snippet: data.AbstractText })
-    }
-
-    for (const topic of data.RelatedTopics ?? []) {
-      if (topic.FirstURL && topic.Text) {
-        results.push({ url: topic.FirstURL, title: topic.Text.slice(0, 80), snippet: topic.Text })
-      }
-      // Nested topics
-      for (const sub of topic.Topics ?? []) {
-        if (sub.FirstURL && sub.Text) {
-          results.push({ url: sub.FirstURL, title: sub.Text.slice(0, 80), snippet: sub.Text })
-        }
-      }
-    }
-
-    return results.slice(0, 5)
-  } catch {
-    return []
-  }
+function toSourceRef(result: SearchResult): SourceRef {
+  return { url: result.url, title: result.title, snippet: result.snippet }
 }
 
-export async function runDeepResearch(
-  question: string,
-  provider: AIProvider,
-  model: string,
-  onProgress: (progress: ResearchProgress) => void,
-  signal?: AbortSignal,
-  locale: Locale = 'ko',
-): Promise<ResearchResult> {
+/**
+ * Run deep research as an async generator that yields streaming events.
+ * Supports both DuckDuckGo (default) and Google Custom Search.
+ */
+export async function* streamDeepResearch(
+  opts: DeepResearchOptions,
+): AsyncGenerator<ResearchEvent, void> {
+  const { question, provider, model, signal, locale = 'ko', googleApiKey, googleEngineId } = opts
   const t = (key: string, params?: Record<string, string | number>) => tSync(locale, key, params)
 
   // Step 1: Generate search queries
-  onProgress({ step: 'generating_queries', detail: t('deepResearch.generating'), current: 0, total: 3 })
+  yield {
+    type: 'progress',
+    progress: { step: 'generating_queries', detail: t('deepResearch.generating'), current: 0, total: 3 },
+  }
 
   const queryPrompt = t('deepResearch.queryPrompt', { question })
-
   const queryText = await collectStreamText(provider, model, queryPrompt, signal)
   const queries = parseQueries(queryText)
 
@@ -111,19 +104,39 @@ export async function runDeepResearch(
     throw new Error(t('deepResearch.noQueries'))
   }
 
-  // Step 2: Search for each query
+  // Step 2: Search for each query (with intermediate results)
   const allSources: SourceRef[] = []
+  const searchEngine = googleApiKey && googleEngineId
+    ? t('deepResearch.engineGoogle')
+    : t('deepResearch.engineDuckDuckGo')
 
   for (let i = 0; i < queries.length; i++) {
     if (signal?.aborted) throw new Error(t('deepResearch.cancelled'))
-    onProgress({
-      step: 'searching',
-      detail: t('deepResearch.searchingDetail', { query: queries[i], current: i + 1, total: queries.length }),
-      current: 1,
-      total: 3,
+
+    yield {
+      type: 'progress',
+      progress: {
+        step: 'searching',
+        detail: t('deepResearch.searchingDetail', { query: queries[i], current: i + 1, total: queries.length, engine: searchEngine }),
+        current: 1,
+        total: 3,
+      },
+    }
+
+    const results = await webSearch({
+      query: queries[i],
+      maxResults: 5,
+      googleApiKey: googleApiKey || undefined,
+      googleEngineId: googleEngineId || undefined,
     })
-    const results = await searchDuckDuckGo(queries[i])
-    allSources.push(...results)
+
+    const sources = results.map(toSourceRef)
+    allSources.push(...sources)
+
+    // Yield intermediate search results as they come in
+    if (sources.length > 0) {
+      yield { type: 'sources_found', query: queries[i], sources }
+    }
   }
 
   // Deduplicate sources by URL
@@ -132,8 +145,11 @@ export async function runDeepResearch(
     return acc
   }, []).slice(0, 15)
 
-  // Step 3: Generate report
-  onProgress({ step: 'writing_report', detail: t('deepResearch.writing'), current: 2, total: 3 })
+  // Step 3: Generate report (streaming)
+  yield {
+    type: 'progress',
+    progress: { step: 'writing_report', detail: t('deepResearch.writing'), current: 2, total: 3 },
+  }
 
   const excerptLabel = t('deepResearch.excerpt')
   const sourcesContext = uniqueSources.length > 0
@@ -142,11 +158,55 @@ export async function runDeepResearch(
 
   const reportPrompt = t('deepResearch.reportPrompt', { question, sources: sourcesContext })
 
-  const report = await collectStreamText(provider, model, reportPrompt, signal)
+  let fullReport = ''
+  const gen = provider.stream({
+    model,
+    messages: [{ role: 'user', content: reportPrompt }],
+    signal,
+  })
 
-  return {
-    report,
-    sources: uniqueSources,
-    queriesUsed: queries,
+  for await (const chunk of gen) {
+    fullReport += chunk
+    yield { type: 'report_chunk', chunk }
   }
+
+  yield {
+    type: 'done',
+    result: { report: fullReport, sources: uniqueSources, queriesUsed: queries },
+  }
+}
+
+/**
+ * Legacy non-streaming API — wraps streamDeepResearch for backward compatibility.
+ */
+export async function runDeepResearch(
+  question: string,
+  provider: AIProvider,
+  model: string,
+  onProgress: (progress: ResearchProgress) => void,
+  signal?: AbortSignal,
+  locale: Locale = 'ko',
+  googleApiKey?: string,
+  googleEngineId?: string,
+): Promise<ResearchResult> {
+  const gen = streamDeepResearch({ question, provider, model, signal, locale, googleApiKey, googleEngineId })
+
+  let result: ResearchResult | undefined
+
+  for await (const event of gen) {
+    switch (event.type) {
+      case 'progress':
+        onProgress(event.progress)
+        break
+      case 'done':
+        result = event.result
+        break
+    }
+  }
+
+  if (!result) {
+    throw new Error(tSync(locale, 'deepResearch.failed', { error: 'No result' }))
+  }
+
+  return result
 }

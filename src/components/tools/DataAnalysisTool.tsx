@@ -1,5 +1,7 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { parseDataFile, dataToMarkdownTable, generateAnalysisPrompt, type ParsedData, type AnalysisType, DataAnalysisError } from '../../lib/dataAnalysis'
+import { extractChartData } from '../../lib/chartDataExtractor'
+import { DataChart } from '../DataChart'
 import type { ToolPanelProps } from './types'
 
 type Props = Pick<ToolPanelProps, 'loading' | 'setResult' | 'runStream' | 't' | 'locale'>
@@ -7,6 +9,12 @@ type Props = Pick<ToolPanelProps, 'loading' | 'setResult' | 'runStream' | 't' | 
 export default function DataAnalysisTool({ loading, setResult, runStream, t, locale }: Props) {
   const [parsedData, setParsedData] = useState<ParsedData | null>(null)
   const [analysisType, setAnalysisType] = useState<AnalysisType>('summary')
+  const [showCharts, setShowCharts] = useState(true)
+
+  const charts = useMemo(() => {
+    if (!parsedData) return []
+    return extractChartData(parsedData)
+  }, [parsedData])
 
   const handleDataFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -46,6 +54,40 @@ export default function DataAnalysisTool({ loading, setResult, runStream, t, loc
               {dataToMarkdownTable(parsedData, 5)}
             </div>
           </div>
+
+          {/* Charts */}
+          {charts.length > 0 && (
+            <div style={{ marginTop: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                <span style={{ fontSize: 11, color: 'var(--text2)', fontWeight: 600 }}>
+                  {t('tools.dataAnalysis.chartTitle')}
+                </span>
+                <button
+                  className="btn btn-ghost btn-xs"
+                  onClick={() => setShowCharts((v) => !v)}
+                  style={{ fontSize: 10 }}
+                >
+                  {showCharts ? t('tools.dataAnalysis.hideChart') : t('tools.dataAnalysis.showChart')}
+                </button>
+              </div>
+              {showCharts && (
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 8,
+                  padding: '8px 4px',
+                  background: 'var(--bg2, #1a1f2e)',
+                  borderRadius: 8,
+                  border: '1px solid var(--border, #333)',
+                }}>
+                  {charts.map((chart, i) => (
+                    <DataChart key={`${chart.title}-${i}`} chart={chart} width={300} />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="field">
             <label className="field-label">{t('tools.dataAnalysis.typeLabel')}</label>
             <div style={{ display: 'flex', gap: 6 }}>

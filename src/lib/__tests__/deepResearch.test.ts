@@ -1,10 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { runDeepResearch, type ResearchProgress } from '../deepResearch'
+import { runDeepResearch, streamDeepResearch, type ResearchProgress, type ResearchEvent } from '../deepResearch'
 import type { AIProvider } from '../providers/types'
 
-// Mock fetch for DuckDuckGo API
-const mockFetch = vi.fn()
-vi.stubGlobal('fetch', mockFetch)
+// Mock webSearch module
+vi.mock('../webSearch', () => ({
+  webSearch: vi.fn(),
+}))
+
+import { webSearch } from '../webSearch'
+const mockWebSearch = vi.mocked(webSearch)
 
 function createMockProvider(responses: string[]): AIProvider {
   let callIndex = 0
@@ -20,22 +24,14 @@ function createMockProvider(responses: string[]): AIProvider {
   }
 }
 
-function duckDuckGoResponse(abstractText = '', relatedTopics: Array<{ FirstURL: string; Text: string }> = []) {
-  return {
-    ok: true,
-    json: () => Promise.resolve({
-      AbstractURL: abstractText ? 'https://example.com/abstract' : '',
-      AbstractText: abstractText,
-      Heading: 'Test Heading',
-      RelatedTopics: relatedTopics,
-    }),
-  }
+function mockSearchResults(results: Array<{ title: string; url: string; snippet: string }> = []) {
+  mockWebSearch.mockResolvedValue(results)
 }
 
 describe('runDeepResearch', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockFetch.mockReset()
+    mockWebSearch.mockReset()
   })
 
   it('3단계 진행 상태 콜백 호출', async () => {
@@ -43,7 +39,7 @@ describe('runDeepResearch', () => {
       '["query1", "query2"]',
       '# Report\n\nThis is the report.',
     ])
-    mockFetch.mockResolvedValue(duckDuckGoResponse('Abstract text', []))
+    mockSearchResults([{ title: 'Test', url: 'https://example.com', snippet: 'Abstract text' }])
 
     const steps: ResearchProgress[] = []
     await runDeepResearch('test question', provider, 'model', (p) => steps.push({ ...p }))
@@ -58,7 +54,7 @@ describe('runDeepResearch', () => {
       '["AI trends", "machine learning"]',
       '# Report\n\n## 개요\nAI is advancing.',
     ])
-    mockFetch.mockResolvedValue(duckDuckGoResponse('AI overview', []))
+    mockSearchResults([{ title: 'AI overview', url: 'https://example.com/ai', snippet: 'AI overview' }])
 
     const result = await runDeepResearch('AI trends', provider, 'model', () => {})
 
@@ -72,7 +68,7 @@ describe('runDeepResearch', () => {
       '1. What is quantum computing\n2. Quantum computing applications\n3. Quantum vs classical',
       '# Quantum Report',
     ])
-    mockFetch.mockResolvedValue(duckDuckGoResponse())
+    mockSearchResults([])
 
     const result = await runDeepResearch('quantum computing', provider, 'model', () => {})
     expect(result.queriesUsed.length).toBeGreaterThan(0)
@@ -92,7 +88,7 @@ describe('runDeepResearch', () => {
       '["query1"]',
       '# Report without sources',
     ])
-    mockFetch.mockResolvedValue({ ok: false })
+    mockSearchResults([])
 
     const result = await runDeepResearch('test', provider, 'model', () => {})
     expect(result.report).toContain('Report')
@@ -104,10 +100,10 @@ describe('runDeepResearch', () => {
       '["query1", "query2"]',
       '# Report',
     ])
-    mockFetch.mockResolvedValue(duckDuckGoResponse('Same abstract', [
-      { FirstURL: 'https://example.com/1', Text: 'Topic 1' },
-      { FirstURL: 'https://example.com/1', Text: 'Topic 1 duplicate' },
-    ]))
+    mockSearchResults([
+      { title: 'Topic 1', url: 'https://example.com/1', snippet: 'Snippet 1' },
+      { title: 'Topic 1 dup', url: 'https://example.com/1', snippet: 'Snippet 1 dup' },
+    ])
 
     const result = await runDeepResearch('test', provider, 'model', () => {})
     const urls = result.sources.map((s) => s.url)
@@ -120,7 +116,7 @@ describe('runDeepResearch', () => {
       '["q1", "q2", "q3", "q4", "q5", "q6", "q7"]',
       '# Report',
     ])
-    mockFetch.mockResolvedValue(duckDuckGoResponse())
+    mockSearchResults([])
 
     const result = await runDeepResearch('test', provider, 'model', () => {})
     expect(result.queriesUsed.length).toBeLessThanOrEqual(5)
@@ -145,7 +141,7 @@ describe('runDeepResearch', () => {
       '["first query", "second query"]',
       '# Report',
     ])
-    mockFetch.mockResolvedValue(duckDuckGoResponse())
+    mockSearchResults([])
 
     const steps: ResearchProgress[] = []
     await runDeepResearch('test', provider, 'model', (p) => steps.push({ ...p }))
@@ -161,7 +157,7 @@ describe('runDeepResearch', () => {
       '["query1"]',
       '# English Report',
     ])
-    mockFetch.mockResolvedValue(duckDuckGoResponse('Abstract', []))
+    mockSearchResults([{ title: 'Abstract', url: 'https://example.com', snippet: 'Abstract text' }])
 
     const steps: ResearchProgress[] = []
     const result = await runDeepResearch('test', provider, 'model', (p) => steps.push({ ...p }), undefined, 'en')
@@ -170,5 +166,122 @@ describe('runDeepResearch', () => {
     // English locale should use English progress messages
     const genStep = steps.find((s) => s.step === 'generating_queries')
     expect(genStep?.detail).toContain('Generating')
+  })
+})
+
+describe('streamDeepResearch', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockWebSearch.mockReset()
+  })
+
+  it('스트리밍 이벤트를 순서대로 yield', async () => {
+    const provider = createMockProvider([
+      '["query1"]',
+      '# Report',
+    ])
+    mockSearchResults([{ title: 'Source', url: 'https://example.com', snippet: 'Snippet' }])
+
+    const events: ResearchEvent[] = []
+    for await (const event of streamDeepResearch({ question: 'test', provider, model: 'model' })) {
+      events.push(event)
+    }
+
+    const types = events.map((e) => e.type)
+    expect(types).toContain('progress')
+    expect(types).toContain('sources_found')
+    expect(types).toContain('report_chunk')
+    expect(types).toContain('done')
+  })
+
+  it('리포트 청크를 스트리밍으로 전달', async () => {
+    let callIndex = 0
+    const provider: AIProvider = {
+      name: 'test',
+      models: [],
+      isConfigured: () => true,
+      async *stream() {
+        if (callIndex === 0) {
+          callIndex++
+          yield '["query1"]'
+          return '["query1"]'
+        }
+        yield 'Part 1 '
+        yield 'Part 2'
+        return 'Part 1 Part 2'
+      },
+    }
+    mockSearchResults([])
+
+    const chunks: string[] = []
+    for await (const event of streamDeepResearch({ question: 'test', provider, model: 'model' })) {
+      if (event.type === 'report_chunk') chunks.push(event.chunk)
+    }
+
+    expect(chunks).toEqual(['Part 1 ', 'Part 2'])
+  })
+
+  it('sources_found 이벤트에 검색 결과 포함', async () => {
+    const provider = createMockProvider([
+      '["query1", "query2"]',
+      '# Report',
+    ])
+    mockSearchResults([{ title: 'Result', url: 'https://example.com', snippet: 'Text' }])
+
+    const sourcesEvents: ResearchEvent[] = []
+    for await (const event of streamDeepResearch({ question: 'test', provider, model: 'model' })) {
+      if (event.type === 'sources_found') sourcesEvents.push(event)
+    }
+
+    expect(sourcesEvents.length).toBe(2)
+    if (sourcesEvents[0].type === 'sources_found') {
+      expect(sourcesEvents[0].sources.length).toBeGreaterThan(0)
+      expect(sourcesEvents[0].query).toBe('query1')
+    }
+  })
+
+  it('Google API 키 전달 시 webSearch에 전달', async () => {
+    const provider = createMockProvider([
+      '["query1"]',
+      '# Report',
+    ])
+    mockSearchResults([])
+
+    const gen = streamDeepResearch({
+      question: 'test',
+      provider,
+      model: 'model',
+      googleApiKey: 'test-key',
+      googleEngineId: 'test-engine',
+    })
+
+    for await (const _event of gen) { /* consume */ }
+
+    expect(mockWebSearch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        googleApiKey: 'test-key',
+        googleEngineId: 'test-engine',
+      })
+    )
+  })
+
+  it('done 이벤트에 최종 결과 포함', async () => {
+    const provider = createMockProvider([
+      '["query1"]',
+      '# Final Report',
+    ])
+    mockSearchResults([{ title: 'Src', url: 'https://example.com', snippet: 'Snip' }])
+
+    let doneEvent: ResearchEvent | undefined
+    for await (const event of streamDeepResearch({ question: 'test', provider, model: 'model' })) {
+      if (event.type === 'done') doneEvent = event
+    }
+
+    expect(doneEvent).toBeDefined()
+    if (doneEvent?.type === 'done') {
+      expect(doneEvent.result.report).toContain('Final Report')
+      expect(doneEvent.result.queriesUsed).toEqual(['query1'])
+      expect(doneEvent.result.sources.length).toBeGreaterThan(0)
+    }
   })
 })

@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react'
 import { getGlobalLocale } from '../i18n'
 import { streamChatLive, type Message } from '../lib/models'
-import type { AIProvider, ProviderType } from '../lib/providers/types'
+import type { AIProvider, ProviderType, ThinkingDepth } from '../lib/providers/types'
 import { createAllProviders, getProviderForModel, getModelDef } from '../lib/providers/provider-factory'
 import { routeModel } from '../lib/providers/model-router'
 import { ChatHistory, type ChatMessage, type Conversation } from '../lib/chatHistory'
@@ -30,9 +30,10 @@ async function streamWithProvider(
   systemPrompt: string | undefined,
   onChunk: (chunk: string) => void,
   signal?: AbortSignal,
+  thinkingDepth?: ThinkingDepth,
 ): Promise<string> {
   let fullText = ''
-  const gen = provider.stream({ model, messages, systemPrompt, signal })
+  const gen = provider.stream({ model, messages, systemPrompt, signal, thinkingDepth })
   for await (const chunk of gen) {
     onChunk(chunk)
     fullText += chunk
@@ -75,7 +76,7 @@ export function useChat(config: Config) {
 
   const sendMessage = useCallback(async (
     text: string,
-    opts?: { imageBase64?: string; systemPrompt?: string; forcedModel?: string }
+    opts?: { imageBase64?: string; systemPrompt?: string; forcedModel?: string; thinkingDepth?: ThinkingDepth }
   ) => {
     if (!text.trim() || isLoading) return
     setError('')
@@ -231,6 +232,7 @@ export function useChat(config: Config) {
               )
             },
             abortRef.current.signal,
+            opts?.thinkingDepth,
           )
         } else {
           await streamChatLive({

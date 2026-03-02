@@ -7,6 +7,12 @@ export interface AwsCredentials {
   region: string
 }
 
+export interface BudgetConfig {
+  monthly: number         // Monthly budget in USD, 0 = disabled
+  warnThreshold: number   // Warning threshold (%), default 70
+  critThreshold: number   // Critical threshold (%), default 90
+}
+
 export interface Config {
   aws: AwsCredentials
   openai: { apiKey: string }
@@ -20,6 +26,7 @@ export interface Config {
   enableWebSearch: boolean
   googleSearchApiKey: string
   googleSearchEngineId: string
+  budget: BudgetConfig
 }
 
 const DEFAULTS: Config = {
@@ -35,6 +42,7 @@ const DEFAULTS: Config = {
   enableWebSearch: true,
   googleSearchApiKey: '',
   googleSearchEngineId: '',
+  budget: { monthly: 0, warnThreshold: 70, critThreshold: 90 },
 }
 
 export function useConfig() {
@@ -49,6 +57,7 @@ export function useConfig() {
         aws: { ...c.aws, ...(saved.aws ?? {}) },
         openai: { ...c.openai, ...(saved.openai ?? {}) },
         gemini: { ...c.gemini, ...(saved.gemini ?? {}) },
+        budget: { ...c.budget, ...(saved.budget ?? {}) },
       }))
       setLoaded(true)
     })
@@ -62,6 +71,7 @@ export function useConfig() {
         aws: { ...c.aws, ...(patch.aws ?? {}) },
         openai: { ...c.openai, ...(patch.openai ?? {}) },
         gemini: { ...c.gemini, ...(patch.gemini ?? {}) },
+        budget: { ...c.budget, ...(patch.budget ?? {}) },
       }
       Storage.set('hchat:config', updated)
       // Also store AWS credentials separately for background worker access

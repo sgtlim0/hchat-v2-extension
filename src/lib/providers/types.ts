@@ -26,12 +26,15 @@ export interface Message {
   content: string | ContentPart[]
 }
 
+export type ThinkingDepth = 'fast' | 'normal' | 'deep'
+
 export interface SendParams {
   model: string
   messages: Message[]
   systemPrompt?: string
   maxTokens?: number
   signal?: AbortSignal
+  thinkingDepth?: ThinkingDepth
 }
 
 /**

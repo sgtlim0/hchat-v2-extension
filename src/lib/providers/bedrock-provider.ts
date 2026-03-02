@@ -83,12 +83,19 @@ export class BedrockProvider implements AIProvider {
             ),
       }))
 
+    const effectiveMaxTokens = params.thinkingDepth === 'fast' ? Math.min(maxTokens, 1024) : maxTokens
+
     const body: Record<string, unknown> = {
       anthropic_version: 'bedrock-2023-05-31',
-      max_tokens: maxTokens,
+      max_tokens: effectiveMaxTokens,
       messages: msgs,
     }
     if (systemPrompt) body.system = systemPrompt
+
+    if (params.thinkingDepth === 'deep') {
+      body.thinking = { type: 'enabled', budget_tokens: 10000 }
+      delete body.temperature
+    }
 
     const encodedModel = encodeURIComponent(model)
     const url = `https://bedrock-runtime.${region}.amazonaws.com/model/${encodedModel}/invoke-with-response-stream`

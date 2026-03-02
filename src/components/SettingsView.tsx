@@ -311,6 +311,41 @@ export default function SettingsView() {
       </div>
 
       <div className="settings-section">
+        <div className="settings-section-title">{t('settings.budgetTitle')}</div>
+        <div className="field">
+          <label className="field-label">{t('settings.monthlyBudget')}</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 13, color: 'var(--text1)' }}>$</span>
+            <input className="input" type="number" min="0" step="10" style={{ width: 120 }}
+              value={config.budget.monthly || ''}
+              placeholder="0"
+              onChange={(e) => update({ budget: { ...config.budget, monthly: Number(e.target.value) || 0 } })} />
+          </div>
+          <div className="field-hint">{t('settings.budgetHint')}</div>
+        </div>
+        <div style={{ display: 'flex', gap: 12 }}>
+          <div className="field" style={{ flex: 1 }}>
+            <label className="field-label">{t('settings.warnThreshold')}</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <input className="input" type="number" min="50" max="100" style={{ width: 70 }}
+                value={config.budget.warnThreshold}
+                onChange={(e) => update({ budget: { ...config.budget, warnThreshold: Number(e.target.value) || 70 } })} />
+              <span style={{ fontSize: 12, color: 'var(--text2)' }}>%</span>
+            </div>
+          </div>
+          <div className="field" style={{ flex: 1 }}>
+            <label className="field-label">{t('settings.critThreshold')}</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <input className="input" type="number" min="50" max="100" style={{ width: 70 }}
+                value={config.budget.critThreshold}
+                onChange={(e) => update({ budget: { ...config.budget, critThreshold: Number(e.target.value) || 90 } })} />
+              <span style={{ fontSize: 12, color: 'var(--text2)' }}>%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="settings-section">
         <UsageView />
       </div>
 

@@ -16,7 +16,14 @@ import { ChatToolbar } from './chat/ChatToolbar'
 import { ChatInputArea } from './chat/ChatInputArea'
 import { SummaryPanel } from './chat/SummaryPanel'
 import { PinnedPanel } from './chat/PinnedPanel'
+import { ThinkingDepthSelector } from './chat/ThinkingDepthSelector'
+import { UsageAlertBanner } from './chat/UsageAlertBanner'
+import { DeepResearchToggle } from './chat/DeepResearchToggle'
+import { runDeepResearch, type ResearchProgress } from '../lib/deepResearch'
+import { createAllProviders, getProviderForModel } from '../lib/providers/provider-factory'
+import { checkUsageAlert, type UsageAlertState } from '../lib/usageAlert'
 import type { Config } from '../hooks/useConfig'
+import type { ThinkingDepth } from '../lib/providers/types'
 
 interface Props {
   config: Config
@@ -37,6 +44,7 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
   const [, setSTTRefresh] = useState(0)
   const [voiceMode, setVoiceMode] = useState(false)
   const voiceModeRef = useRef(false)
+  const [thinkingDepth, setThinkingDepth] = useState<ThinkingDepth>('normal')
   const [input, setInput] = useState('')
   const [attachment, setAttachment] = useState<{ name: string; base64: string } | null>(null)
   const [showPrompts, setShowPrompts] = useState(false)
@@ -50,6 +58,10 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
   const [showSummary, setShowSummary] = useState(false)
   const [summarizing, setSummarizing] = useState(false)
   const [showPinned, setShowPinned] = useState(false)
+  const [usageAlert, setUsageAlert] = useState<UsageAlertState | null>(null)
+  const [alertDismissed, setAlertDismissed] = useState(false)
+  const [deepResearch, setDeepResearch] = useState(false)
+  const [researchProgress, setResearchProgress] = useState<ResearchProgress | null>(null)
   const endRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -77,6 +89,12 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
     })
     return () => chrome.storage.local.onChanged.removeListener(handler)
   }, [])
+
+  useEffect(() => {
+    if (config.budget.monthly > 0) {
+      checkUsageAlert(config.budget).then(setUsageAlert)
+    }
+  }, [config.budget, isLoading]) // re-check after each message
 
   useEffect(() => {
     TTS.onStateChange(() => setTTSRefresh((n) => n + 1))
@@ -263,6 +281,24 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
     return undefined
   }
 
+  const handleDeepResearch = useCallback(async (question: string) => {
+    const providers = createAllProviders(config)
+    const provider = getProviderForModel(providers, currentModel)
+    if (!provider) {
+      showToast(t('common.apiKeyNotSet'))
+      return
+    }
+    try {
+      setResearchProgress({ step: 'generating_queries', detail: '', current: 0, total: 3 })
+      const result = await runDeepResearch(question, provider, currentModel, setResearchProgress)
+      setResearchProgress(null)
+      await sendMessage(question, { systemPrompt: `다음은 "${question}"에 대한 심층 리서치 결과입니다. 이 내용을 바탕으로 답변하세요:\n\n${result.report}` })
+    } catch (err) {
+      setResearchProgress(null)
+      if (String(err) !== '취소됨') showToast(t('deepResearch.failed', { error: String(err) }))
+    }
+  }, [config, currentModel, sendMessage, t])
+
   const handleSend = async () => {
     const text = input.trim()
     if (!text || isLoading) return
@@ -270,9 +306,13 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
     setAttachment(null)
     setShowPrompts(false)
     if (textareaRef.current) textareaRef.current.style.height = 'auto'
+    if (deepResearch) {
+      await handleDeepResearch(text)
+      return
+    }
     let systemPrompt: string | undefined
     if (contextEnabled || needsPageContext(text)) systemPrompt = await buildPageContextPrompt()
-    await sendMessage(text, { imageBase64: attachment?.base64, systemPrompt })
+    await sendMessage(text, { imageBase64: attachment?.base64, systemPrompt, thinkingDepth })
   }
 
   const handleExport = async (format: ExportFormat) => {
@@ -355,6 +395,10 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
         />
       )}
 
+      {usageAlert && usageAlert.level !== 'none' && !alertDismissed && (
+        <UsageAlertBanner alert={usageAlert} onDismiss={() => setAlertDismissed(true)} />
+      )}
+
       <div className="messages">
         {messages.length === 0 ? (
           <div className="chat-empty">
@@ -413,7 +457,9 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
 
       <div className="input-meta">
         <ModelSelector value={currentModel} onChange={setCurrentModel} config={config} />
+        <ThinkingDepthSelector depth={thinkingDepth} onChange={setThinkingDepth} model={currentModel} />
         <PersonaSelector value={personaId} onChange={setPersonaId} />
+        <DeepResearchToggle enabled={deepResearch} onToggle={() => setDeepResearch(!deepResearch)} progress={researchProgress} />
         {agentMode && <span className="agent-badge">🤖 {t('chat.agentMode')}</span>}
         {voiceMode && <span className="agent-badge voice">🎙️ {t('chat.voiceModeBadge')}</span>}
         <span className="text-xs">{t('chat.promptHint')}</span>

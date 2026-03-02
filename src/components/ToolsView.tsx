@@ -6,12 +6,13 @@ import { extractComments, buildCommentAnalysisPrompt } from '../lib/commentAnaly
 import { extractPdfText, formatFileSize } from '../lib/pdfParser'
 import { generateInsightReport, type ReportProgress } from '../lib/insightReport'
 import { Usage } from '../lib/usage'
+import { parseDataFile, dataToMarkdownTable, generateAnalysisPrompt, type ParsedData, type AnalysisType, DataAnalysisError } from '../lib/dataAnalysis'
 import type { Config } from '../hooks/useConfig'
 import { useLocale } from '../i18n'
 import ko from '../i18n/ko'
 import en from '../i18n/en'
 
-type ToolId = 'summarize' | 'multitab' | 'translate' | 'write' | 'youtube' | 'ocr' | 'grammar' | 'comments' | 'pdf' | 'insight'
+type ToolId = 'summarize' | 'multitab' | 'translate' | 'write' | 'youtube' | 'ocr' | 'grammar' | 'comments' | 'pdf' | 'insight' | 'dataAnalysis'
 
 interface Props { config: Config }
 
@@ -30,6 +31,7 @@ export default function ToolsView({ config }: Props) {
     { id: 'write', icon: '✏️' },
     { id: 'grammar', icon: '✅' },
     { id: 'ocr', icon: '🔍' },
+    { id: 'dataAnalysis', icon: '📊' },
   ]
 
   const LANGS = locale === 'en' ? en.tools.langs : ko.tools.langs
@@ -45,6 +47,8 @@ export default function ToolsView({ config }: Props) {
   const [pdfFileName, setPdfFileName] = useState('')
   const [pdfQuestion, setPdfQuestion] = useState('')
   const [reportProgress, setReportProgress] = useState<ReportProgress | null>(null)
+  const [parsedData, setParsedData] = useState<ParsedData | null>(null)
+  const [analysisType, setAnalysisType] = useState<AnalysisType>('summary')
   const abortRef = useRef<AbortController | null>(null)
 
   const activeModel = config.defaultModel
@@ -77,6 +81,27 @@ export default function ToolsView({ config }: Props) {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleDataFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    setResult('')
+    setParsedData(null)
+    try {
+      const data = await parseDataFile(file)
+      setParsedData(data)
+    } catch (err) {
+      if (err instanceof DataAnalysisError) setResult('❌ ' + err.message)
+      else setResult('❌ ' + String(err))
+    }
+  }
+
+  const handleDataAnalysis = async () => {
+    if (!parsedData) return
+    const prompt = generateAnalysisPrompt(parsedData, analysisType, locale)
+    await runStream(prompt)
   }
 
   const runVisionStream = async (imageBase64: string, prompt: string) => {
@@ -479,6 +504,45 @@ export default function ToolsView({ config }: Props) {
               <img src={imgBase64} style={{ maxWidth: '100%', maxHeight: 160, borderRadius: 8, border: '1px solid var(--border2)' }} alt="" />
               <button className="btn btn-primary" onClick={handleOCRRun} disabled={loading}>
                 {loading ? <><span className="spinner" /> {t('tools.extracting')}</> : t('tools.extractText')}
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
+      {activeTool === 'dataAnalysis' && (
+        <div className="gap-2">
+          <p style={{ fontSize: 12, color: 'var(--text2)' }}>{t('tools.dataAnalysis.desc')}</p>
+          <label className="btn btn-secondary" style={{ cursor: 'pointer', justifyContent: 'center' }}>
+            {t('tools.dataAnalysis.upload')}
+            <input type="file" accept=".csv,.tsv,.xlsx,.xls" style={{ display: 'none' }} onChange={handleDataFileUpload} />
+          </label>
+          {parsedData && (
+            <>
+              <div style={{ fontSize: 11, color: 'var(--text2)', padding: '4px 0' }}>
+                {t('common.file')}: {parsedData.fileName} ({parsedData.rowCount}{t('tools.dataAnalysis.rows')}, {parsedData.headers.length}{t('tools.dataAnalysis.cols')})
+              </div>
+              <div className="result-box" style={{ maxHeight: 160, overflow: 'auto' }}>
+                <div className="result-content" style={{ fontSize: 11, whiteSpace: 'pre-wrap', fontFamily: 'var(--mono)' }}>
+                  {dataToMarkdownTable(parsedData, 5)}
+                </div>
+              </div>
+              <div className="field">
+                <label className="field-label">{t('tools.dataAnalysis.typeLabel')}</label>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {(['summary', 'trend', 'outlier'] as AnalysisType[]).map((at) => (
+                    <button
+                      key={at}
+                      className={`btn btn-sm ${analysisType === at ? 'btn-primary' : 'btn-secondary'}`}
+                      onClick={() => setAnalysisType(at)}
+                    >
+                      {t(`tools.dataAnalysis.type_${at}`)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <button className="btn btn-primary" onClick={handleDataAnalysis} disabled={loading}>
+                {loading ? <><span className="spinner" /> {t('tools.analyzing')}</> : t('tools.dataAnalysis.startAnalysis')}
               </button>
             </>
           )}

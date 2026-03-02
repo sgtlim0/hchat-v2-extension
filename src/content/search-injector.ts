@@ -1,5 +1,7 @@
 // content/search-injector.ts — Inject AI summary card into search engine results
 
+import { getLocale, tSync, type Locale } from '../i18n'
+
 const SEARCH_CONFIGS: Record<string, { querySelector: string; insertBefore: string; queryParam: string }> = {
   'www.google.com': { querySelector: '#search', insertBefore: '#search', queryParam: 'q' },
   'www.google.co.kr': { querySelector: '#search', insertBefore: '#search', queryParam: 'q' },
@@ -22,7 +24,7 @@ function createShadowContainer(): { host: HTMLElement; root: ShadowRoot } {
   return { host, root }
 }
 
-function buildCardHTML(query: string): string {
+function buildCardHTML(query: string, locale: Locale): string {
   return `
     <style>
       .hchat-card {
@@ -74,7 +76,7 @@ function buildCardHTML(query: string): string {
       <button class="hchat-close" id="hchat-close">✕</button>
       <div class="hchat-header">
         <div class="hchat-logo">H</div>
-        <span>H Chat AI 요약</span>
+        <span>${tSync(locale, 'searchInjector.aiSummary')}</span>
         <span id="hchat-model" style="margin-left:auto;font-size:11px;opacity:0.6"></span>
       </div>
       <div class="hchat-answer" id="hchat-answer">
@@ -98,12 +100,14 @@ function injectCard() {
   if (document.getElementById('hchat-search-card')) return
 
   // Check if feature enabled via storage
-  chrome.storage.local.get('hchat:config', (result) => {
+  chrome.storage.local.get('hchat:config', async (result) => {
     const cfg = result['hchat:config']
     if (cfg && cfg.enableSearchEnhance === false) return
 
+    const locale = await getLocale()
+
     const { host, root } = createShadowContainer()
-    root.innerHTML = buildCardHTML(query)
+    root.innerHTML = buildCardHTML(query, locale)
     target.parentElement?.insertBefore(host, target)
 
     const answerEl = root.getElementById('hchat-answer')
@@ -126,10 +130,10 @@ function injectCard() {
         answerEl.textContent = answer
       }
       if (msg.type === 'done' && answerEl) {
-        answerEl.textContent = answer || '답변을 생성할 수 없습니다.'
+        answerEl.textContent = answer || tSync(locale, 'searchInjector.noAnswer')
       }
       if (msg.type === 'error' && answerEl) {
-        answerEl.textContent = '⚠ AI 요약을 불러올 수 없습니다. API 키를 확인해주세요.'
+        answerEl.textContent = tSync(locale, 'searchInjector.error')
         answerEl.style.color = '#e57373'
       }
     })

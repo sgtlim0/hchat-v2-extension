@@ -5,8 +5,10 @@ import { signRequest } from '../lib/aws-sigv4'
 import { DEFAULT_SHORTCUTS, loadShortcuts, type Shortcut } from '../lib/shortcuts'
 import { UsageView } from './UsageView'
 import type { ProviderType } from '../lib/providers/types'
+import { useLocale } from '../i18n'
 
 export function SettingsView() {
+  const { t } = useLocale()
   const { config, update } = useConfig()
   const { allModels, providers } = useProvider(config)
   const [showSecret, setShowSecret] = useState<Record<string, boolean>>({})
@@ -87,15 +89,15 @@ export function SettingsView() {
 
   const TestBadge = ({ type }: { type: ProviderType }) => (
     <>
-      {testResults[type] === 'success' && <span style={{ fontSize: 11, color: 'var(--green, var(--accent))' }}>✓ 연결 성공</span>}
-      {testResults[type] === 'error' && <span style={{ fontSize: 11, color: 'var(--red)' }}>✗ 연결 실패</span>}
+      {testResults[type] === 'success' && <span style={{ fontSize: 11, color: 'var(--green, var(--accent))' }}>{t('settings.testSuccess')}</span>}
+      {testResults[type] === 'error' && <span style={{ fontSize: 11, color: 'var(--red)' }}>{t('settings.testFail')}</span>}
     </>
   )
 
   return (
     <div className="settings">
       <div className="settings-section">
-        <div className="settings-section-title">🔑 AI 프로바이더 설정</div>
+        <div className="settings-section-title">{t('settings.providerTitle')}</div>
 
         {/* AWS Bedrock */}
         <div className="provider-card">
@@ -103,7 +105,7 @@ export function SettingsView() {
             <div className="provider-dot" style={{ background: '#ff9900' }} />
             <span className="provider-label">AWS Bedrock</span>
             <span className={`badge ${hasBedrockKey ? 'badge-green' : 'badge-red'}`}>
-              {hasBedrockKey ? '✓ 설정됨' : '미설정'}
+              {hasBedrockKey ? t('common.configured') : t('common.notConfigured')}
             </span>
           </div>
           <div style={{ fontSize: 10, color: 'var(--text3)' }}>
@@ -119,11 +121,11 @@ export function SettingsView() {
           <div className="field">
             <label className="field-label">Secret Access Key</label>
             <div className="api-input-row">
-              <input className="input" type={showSecret.bedrock ? 'text' : 'password'} placeholder="비밀 액세스 키..."
+              <input className="input" type={showSecret.bedrock ? 'text' : 'password'} placeholder={t('settings.secretAccessKey')}
                 value={draft.aws.secretAccessKey}
                 onChange={(e) => setDraft({ ...draft, aws: { ...draft.aws, secretAccessKey: e.target.value } })} />
               <button className="btn btn-ghost btn-xs" onClick={() => toggleSecret('bedrock')}>
-                {showSecret.bedrock ? '숨김' : '표시'}
+                {showSecret.bedrock ? t('settings.hide') : t('settings.show')}
               </button>
             </div>
           </div>
@@ -132,11 +134,11 @@ export function SettingsView() {
             <input className="input" type="text" placeholder="us-east-1"
               value={draft.aws.region}
               onChange={(e) => setDraft({ ...draft, aws: { ...draft.aws, region: e.target.value } })} />
-            <div className="field-hint">기본값: us-east-1</div>
+            <div className="field-hint">{t('settings.defaultHint')}</div>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <button className="btn btn-secondary btn-xs" onClick={() => handleTest('bedrock')} disabled={testing.bedrock || !hasBedrockKey}>
-              {testing.bedrock ? <><span className="spinner-sm" /> 테스트 중...</> : '연결 테스트'}
+              {testing.bedrock ? <><span className="spinner-sm" /> {t('settings.testing')}</> : t('settings.testConnection')}
             </button>
             <TestBadge type="bedrock" />
           </div>
@@ -148,7 +150,7 @@ export function SettingsView() {
             <div className="provider-dot" style={{ background: '#10a37f' }} />
             <span className="provider-label">OpenAI</span>
             <span className={`badge ${hasOpenaiKey ? 'badge-green' : 'badge-red'}`}>
-              {hasOpenaiKey ? '✓ 설정됨' : '미설정'}
+              {hasOpenaiKey ? t('common.configured') : t('common.notConfigured')}
             </span>
           </div>
           <div style={{ fontSize: 10, color: 'var(--text3)' }}>
@@ -162,16 +164,16 @@ export function SettingsView() {
                 value={draft.openai.apiKey}
                 onChange={(e) => setDraft({ ...draft, openai: { ...draft.openai, apiKey: e.target.value } })} />
               <button className="btn btn-ghost btn-xs" onClick={() => toggleSecret('openai')}>
-                {showSecret.openai ? '숨김' : '표시'}
+                {showSecret.openai ? t('settings.hide') : t('settings.show')}
               </button>
             </div>
             <div className="field-hint">
-              <a href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer">OpenAI API Keys</a>에서 발급
+              <a href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer">OpenAI API Keys</a> {t('settings.issuedFrom')}
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <button className="btn btn-secondary btn-xs" onClick={() => handleTest('openai')} disabled={testing.openai || !hasOpenaiKey}>
-              {testing.openai ? <><span className="spinner-sm" /> 테스트 중...</> : '연결 테스트'}
+              {testing.openai ? <><span className="spinner-sm" /> {t('settings.testing')}</> : t('settings.testConnection')}
             </button>
             <TestBadge type="openai" />
           </div>
@@ -183,7 +185,7 @@ export function SettingsView() {
             <div className="provider-dot" style={{ background: '#4285f4' }} />
             <span className="provider-label">Google Gemini</span>
             <span className={`badge ${hasGeminiKey ? 'badge-green' : 'badge-red'}`}>
-              {hasGeminiKey ? '✓ 설정됨' : '미설정'}
+              {hasGeminiKey ? t('common.configured') : t('common.notConfigured')}
             </span>
           </div>
           <div style={{ fontSize: 10, color: 'var(--text3)' }}>
@@ -197,30 +199,30 @@ export function SettingsView() {
                 value={draft.gemini.apiKey}
                 onChange={(e) => setDraft({ ...draft, gemini: { ...draft.gemini, apiKey: e.target.value } })} />
               <button className="btn btn-ghost btn-xs" onClick={() => toggleSecret('gemini')}>
-                {showSecret.gemini ? '숨김' : '표시'}
+                {showSecret.gemini ? t('settings.hide') : t('settings.show')}
               </button>
             </div>
             <div className="field-hint">
-              <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer">Google AI Studio</a>에서 발급
+              <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer">Google AI Studio</a> {t('settings.issuedFrom')}
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <button className="btn btn-secondary btn-xs" onClick={() => handleTest('gemini')} disabled={testing.gemini || !hasGeminiKey}>
-              {testing.gemini ? <><span className="spinner-sm" /> 테스트 중...</> : '연결 테스트'}
+              {testing.gemini ? <><span className="spinner-sm" /> {t('settings.testing')}</> : t('settings.testConnection')}
             </button>
             <TestBadge type="gemini" />
           </div>
         </div>
 
         <button className={`btn ${saved ? 'btn-secondary' : 'btn-primary'} btn-full`} onClick={handleSave}>
-          {saved ? '✓ 저장됨' : '변경사항 저장'}
+          {saved ? t('settings.saved') : t('settings.saveChanges')}
         </button>
       </div>
 
       <div className="settings-section">
-        <div className="settings-section-title">⚙️ 기본 설정</div>
+        <div className="settings-section-title">{t('settings.generalTitle')}</div>
         <div className="field">
-          <label className="field-label">기본 모델</label>
+          <label className="field-label">{t('settings.defaultModel')}</label>
           <select className="select" value={config.defaultModel} onChange={(e) => update({ defaultModel: e.target.value })}>
             {allModels.map((m) => (
               <option key={m.id} value={m.id}>{m.emoji} {m.label}</option>
@@ -230,10 +232,10 @@ export function SettingsView() {
 
         <div>
           {[
-            { key: 'autoRouting', label: '자동 라우팅', sub: '질문 유형에 따라 최적의 모델을 자동 선택합니다' },
-            { key: 'enableContentScript', label: '텍스트 선택 도구', sub: '웹페이지에서 텍스트 선택 시 AI 도구 표시' },
-            { key: 'enableSearchEnhance', label: '검색 엔진 강화', sub: 'Google/Bing에서 AI 답변 표시' },
-            { key: 'enableWebSearch', label: '웹 검색 (RAG)', sub: '질문에 자동으로 웹 검색 결과를 참조하여 답변' },
+            { key: 'autoRouting', label: t('settings.toggles.autoRouting'), sub: t('settings.toggles.autoRoutingSub') },
+            { key: 'enableContentScript', label: t('settings.toggles.contentScript'), sub: t('settings.toggles.contentScriptSub') },
+            { key: 'enableSearchEnhance', label: t('settings.toggles.searchEnhance'), sub: t('settings.toggles.searchEnhanceSub') },
+            { key: 'enableWebSearch', label: t('settings.toggles.webSearch'), sub: t('settings.toggles.webSearchSub') },
           ].map(({ key, label, sub }) => (
             <div key={key} className="toggle-row" style={{ padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
               <div>
@@ -249,44 +251,52 @@ export function SettingsView() {
             </div>
           ))}
         </div>
+
+        <div className="field" style={{ padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
+          <label className="field-label">{t('settings.languageLabel')}</label>
+          <select className="select" value={config.language} onChange={(e) => update({ language: e.target.value })}>
+            <option value="ko">한국어</option>
+            <option value="en">English</option>
+          </select>
+        </div>
       </div>
 
       {config.enableWebSearch && (
         <div className="settings-section">
-          <div className="settings-section-title">🔍 웹 검색 설정</div>
+          <div className="settings-section-title">{t('settings.searchTitle')}</div>
           <div style={{ fontSize: 10, color: 'var(--text3)', marginBottom: 4 }}>
-            기본: DuckDuckGo (무료, API 키 불필요). Google Custom Search를 사용하려면 아래에 키를 입력하세요.
+            {t('settings.search.desc')}
           </div>
           <div className="field">
-            <label className="field-label">Google Search API Key (선택)</label>
+            <label className="field-label">{t('settings.search.googleApiKey')}</label>
             <input className="input" type="text" placeholder="AIza..."
               value={config.googleSearchApiKey}
               onChange={(e) => update({ googleSearchApiKey: e.target.value })} />
           </div>
           <div className="field">
-            <label className="field-label">Google CSE Engine ID (선택)</label>
+            <label className="field-label">{t('settings.search.googleCseId')}</label>
             <input className="input" type="text" placeholder="1234567890:abcdefg"
               value={config.googleSearchEngineId}
               onChange={(e) => update({ googleSearchEngineId: e.target.value })} />
             <div className="field-hint">
-              <a href="https://programmablesearchengine.google.com/" target="_blank" rel="noreferrer">Google Programmable Search Engine</a>에서 생성
+              <a href="https://programmablesearchengine.google.com/" target="_blank" rel="noreferrer">Google Programmable Search Engine</a> {t('settings.createdFrom')}
             </div>
           </div>
         </div>
       )}
 
       <div className="settings-section">
-        <div className="settings-section-title">⌨️ 키보드 단축키</div>
+        <div className="settings-section-title">{t('settings.shortcutsTitle')}</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {shortcuts.map((s) => (
             <div key={s.id} className="shortcut-row">
-              <span className="shortcut-desc">{s.description}</span>
+              <span className="shortcut-desc">{t(s.description)}</span>
               <kbd>{s.keys.replace('Ctrl', navigator.platform.includes('Mac') ? '⌘' : 'Ctrl')}</kbd>
             </div>
           ))}
         </div>
         <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 4 }}>
-          전역 단축키: Ctrl+Shift+H (사이드패널), Ctrl+Shift+S (빠른 요약)
+          {t('settings.globalShortcuts')}
         </div>
       </div>
 
@@ -295,7 +305,7 @@ export function SettingsView() {
       </div>
 
       <div className="settings-section">
-        <div className="settings-section-title">ℹ️ 정보</div>
+        <div className="settings-section-title">{t('settings.infoTitle')}</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, background: 'var(--bg2)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
           <div style={{ width: 40, height: 40, background: 'linear-gradient(135deg, var(--accent), var(--accent2))', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 18, color: '#061210' }}>H</div>
           <div>

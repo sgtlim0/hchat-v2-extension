@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useChat } from '../hooks/useChat'
+import { useLocale } from '../i18n'
 import { ModelSelector } from './ModelSelector'
 import { PersonaSelector } from './PersonaSelector'
 import { PromptLibrary, type Prompt } from '../lib/promptLibrary'
@@ -26,6 +27,7 @@ interface Props {
 
 /** Enhanced code block with language label and copy button */
 function CodeBlock({ code, lang }: { code: string; lang: string }) {
+  const { t } = useLocale()
   const [copied, setCopied] = useState(false)
   const displayLang = lang || detectLanguage(code)
 
@@ -40,7 +42,7 @@ function CodeBlock({ code, lang }: { code: string; lang: string }) {
       <div className="code-block-header">
         <span className="code-block-lang">{displayLang}</span>
         <button className="code-block-copy" onClick={handleCopy}>
-          {copied ? '✓ 복사됨' : '📋 복사'}
+          {copied ? `✓ ${t('common.copied')}` : `📋 ${t('common.copy')}`}
         </button>
       </div>
       <pre className="code-block-body"><code>{code}</code></pre>
@@ -105,9 +107,10 @@ function MD({ text }: { text: string }) {
 }
 
 function SearchSources({ sources }: { sources: { title: string; url: string }[] }) {
+  const { t } = useLocale()
   return (
     <div className="search-sources">
-      <span className="search-sources-label">출처:</span>
+      <span className="search-sources-label">{t('chat.sources')}</span>
       {sources.map((s, i) => (
         <a key={i} href={s.url} target="_blank" rel="noreferrer" className="source-chip" title={s.url}>
           {s.title.slice(0, 30) || new URL(s.url).hostname}
@@ -118,6 +121,7 @@ function SearchSources({ sources }: { sources: { title: string; url: string }[] 
 }
 
 function AgentStepsView({ steps }: { steps: AgentStep[] }) {
+  const { t } = useLocale()
   const [expanded, setExpanded] = useState(false)
   const toolSteps = steps.filter((s) => s.type === 'tool_call' || s.type === 'tool_result')
   if (toolSteps.length === 0) return null
@@ -126,7 +130,7 @@ function AgentStepsView({ steps }: { steps: AgentStep[] }) {
     <div className="agent-steps">
       <button className="agent-steps-toggle" onClick={() => setExpanded(!expanded)}>
         <span>{expanded ? '▼' : '▶'}</span>
-        <span>도구 사용 ({toolSteps.length / 2}회)</span>
+        <span>{t('chat.toolUsage', { n: toolSteps.length / 2 })}</span>
       </button>
       {expanded && (
         <div className="agent-steps-list">
@@ -164,11 +168,12 @@ interface MsgBubbleProps {
 }
 
 function MsgBubble({ msg, onCopy, onTTS, onEdit, onRegenerate, onFork, onPin }: MsgBubbleProps) {
+  const { t } = useLocale()
   const isUser = msg.role === 'user'
   const [editing, setEditing] = useState(false)
   const [editText, setEditText] = useState(msg.content)
   const editRef = useRef<HTMLTextAreaElement>(null)
-  const t = (ts: number) => new Date(ts).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
+  const formatTime = (ts: number) => new Date(ts).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
 
   useEffect(() => {
     if (editing && editRef.current) {
@@ -193,7 +198,7 @@ function MsgBubble({ msg, onCopy, onTTS, onEdit, onRegenerate, onFork, onPin }: 
 
   return (
     <div className={`msg ${isUser ? 'msg-user' : 'msg-ai'}`}>
-      <div className="msg-avatar">{isUser ? '나' : 'H'}</div>
+      <div className="msg-avatar">{isUser ? t('common.me') : 'H'}</div>
       <div className="msg-body">
         {msg.imageUrl && <img src={msg.imageUrl} className="msg-img" alt="attachment" />}
         {editing ? (
@@ -206,8 +211,8 @@ function MsgBubble({ msg, onCopy, onTTS, onEdit, onRegenerate, onFork, onPin }: 
               onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleEditSave() } if (e.key === 'Escape') handleEditCancel() }}
             />
             <div className="msg-edit-actions">
-              <button className="btn btn-primary btn-xs" onClick={handleEditSave}>저장 & 재전송</button>
-              <button className="btn btn-ghost btn-xs" onClick={handleEditCancel}>취소</button>
+              <button className="btn btn-primary btn-xs" onClick={handleEditSave}>{t('chat.saveResend')}</button>
+              <button className="btn btn-ghost btn-xs" onClick={handleEditCancel}>{t('common.cancel')}</button>
             </div>
           </div>
         ) : (
@@ -223,34 +228,34 @@ function MsgBubble({ msg, onCopy, onTTS, onEdit, onRegenerate, onFork, onPin }: 
           <SearchSources sources={msg.searchSources} />
         )}
         <div className="msg-footer">
-          <span className="msg-time">{t(msg.ts)}</span>
+          <span className="msg-time">{formatTime(msg.ts)}</span>
           {msg.model && <span className="msg-model-tag">{msg.model.split('-')[1]}</span>}
           {msg.pinned && <span className="msg-pin-badge">📌</span>}
           {!msg.streaming && !editing && (
             <div className="msg-actions">
-              <button className="icon-btn btn-xs" title="복사" onClick={() => onCopy(msg.content)}>📋</button>
+              <button className="icon-btn btn-xs" title={t('chat.copyBtn')} onClick={() => onCopy(msg.content)}>📋</button>
               {isUser && onEdit && (
-                <button className="icon-btn btn-xs" title="편집" onClick={() => setEditing(true)}>✏️</button>
+                <button className="icon-btn btn-xs" title={t('chat.editBtn')} onClick={() => setEditing(true)}>✏️</button>
               )}
               {!isUser && (
                 <>
                   <button
                     className={`icon-btn btn-xs tts-btn${TTS.isPlaying(msg.id) ? ' playing' : ''}`}
-                    title={TTS.isPlaying(msg.id) ? '읽기 중지' : '읽어주기'}
+                    title={TTS.isPlaying(msg.id) ? t('chat.stopReading') : t('chat.readAloud')}
                     onClick={() => onTTS(msg.id, msg.content)}
                   >
                     {TTS.isPlaying(msg.id) ? '⏹' : '🔊'}
                   </button>
                   {onRegenerate && (
-                    <button className="icon-btn btn-xs" title="재생성" onClick={onRegenerate}>🔄</button>
+                    <button className="icon-btn btn-xs" title={t('chat.regenerate')} onClick={onRegenerate}>🔄</button>
                   )}
                 </>
               )}
               {onPin && (
-                <button className={`icon-btn btn-xs${msg.pinned ? ' pin-active' : ''}`} title={msg.pinned ? '고정 해제' : '메시지 고정'} onClick={() => onPin(msg.id)}>📌</button>
+                <button className={`icon-btn btn-xs${msg.pinned ? ' pin-active' : ''}`} title={msg.pinned ? t('chat.unpinMessage') : t('chat.pinMessage')} onClick={() => onPin(msg.id)}>📌</button>
               )}
               {onFork && (
-                <button className="icon-btn btn-xs" title="여기서 대화 분기" onClick={() => onFork(msg.id)}>🔀</button>
+                <button className="icon-btn btn-xs" title={t('chat.forkConv')} onClick={() => onFork(msg.id)}>🔀</button>
               )}
             </div>
           )}
@@ -261,6 +266,7 @@ function MsgBubble({ msg, onCopy, onTTS, onEdit, onRegenerate, onFork, onPin }: 
 }
 
 export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onToggleContext, onRegisterActions, onForkConv }: Props) {
+  const { t } = useLocale()
   const { conv, messages, isLoading, isSearching, agentMode, setAgentMode, personaId, setPersonaId, error, currentModel, setCurrentModel, sendMessage, startNew, loadConv, stop, editAndResend, regenerate } = useChat(config)
   const [, setTTSRefresh] = useState(0)
   const [, setSTTRefresh] = useState(0)
@@ -367,27 +373,27 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
       setSummary(s)
       setShowSummary(true)
     } catch (err) {
-      showToast(`요약 실패: ${String(err)}`)
+      showToast(t('chat.summaryFailed', { error: String(err) }))
     }
     setSummarizing(false)
-  }, [conv, config.aws, currentModel, summarizing])
+  }, [conv, config.aws, currentModel, summarizing, t])
 
   const handleFork = useCallback(async (msgId: string) => {
     if (!conv) return
     const forked = await ChatHistory.fork(conv.id, msgId)
     if (forked) {
-      showToast('대화가 분기되었습니다')
+      showToast(t('chat.forked'))
       onForkConv?.(forked.id)
     }
-  }, [conv, onForkConv])
+  }, [conv, onForkConv, t])
 
   const handlePin = useCallback(async (msgId: string) => {
     if (!conv) return
     const pinned = await ChatHistory.toggleMessagePin(conv.id, msgId)
     // Reload to reflect pin state
     await loadConv(conv.id)
-    showToast(pinned ? '메시지 고정됨' : '고정 해제됨')
-  }, [conv, loadConv])
+    showToast(pinned ? t('chat.pinned') : t('chat.unpinned'))
+  }, [conv, loadConv, t])
 
   const pinnedMessages = messages.filter((m) => m.pinned)
 
@@ -395,8 +401,8 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
 
   const copyMsg = useCallback((text: string) => {
     navigator.clipboard.writeText(text)
-    showToast('복사됨!')
-  }, [])
+    showToast(t('chat.copiedToast'))
+  }, [t])
 
   // Prompt library search
   useEffect(() => {
@@ -479,14 +485,14 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
     const safeName = conv.title.replace(/[^a-zA-Z0-9가-힣_-]/g, '_').slice(0, 40)
     downloadBlob(blob, `${safeName}.${ext}`)
     setShowExport(false)
-    showToast('내보내기 완료!')
+    showToast(t('chat.exportDone'))
   }
 
   const handleCopyConv = async () => {
     if (!conv) return
     await copyConversationAsMarkdown(conv)
     setShowExport(false)
-    showToast('클립보드 복사됨!')
+    showToast(t('common.copiedClipboard'))
   }
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -505,42 +511,42 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
   }
 
   const SUGGESTIONS = [
-    { icon: '📄', text: '이 페이지 요약해줘' },
-    { icon: '✏️', text: '이메일 초안 작성 도와줘' },
-    { icon: '💡', text: '아이디어 브레인스토밍' },
-    { icon: '🌐', text: '한국어로 번역해줘' },
+    { icon: '📄', text: t('chat.suggestions.summarize') },
+    { icon: '✏️', text: t('chat.suggestions.email') },
+    { icon: '💡', text: t('chat.suggestions.brainstorm') },
+    { icon: '🌐', text: t('chat.suggestions.translate') },
   ]
 
   return (
     <div className="chat-wrap">
       {/* Toolbar */}
       <div className="chat-toolbar">
-        <span className="conv-title">{conv?.title ?? '새 대화'}</span>
+        <span className="conv-title">{conv?.title ?? t('chat.newConv')}</span>
         {contextEnabled && pageCtx && (
           <span className="badge badge-green" title={pageCtx.url} style={{ maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }} onClick={onToggleContext}>
             📄 {pageCtx.title?.slice(0, 20) || 'Page'}
           </span>
         )}
         {!contextEnabled && (
-          <button className="icon-btn btn-xs" title="페이지 컨텍스트 켜기 (Ctrl+Shift+P)" onClick={onToggleContext} style={{ opacity: 0.5 }}>📄</button>
+          <button className="icon-btn btn-xs" title={t('chat.contextOn')} onClick={onToggleContext} style={{ opacity: 0.5 }}>📄</button>
         )}
         <div style={{ position: 'relative' }}>
-          <button className="icon-btn" title="내보내기" onClick={() => setShowExport(!showExport)} disabled={!conv || messages.length === 0}>📤</button>
+          <button className="icon-btn" title={t('chat.exportTitle')} onClick={() => setShowExport(!showExport)} disabled={!conv || messages.length === 0}>📤</button>
           {showExport && conv && (
             <div className="export-menu">
               <button className="export-item" onClick={() => handleExport('markdown')}>📝 Markdown</button>
               <button className="export-item" onClick={() => handleExport('html')}>🌐 HTML</button>
               <button className="export-item" onClick={() => handleExport('json')}>📦 JSON</button>
-              <button className="export-item" onClick={() => handleExport('txt')}>📄 텍스트</button>
+              <button className="export-item" onClick={() => handleExport('txt')}>📄 {t('chat.exportText')}</button>
               <div className="export-divider" />
-              <button className="export-item" onClick={handleCopyConv}>📋 클립보드 복사</button>
+              <button className="export-item" onClick={handleCopyConv}>📋 {t('chat.exportCopy')}</button>
             </div>
           )}
         </div>
         {conv && messages.length > 2 && (
           <button
             className={`icon-btn${summarizing ? ' spinning' : ''}`}
-            title={summary ? '요약 보기' : '대화 요약 생성'}
+            title={summary ? t('chat.summaryView') : t('chat.summaryGenerate')}
             onClick={summary ? () => setShowSummary(!showSummary) : handleSummarize}
             disabled={summarizing}
           >
@@ -550,27 +556,27 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
         {pinnedMessages.length > 0 && (
           <button
             className={`icon-btn${showPinned ? ' pin-active' : ''}`}
-            title={`고정 메시지 (${pinnedMessages.length})`}
+            title={t('chat.pinnedMessages', { n: pinnedMessages.length })}
             onClick={() => setShowPinned(!showPinned)}
           >
             📌
           </button>
         )}
-        <button className="icon-btn" title="새 대화" onClick={handleNew}>✏️</button>
+        <button className="icon-btn" title={t('chat.newChat')} onClick={handleNew}>✏️</button>
       </div>
 
       {/* Summary panel */}
       {showSummary && summary && (
         <div className="summary-panel">
           <div className="summary-header">
-            <span className="summary-title">📋 대화 요약</span>
-            <span className="summary-meta">{summary.messageCount}개 메시지 기반</span>
+            <span className="summary-title">{t('chat.summaryTitle')}</span>
+            <span className="summary-meta">{t('chat.summaryMeta', { n: summary.messageCount })}</span>
             <button className="icon-btn btn-xs" onClick={() => setShowSummary(false)}>✕</button>
           </div>
           <div className="summary-body">{summary.text}</div>
           <div className="summary-footer">
             <button className="btn btn-ghost btn-xs" onClick={handleSummarize}>
-              {summarizing ? '생성 중...' : '🔄 다시 생성'}
+              {summarizing ? t('chat.summaryGenerating') : t('chat.summaryRegenerate')}
             </button>
           </div>
         </div>
@@ -580,14 +586,14 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
       {showPinned && pinnedMessages.length > 0 && (
         <div className="pinned-panel">
           <div className="pinned-header">
-            <span>📌 고정 메시지 ({pinnedMessages.length})</span>
+            <span>{t('chat.pinnedMessages', { n: pinnedMessages.length })}</span>
             <button className="icon-btn btn-xs" onClick={() => setShowPinned(false)}>✕</button>
           </div>
           {pinnedMessages.map((m) => (
             <div key={m.id} className="pinned-item">
-              <span className="pinned-role">{m.role === 'user' ? '나' : 'AI'}</span>
+              <span className="pinned-role">{m.role === 'user' ? t('common.me') : 'AI'}</span>
               <span className="pinned-text">{m.content.slice(0, 120)}{m.content.length > 120 ? '...' : ''}</span>
-              <button className="icon-btn btn-xs" title="고정 해제" onClick={() => handlePin(m.id)}>✕</button>
+              <button className="icon-btn btn-xs" title={t('chat.unpinMessage')} onClick={() => handlePin(m.id)}>✕</button>
             </div>
           ))}
         </div>
@@ -598,8 +604,8 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
         {messages.length === 0 ? (
           <div className="chat-empty">
             <div className="chat-empty-logo">H</div>
-            <h2>H Chat에 오신 것을 환영합니다</h2>
-            <p>Claude, GPT, Gemini와 함께 무엇이든 해결하세요</p>
+            <h2>{t('welcome.title')}</h2>
+            <p>{t('welcome.chatSubtitle')}</p>
             <div className="suggestions-grid">
               {SUGGESTIONS.map((s) => (
                 <button key={s.text} className="suggestion-card" onClick={async () => {
@@ -618,7 +624,7 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
         {isSearching && (
           <div className="search-indicator">
             <span className="spinner-sm" />
-            <span>웹 검색 중...</span>
+            <span>{t('chat.searchingWeb')}</span>
           </div>
         )}
         {error && !isLoading && (
@@ -664,26 +670,26 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
               value={input}
               onChange={handleInput}
               onKeyDown={handleKeyDown}
-              placeholder={agentMode ? '에이전트에게 명령... (도구 자동 사용)' : '메시지 입력... (/ 로 프롬프트 검색, Shift+Enter 줄바꿈)'}
+              placeholder={agentMode ? t('chat.agentPlaceholder') : t('chat.placeholder')}
               rows={1}
             />
             <div className="input-actions">
               <input ref={fileRef} type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={handleFile} />
               <button
                 className={`icon-btn agent-toggle${agentMode ? ' active' : ''}`}
-                title={agentMode ? '에이전트 모드 끄기' : '에이전트 모드 켜기'}
+                title={agentMode ? t('chat.agentModeOff') : t('chat.agentModeOn')}
                 onClick={() => setAgentMode(!agentMode)}
               >🤖</button>
               {STT.isSupported() && (
                 <button
                   className={`icon-btn stt-btn${STT.getState() === 'listening' ? ' listening' : ''}`}
-                  title={STT.getState() === 'listening' ? '음성 입력 중지' : '음성 입력'}
+                  title={STT.getState() === 'listening' ? t('chat.voiceInputStop') : t('chat.voiceInput')}
                   onClick={handleSTT}
                 >🎤</button>
               )}
-              <button className="icon-btn" title="파일 첨부" onClick={() => fileRef.current?.click()}>📎</button>
+              <button className="icon-btn" title={t('chat.fileAttach')} onClick={() => fileRef.current?.click()}>📎</button>
               {isLoading ? (
-                <button className="send-btn stop" onClick={stop} title="중지">⏹</button>
+                <button className="send-btn stop" onClick={stop} title={t('chat.stopBtn')}>⏹</button>
               ) : (
                 <button className="send-btn" onClick={handleSend} disabled={!input.trim()}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -698,8 +704,8 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
         <div className="input-meta">
           <ModelSelector value={currentModel} onChange={setCurrentModel} config={config} />
           <PersonaSelector value={personaId} onChange={setPersonaId} />
-          {agentMode && <span className="agent-badge">🤖 에이전트</span>}
-          <span className="text-xs">/ 로 프롬프트 • Shift+Enter 줄바꿈</span>
+          {agentMode && <span className="agent-badge">🤖 {t('chat.agentMode')}</span>}
+          <span className="text-xs">{t('chat.promptHint')}</span>
         </div>
       </div>
 

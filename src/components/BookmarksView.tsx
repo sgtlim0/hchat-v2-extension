@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Bookmarks, timeAgo, type Highlight, type HighlightColor } from '../lib/bookmarks'
+import { useLocale } from '../i18n'
 
 const COLOR_MAP: Record<HighlightColor, string> = {
   yellow: '#fbbf24',
@@ -10,6 +11,7 @@ const COLOR_MAP: Record<HighlightColor, string> = {
 }
 
 export function BookmarksView() {
+  const { t } = useLocale()
   const [highlights, setHighlights] = useState<Highlight[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedTag, setSelectedTag] = useState<string | null>(null)
@@ -54,12 +56,12 @@ export function BookmarksView() {
     <div className="bookmarks-view">
       <div className="bookmarks-header">
         <div className="panel-header">
-          <span className="panel-title">하이라이트</span>
-          <span className="panel-meta">{highlights.length}개</span>
+          <span className="panel-title">{t('bookmarks.title')}</span>
+          <span className="panel-meta">{t('bookmarks.count', { n: highlights.length })}</span>
         </div>
         <input
           className="input"
-          placeholder="하이라이트 검색..."
+          placeholder={t('bookmarks.searchPlaceholder')}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           style={{ marginTop: 8 }}
@@ -70,7 +72,7 @@ export function BookmarksView() {
               className={`tag-chip ${selectedTag === null ? 'active' : ''}`}
               onClick={() => setSelectedTag(null)}
             >
-              전체
+              {t('common.all')}
             </button>
             {allTags.map((tag) => (
               <button
@@ -89,8 +91,8 @@ export function BookmarksView() {
         {highlights.length === 0 ? (
           <div className="empty-state">
             <span className="e-icon">🖍️</span>
-            <h3>하이라이트가 없습니다</h3>
-            <p>웹페이지에서 텍스트를 선택하고 하이라이트 버튼을 클릭하세요</p>
+            <h3>{t('bookmarks.emptyTitle')}</h3>
+            <p>{t('bookmarks.emptyDesc')}</p>
           </div>
         ) : (
           highlights.map((h) => (
@@ -107,13 +109,13 @@ export function BookmarksView() {
                       className="textarea"
                       value={noteText}
                       onChange={(e) => setNoteText(e.target.value)}
-                      placeholder="메모 입력..."
+                      placeholder={t('bookmarks.notePlaceholder')}
                       rows={2}
                       style={{ minHeight: 40 }}
                     />
                     <div style={{ display: 'flex', gap: 4 }}>
-                      <button className="btn btn-primary btn-xs" onClick={() => handleSaveNote(h.id)}>저장</button>
-                      <button className="btn btn-ghost btn-xs" onClick={() => setEditingNote(null)}>취소</button>
+                      <button className="btn btn-primary btn-xs" onClick={() => handleSaveNote(h.id)}>{t('common.save')}</button>
+                      <button className="btn btn-ghost btn-xs" onClick={() => setEditingNote(null)}>{t('common.cancel')}</button>
                     </div>
                   </div>
                 ) : (
@@ -139,7 +141,7 @@ export function BookmarksView() {
                 <div className="highlight-actions">
                   <button
                     className="icon-btn btn-xs"
-                    title="메모"
+                    title={t('bookmarks.noteBtn')}
                     onClick={() => { setEditingNote(h.id); setNoteText(h.note ?? '') }}
                   >📝</button>
                   <div className="color-picker">
@@ -152,7 +154,7 @@ export function BookmarksView() {
                       />
                     ))}
                   </div>
-                  <button className="icon-btn btn-xs btn-danger" title="삭제" onClick={() => handleDelete(h.id)}>🗑️</button>
+                  <button className="icon-btn btn-xs btn-danger" title={t('common.delete')} onClick={() => handleDelete(h.id)}>🗑️</button>
                 </div>
               </div>
             </div>

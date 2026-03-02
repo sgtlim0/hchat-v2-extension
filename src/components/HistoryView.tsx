@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useLocale } from '../i18n'
 import { ChatHistory } from '../lib/chatHistory'
 import { Tags, type TagDef } from '../lib/tags'
 import { MODELS } from '../lib/models'
@@ -12,6 +13,7 @@ interface Props {
 type IndexItem = { id: string; title: string; updatedAt: number; pinned?: boolean; model: string; tags?: string[] }
 
 export function HistoryView({ onSelect, activeId }: Props) {
+  const { t, locale } = useLocale()
   const [index, setIndex] = useState<IndexItem[]>([])
   const [allTags, setAllTags] = useState<TagDef[]>([])
   const [search, setSearch] = useState('')
@@ -23,13 +25,13 @@ export function HistoryView({ onSelect, activeId }: Props) {
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    setImportStatus('가져오는 중...')
+    setImportStatus(t('history.importing'))
     const result = await importFromFile(file)
     if (result.success) {
-      setImportStatus(`${getSourceLabel(result.source)}에서 ${result.count}개 대화 가져옴`)
+      setImportStatus(t('history.importSuccess', { source: getSourceLabel(result.source), count: result.count }))
       load()
     } else {
-      setImportStatus(result.errors[0] || '가져오기 실패')
+      setImportStatus(result.errors[0] || t('history.importFail'))
     }
     setTimeout(() => setImportStatus(null), 3000)
     e.target.value = ''
@@ -52,17 +54,17 @@ export function HistoryView({ onSelect, activeId }: Props) {
 
   const rel = (ts: number) => {
     const d = Date.now() - ts
-    if (d < 3600000) return `${Math.floor(d / 60000)}분 전`
-    if (d < 86400000) return `${Math.floor(d / 3600000)}시간 전`
-    if (d < 604800000) return `${Math.floor(d / 86400000)}일 전`
-    return new Date(ts).toLocaleDateString('ko-KR')
+    if (d < 3600000) return t('time.minutesAgo', { n: Math.floor(d / 60000) })
+    if (d < 86400000) return t('time.hoursAgo', { n: Math.floor(d / 3600000) })
+    if (d < 604800000) return t('time.daysAgo', { n: Math.floor(d / 86400000) })
+    return new Date(ts).toLocaleDateString(locale === 'en' ? 'en-US' : 'ko-KR')
   }
 
   const modelEmoji = (modelId: string) => MODELS.find((m) => m.id === modelId)?.emoji ?? '🤖'
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation()
-    if (!confirm('이 대화를 삭제하시겠습니까?')) return
+    if (!confirm(t('history.deleteConfirm'))) return
     await ChatHistory.delete(id)
     load()
   }
@@ -109,11 +111,11 @@ export function HistoryView({ onSelect, activeId }: Props) {
         </div>
       </div>
       <div className="history-actions">
-        <button className="icon-btn btn-xs" onClick={(e) => handlePin(e, c.id, !!c.pinned)} title={c.pinned ? '고정 해제' : '고정'}>
+        <button className="icon-btn btn-xs" onClick={(e) => handlePin(e, c.id, !!c.pinned)} title={c.pinned ? t('history.unpin') : t('history.pin')}>
           {c.pinned ? '📌' : '📍'}
         </button>
-        <button className="icon-btn btn-xs" onClick={(e) => { e.stopPropagation(); setTagInput({ convId: c.id, value: '' }) }} title="태그 추가">🏷️</button>
-        <button className="icon-btn btn-xs" onClick={(e) => handleDelete(e, c.id)} title="삭제">🗑</button>
+        <button className="icon-btn btn-xs" onClick={(e) => { e.stopPropagation(); setTagInput({ convId: c.id, value: '' }) }} title={t('history.addTag')}>🏷️</button>
+        <button className="icon-btn btn-xs" onClick={(e) => handleDelete(e, c.id)} title={t('common.delete')}>🗑</button>
       </div>
     </div>
   )
@@ -122,9 +124,9 @@ export function HistoryView({ onSelect, activeId }: Props) {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
         <div style={{ display: 'flex', gap: 6 }}>
-          <input className="input" placeholder="🔍 대화 검색..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ flex: 1 }} />
+          <input className="input" placeholder={t('history.searchPlaceholder')} value={search} onChange={(e) => setSearch(e.target.value)} style={{ flex: 1 }} />
           <input ref={importRef} type="file" accept=".json" style={{ display: 'none' }} onChange={handleImport} />
-          <button className="btn btn-secondary btn-sm" title="대화 가져오기 (ChatGPT/Claude/H Chat)" onClick={() => importRef.current?.click()}>📥</button>
+          <button className="btn btn-secondary btn-sm" title={t('history.importTitle')} onClick={() => importRef.current?.click()}>📥</button>
         </div>
         {importStatus && (
           <div style={{ fontSize: 10, color: 'var(--accent)', marginTop: 4, fontFamily: 'var(--mono)' }}>{importStatus}</div>
@@ -136,7 +138,7 @@ export function HistoryView({ onSelect, activeId }: Props) {
             <button
               className={`filter-chip ${!selectedTag ? 'active' : ''}`}
               onClick={() => setSelectedTag(null)}
-            >전체</button>
+            >{t('common.all')}</button>
             {allTags.map((t) => (
               <button
                 key={t.name}
@@ -156,7 +158,7 @@ export function HistoryView({ onSelect, activeId }: Props) {
         <div className="tag-input-bar">
           <input
             className="input input-sm"
-            placeholder="태그 입력 후 Enter..."
+            placeholder={t('history.tagPlaceholder')}
             value={tagInput.value}
             onChange={(e) => setTagInput({ ...tagInput, value: e.target.value })}
             onKeyDown={(e) => {
@@ -165,7 +167,7 @@ export function HistoryView({ onSelect, activeId }: Props) {
             }}
             autoFocus
           />
-          <button className="btn btn-ghost btn-xs" onClick={() => setTagInput(null)}>취소</button>
+          <button className="btn btn-ghost btn-xs" onClick={() => setTagInput(null)}>{t('common.cancel')}</button>
         </div>
       )}
 
@@ -173,26 +175,26 @@ export function HistoryView({ onSelect, activeId }: Props) {
         {index.length === 0 ? (
           <div className="empty-state">
             <span className="e-icon">💬</span>
-            <h3>대화 기록이 없습니다</h3>
-            <p>채팅 탭에서 새 대화를 시작하세요</p>
+            <h3>{t('history.emptyTitle')}</h3>
+            <p>{t('history.emptyDesc')}</p>
           </div>
         ) : (
           <>
             {pinned.length > 0 && (
               <>
-                <div style={{ padding: '8px 14px 4px', fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--mono)' }}>📌 고정됨</div>
+                <div style={{ padding: '8px 14px 4px', fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--mono)' }}>{t('history.pinSection')}</div>
                 {pinned.map((c) => <ConvItem key={c.id} c={c} />)}
               </>
             )}
             {recents.length > 0 && (
               <>
-                <div style={{ padding: '8px 14px 4px', fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--mono)' }}>최근 대화</div>
+                <div style={{ padding: '8px 14px 4px', fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--mono)' }}>{t('history.recentSection')}</div>
                 {recents.map((c) => <ConvItem key={c.id} c={c} />)}
               </>
             )}
             {filtered.length === 0 && index.length > 0 && (
               <div style={{ textAlign: 'center', padding: 24, color: 'var(--text3)', fontSize: 12 }}>
-                검색 결과가 없습니다
+                {t('common.noResults')}
               </div>
             )}
           </>

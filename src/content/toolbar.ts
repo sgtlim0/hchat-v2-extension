@@ -1,6 +1,8 @@
 // Floating AI toolbar that appears on text selection
 // All DOM manipulation - no React needed here
 
+import { getLocale, tSync, type Locale } from '../i18n'
+
 const TOOLBAR_ID = 'hchat-toolbar'
 const RESULT_ID = 'hchat-result'
 
@@ -165,7 +167,7 @@ function injectStyles() {
   document.head.appendChild(style)
 }
 
-function createToolbar(): HTMLElement {
+function createToolbar(locale: Locale): HTMLElement {
   const el = document.createElement('div')
   el.id = TOOLBAR_ID
 
@@ -180,7 +182,8 @@ function createToolbar(): HTMLElement {
 
   ACTIONS.forEach((action) => {
     const btn = document.createElement('button')
-    btn.innerHTML = `<span>${action.icon}</span><span>${action.label}</span>`
+    const label = tSync(locale, 'toolbar.' + action.id)
+    btn.innerHTML = `<span>${action.icon}</span><span>${label}</span>`
     btn.dataset.action = action.id
     el.appendChild(btn)
   })
@@ -188,7 +191,7 @@ function createToolbar(): HTMLElement {
   return el
 }
 
-function createResultPanel(title: string): HTMLElement {
+function createResultPanel(title: string, locale: Locale): HTMLElement {
   const el = document.createElement('div')
   el.id = RESULT_ID
 
@@ -208,15 +211,15 @@ function createResultPanel(title: string): HTMLElement {
   footer.className = 'r-footer'
   const copyBtn = document.createElement('button')
   copyBtn.className = 'r-btn'
-  copyBtn.textContent = '📋 복사'
+  copyBtn.textContent = `📋 ${tSync(locale, 'toolbar.copyBtn')}`
   copyBtn.onclick = () => {
     navigator.clipboard.writeText(body.innerText.replace('▌', ''))
-    copyBtn.textContent = '✓ 복사됨'
-    setTimeout(() => { copyBtn.textContent = '📋 복사' }, 1500)
+    copyBtn.textContent = `✓ ${tSync(locale, 'toolbar.copiedBtn')}`
+    setTimeout(() => { copyBtn.textContent = `📋 ${tSync(locale, 'toolbar.copyBtn')}` }, 1500)
   }
   const chatBtn = document.createElement('button')
   chatBtn.className = 'r-btn'
-  chatBtn.textContent = '💬 채팅에서 계속'
+  chatBtn.textContent = `💬 ${tSync(locale, 'toolbar.continueChat')}`
   chatBtn.onclick = () => {
     chrome.runtime.sendMessage({ type: 'OPEN_SIDEPANEL' })
   }
@@ -257,10 +260,12 @@ async function runAction(actionId: string, selectedText: string, x: number, y: n
   const action = ACTIONS.find((a) => a.id === actionId)
   if (!action) return
 
+  const locale = await getLocale()
+
   removeResult()
   removeToolbar()
 
-  const panel = createResultPanel(action.label)
+  const panel = createResultPanel(tSync(locale, 'toolbar.' + actionId), locale)
   positionElement(panel, x, y + 30)
   resultPanel = panel
 
@@ -274,7 +279,7 @@ async function runAction(actionId: string, selectedText: string, x: number, y: n
   const model = cfg?.defaultModel ?? 'us.anthropic.claude-sonnet-4-6'
 
   if (!aws.accessKeyId || !aws.secretAccessKey) {
-    body.innerHTML = '❌ AWS 자격증명을 설정해주세요. 확장 아이콘 → 설정'
+    body.innerHTML = `❌ ${tSync(locale, 'toolbar.noCredentials')}`
     return
   }
 
@@ -308,7 +313,7 @@ async function runAction(actionId: string, selectedText: string, x: number, y: n
         }
       })
       port.onDisconnect.addListener(() => {
-        if (!text) reject(new Error('연결 끊김'))
+        if (!text) reject(new Error(tSync(locale, 'toolbar.disconnected')))
       })
     })
   } catch (err) {
@@ -390,13 +395,15 @@ document.addEventListener('mouseup', () => {
     }
 
     // Check if enabled
-    chrome.storage.local.get('hchat:config', (r) => {
+    chrome.storage.local.get('hchat:config', async (r) => {
       if (!r['hchat:config']?.enableContentScript) return
+
+      const locale = await getLocale()
 
       injectStyles()
       removeToolbar()
 
-      const el = createToolbar()
+      const el = createToolbar(locale)
       positionElement(el, mouseX, mouseY)
       toolbar = el
 

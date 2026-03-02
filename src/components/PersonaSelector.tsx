@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Personas, type Persona } from '../lib/personas'
+import { useLocale } from '../i18n'
 
 interface Props {
   value: string
@@ -7,6 +8,7 @@ interface Props {
 }
 
 export function PersonaSelector({ value, onChange }: Props) {
+  const { t } = useLocale()
   const [personas, setPersonas] = useState<Persona[]>([])
   const [showList, setShowList] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
@@ -59,10 +61,10 @@ export function PersonaSelector({ value, onChange }: Props) {
       <button
         className="persona-trigger"
         onClick={() => setShowList(!showList)}
-        title={active ? `${active.name}: ${active.description}` : '페르소나 선택'}
+        title={active ? `${active.name}: ${active.description}` : t('persona.selectTitle')}
       >
         <span>{active?.icon ?? '🤖'}</span>
-        <span className="persona-name">{active?.name ?? '기본'}</span>
+        <span className="persona-name">{active?.name ?? t('persona.defaultName')}</span>
         <span className="persona-arrow">{showList ? '▲' : '▼'}</span>
       </button>
 
@@ -80,13 +82,13 @@ export function PersonaSelector({ value, onChange }: Props) {
                 <div className="persona-item-desc">{p.description}</div>
               </div>
               {!p.builtin && (
-                <button className="icon-btn btn-xs" onClick={(e) => handleDelete(e, p.id)} title="삭제">✕</button>
+                <button className="icon-btn btn-xs" onClick={(e) => handleDelete(e, p.id)} title={t('common.delete')}>✕</button>
               )}
             </div>
           ))}
           <div className="persona-divider" />
           <button className="persona-add-btn" onClick={() => { setShowCreate(true); setShowList(false) }}>
-            + 새 페르소나 만들기
+            {t('persona.addBtn')}
           </button>
         </div>
       )}
@@ -94,29 +96,29 @@ export function PersonaSelector({ value, onChange }: Props) {
       {showCreate && (
         <div className="persona-create-overlay" onClick={() => setShowCreate(false)}>
           <div className="persona-create-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="persona-create-title">새 페르소나 만들기</div>
+            <div className="persona-create-title">{t('persona.createTitle')}</div>
             <div className="gap-2">
               <div style={{ display: 'flex', gap: 8 }}>
                 <div className="field" style={{ flex: '0 0 60px' }}>
-                  <label className="field-label">아이콘</label>
+                  <label className="field-label">{t('persona.iconLabel')}</label>
                   <input className="input" value={newIcon} onChange={(e) => setNewIcon(e.target.value)} maxLength={2} style={{ textAlign: 'center', fontSize: 18 }} />
                 </div>
                 <div className="field" style={{ flex: 1 }}>
-                  <label className="field-label">이름</label>
-                  <input className="input" value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="예: 마케팅 전문가" />
+                  <label className="field-label">{t('persona.nameLabel')}</label>
+                  <input className="input" value={newName} onChange={(e) => setNewName(e.target.value)} placeholder={t('persona.namePlaceholder')} />
                 </div>
               </div>
               <div className="field">
-                <label className="field-label">설명 (선택)</label>
-                <input className="input" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} placeholder="짧은 설명..." />
+                <label className="field-label">{t('persona.descLabel')}</label>
+                <input className="input" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} placeholder={t('persona.descPlaceholder')} />
               </div>
               <div className="field">
-                <label className="field-label">시스템 프롬프트</label>
-                <textarea className="textarea" rows={5} value={newPrompt} onChange={(e) => setNewPrompt(e.target.value)} placeholder="AI의 역할, 성격, 답변 스타일을 정의하세요..." />
+                <label className="field-label">{t('persona.promptLabel')}</label>
+                <textarea className="textarea" rows={5} value={newPrompt} onChange={(e) => setNewPrompt(e.target.value)} placeholder={t('persona.promptPlaceholder')} />
               </div>
               <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                <button className="btn btn-ghost btn-sm" onClick={() => setShowCreate(false)}>취소</button>
-                <button className="btn btn-primary btn-sm" onClick={handleCreate} disabled={!newName.trim() || !newPrompt.trim()}>만들기</button>
+                <button className="btn btn-ghost btn-sm" onClick={() => setShowCreate(false)}>{t('common.cancel')}</button>
+                <button className="btn btn-primary btn-sm" onClick={handleCreate} disabled={!newName.trim() || !newPrompt.trim()}>{t('common.create')}</button>
               </div>
             </div>
           </div>

@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import '../styles/global.css'
+import { useLocale } from '../i18n'
 
 export function PopupApp() {
+  const { t } = useLocale()
   const [hasCredentials, setHasCredentials] = useState(false)
 
   useEffect(() => {
@@ -44,7 +46,7 @@ export function PopupApp() {
             background: hasCredentials ? 'rgba(52,211,153,0.1)' : 'rgba(248,113,113,0.1)',
             color: hasCredentials ? '#34d399' : '#f87171',
           }}>
-            {hasCredentials ? '연결됨' : '미설정'}
+            {hasCredentials ? t('common.connected') : t('common.notConfigured')}
           </span>
         </div>
       </div>
@@ -54,19 +56,19 @@ export function PopupApp() {
         <div style={{ width: 8, height: 8, borderRadius: '50%', background: hasCredentials ? '#ff9900' : 'var(--bg5)', flexShrink: 0 }} />
         <span style={{ fontSize: 12, flex: 1 }}>AWS Bedrock</span>
         <span style={{ fontSize: 10, fontFamily: 'IBM Plex Mono, monospace', color: hasCredentials ? '#ff9900' : 'var(--text3)' }}>
-          {hasCredentials ? '✓ 연결됨' : '키 없음'}
+          {hasCredentials ? `✓ ${t('common.connected')}` : t('common.noKey')}
         </span>
       </div>
 
       {/* Quick actions */}
       <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)' }}>
-        <div style={{ fontSize: 10, color: 'var(--text3)', fontFamily: 'IBM Plex Mono, monospace', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>빠른 실행</div>
+        <div style={{ fontSize: 10, color: 'var(--text3)', fontFamily: 'IBM Plex Mono, monospace', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>{t('popup.quickActions')}</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
           {[
-            { icon: '📄', label: '페이지 요약' },
-            { icon: '🌐', label: '번역' },
-            { icon: '✏️', label: '글쓰기' },
-            { icon: '🤖', label: '그룹 채팅' },
+            { icon: '📄', label: t('popup.pageSummary') },
+            { icon: '🌐', label: t('popup.translate') },
+            { icon: '✏️', label: t('popup.writing') },
+            { icon: '🤖', label: t('popup.groupChat') },
           ].map((q) => (
             <button key={q.label} onClick={openPanel} style={{
               background: 'var(--bg2)', border: '1px solid var(--border2)', borderRadius: 8,
@@ -91,7 +93,7 @@ export function PopupApp() {
           border: 'none', borderRadius: 8, padding: '10px', fontSize: 13, fontWeight: 700,
           fontFamily: 'IBM Plex Sans KR, sans-serif', cursor: 'pointer',
         }}>
-          사이드패널 열기 →
+          {t('popup.openPanel')}
         </button>
       </div>
     </div>

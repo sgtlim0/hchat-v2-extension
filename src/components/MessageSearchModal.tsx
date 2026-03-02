@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { searchMessages, highlightMatch, type SearchResult } from '../lib/messageSearch'
+import { useLocale } from '../i18n'
 
 interface Props {
   open: boolean
@@ -8,6 +9,7 @@ interface Props {
 }
 
 export function MessageSearchModal({ open, onClose, onSelect }: Props) {
+  const { t, locale } = useLocale()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
   const [loading, setLoading] = useState(false)
@@ -49,9 +51,9 @@ export function MessageSearchModal({ open, onClose, onSelect }: Props) {
 
   const rel = (ts: number) => {
     const d = Date.now() - ts
-    if (d < 3600000) return `${Math.floor(d / 60000)}분 전`
-    if (d < 86400000) return `${Math.floor(d / 3600000)}시간 전`
-    return new Date(ts).toLocaleDateString('ko-KR')
+    if (d < 3600000) return t('time.minutesAgo', { n: Math.floor(d / 60000) })
+    if (d < 86400000) return t('time.hoursAgo', { n: Math.floor(d / 3600000) })
+    return new Date(ts).toLocaleDateString(locale === 'en' ? 'en-US' : 'ko-KR')
   }
 
   if (!open) return null
@@ -64,7 +66,7 @@ export function MessageSearchModal({ open, onClose, onSelect }: Props) {
           <input
             ref={inputRef}
             className="search-modal-input"
-            placeholder="모든 대화에서 메시지 검색..."
+            placeholder={t('chat.searchPlaceholder')}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -75,7 +77,7 @@ export function MessageSearchModal({ open, onClose, onSelect }: Props) {
 
         <div className="search-modal-results">
           {results.length === 0 && query.trim() && !loading && (
-            <div className="search-modal-empty">검색 결과가 없습니다</div>
+            <div className="search-modal-empty">{t('common.noResults')}</div>
           )}
           {results.map((r, i) => (
             <div
@@ -85,7 +87,7 @@ export function MessageSearchModal({ open, onClose, onSelect }: Props) {
               onMouseEnter={() => setSelectedIdx(i)}
             >
               <div className="search-result-header">
-                <span className="search-result-role">{r.message.role === 'user' ? '나' : 'AI'}</span>
+                <span className="search-result-role">{r.message.role === 'user' ? t('common.me') : 'AI'}</span>
                 <span className="search-result-conv">{r.convTitle}</span>
                 <span className="search-result-time">{rel(r.message.ts)}</span>
               </div>
@@ -99,9 +101,9 @@ export function MessageSearchModal({ open, onClose, onSelect }: Props) {
 
         {results.length > 0 && (
           <div className="search-modal-footer">
-            <span>↑↓ 이동</span>
-            <span>Enter 선택</span>
-            <span>ESC 닫기</span>
+            <span>{t('searchModal.navigate')}</span>
+            <span>{t('searchModal.select')}</span>
+            <span>{t('searchModal.close')}</span>
           </div>
         )}
       </div>

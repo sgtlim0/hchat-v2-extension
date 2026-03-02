@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useProvider } from '../hooks/useProvider'
 import type { Config } from '../hooks/useConfig'
 import type { ProviderType } from '../lib/providers/types'
+import { useLocale } from '../i18n'
 
 interface Props {
   value: string
@@ -16,6 +17,7 @@ const PROVIDER_INFO: Record<ProviderType, { label: string; color: string }> = {
 }
 
 export function ModelSelector({ value, onChange, config }: Props) {
+  const { t } = useLocale()
   const [open, setOpen] = useState(false)
   const { allModels, getProvider } = useProvider(config)
 
@@ -36,7 +38,7 @@ export function ModelSelector({ value, onChange, config }: Props) {
         {autoRouting ? (
           <>
             <span>🔄</span>
-            <span>자동</span>
+            <span>{t('settings.auto')}</span>
           </>
         ) : (
           <>
@@ -61,7 +63,7 @@ export function ModelSelector({ value, onChange, config }: Props) {
                 padding: '6px 12px', background: 'var(--accent-dim)',
                 fontSize: 10, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: 6,
               }}>
-                🔄 자동 라우팅 활성화됨
+                {t('settings.autoRoutingActive')}
               </div>
             )}
 
@@ -71,7 +73,7 @@ export function ModelSelector({ value, onChange, config }: Props) {
                   <span style={{ width: 6, height: 6, borderRadius: '50%', background: g.color, display: 'inline-block' }} />
                   <span style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--mono)' }}>{g.label}</span>
                   {!g.configured && (
-                    <span className="badge badge-red" style={{ marginLeft: 'auto' }}>키 없음</span>
+                    <span className="badge badge-red" style={{ marginLeft: 'auto' }}>{t('common.noKey')}</span>
                   )}
                 </div>
                 {g.models.map((m) => (

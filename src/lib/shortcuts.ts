@@ -19,13 +19,13 @@ export interface Shortcut {
 }
 
 export const DEFAULT_SHORTCUTS: Shortcut[] = [
-  { id: 'new-chat',       keys: 'Ctrl+N',         action: 'new-chat',        description: '새 대화',             customizable: true },
-  { id: 'focus-input',    keys: '/',               action: 'focus-input',     description: '입력창 포커스',       customizable: false },
-  { id: 'stop-gen',       keys: 'Escape',          action: 'stop-generation', description: '응답 생성 중지',      customizable: false },
-  { id: 'search-history', keys: 'Ctrl+K',          action: 'search-history',  description: '대화 기록 검색',      customizable: true },
-  { id: 'toggle-context', keys: 'Ctrl+Shift+P',    action: 'toggle-context',  description: '페이지 컨텍스트 토글', customizable: true },
-  { id: 'next-tab',       keys: 'Ctrl+]',          action: 'next-tab',        description: '다음 탭',             customizable: false },
-  { id: 'prev-tab',       keys: 'Ctrl+[',          action: 'prev-tab',        description: '이전 탭',             customizable: false },
+  { id: 'new-chat',       keys: 'Ctrl+N',         action: 'new-chat',        description: 'shortcuts.newChat',       customizable: true },
+  { id: 'focus-input',    keys: '/',               action: 'focus-input',     description: 'shortcuts.focusInput',    customizable: false },
+  { id: 'stop-gen',       keys: 'Escape',          action: 'stop-generation', description: 'shortcuts.stopGeneration', customizable: false },
+  { id: 'search-history', keys: 'Ctrl+K',          action: 'search-history',  description: 'shortcuts.searchHistory', customizable: true },
+  { id: 'toggle-context', keys: 'Ctrl+Shift+P',    action: 'toggle-context',  description: 'shortcuts.toggleContext', customizable: true },
+  { id: 'next-tab',       keys: 'Ctrl+]',          action: 'next-tab',        description: 'shortcuts.nextTab',       customizable: false },
+  { id: 'prev-tab',       keys: 'Ctrl+[',          action: 'prev-tab',        description: 'shortcuts.prevTab',       customizable: false },
 ]
 
 const STORAGE_KEY = 'hchat:shortcuts'

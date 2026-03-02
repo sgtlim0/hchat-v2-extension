@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { useProvider } from '../hooks/useProvider'
+import { useLocale } from '../i18n'
 import type { Config } from '../hooks/useConfig'
 import type { Message, ProviderType } from '../lib/providers/types'
 import { Usage } from '../lib/usage'
@@ -21,6 +22,7 @@ const PROVIDER_COLORS: Record<ProviderType, string> = {
 interface Props { config: Config }
 
 export function GroupChatView({ config }: Props) {
+  const { t } = useLocale()
   const { configuredModels, getProvider, getModel } = useProvider(config)
   const [selectedModels, setSelectedModels] = useState<string[]>(
     configuredModels.length > 0 ? [configuredModels[0].id] : []
@@ -54,7 +56,7 @@ export function GroupChatView({ config }: Props) {
         const provider = getProvider(modelId)
         if (!provider?.isConfigured()) {
           setResponses((prev) =>
-            prev.map((r) => r.modelId === modelId ? { ...r, loading: false, error: 'API 키 미설정' } : r)
+            prev.map((r) => r.modelId === modelId ? { ...r, loading: false, error: t('common.apiKeyNotSet') } : r)
           )
           return
         }
@@ -63,7 +65,7 @@ export function GroupChatView({ config }: Props) {
           const gen = provider.stream({
             model: modelId,
             messages: msgs,
-            systemPrompt: '당신은 도움이 되는 AI 어시스턴트입니다. 한국어로 답변해주세요.',
+            systemPrompt: t('group.systemPrompt'),
           })
 
           let fullText = ''
@@ -103,7 +105,7 @@ export function GroupChatView({ config }: Props) {
     <div className="group-chat">
       {/* Model toggles */}
       <div className="group-models">
-        <span style={{ fontSize: 10, color: 'var(--text3)', fontFamily: 'var(--mono)', flexShrink: 0 }}>모델 선택:</span>
+        <span style={{ fontSize: 10, color: 'var(--text3)', fontFamily: 'var(--mono)', flexShrink: 0 }}>{t('group.modelSelect')}</span>
         {providerGroups.map((g) => (
           g.models.map((m) => (
             <button
@@ -120,7 +122,7 @@ export function GroupChatView({ config }: Props) {
           ))
         ))}
         {configuredModels.length === 0 && (
-          <span style={{ fontSize: 11, color: 'var(--text3)' }}>API 키를 설정해주세요</span>
+          <span style={{ fontSize: 11, color: 'var(--text3)' }}>{t('group.setApiKey')}</span>
         )}
       </div>
 
@@ -128,7 +130,7 @@ export function GroupChatView({ config }: Props) {
       <div className="group-results" style={{ flex: 1, minHeight: 0 }}>
         {responses.length === 0 ? (
           <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text3)', fontSize: 12 }}>
-            여러 AI 모델에게 같은 질문을 동시에 던져 비교하세요
+            {t('group.emptyMessage')}
           </div>
         ) : (
           responses.map((r) => {
@@ -169,7 +171,7 @@ export function GroupChatView({ config }: Props) {
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
             }}
-            placeholder={`선택된 ${selectedModels.length}개 모델에게 동시에 질문...`}
+            placeholder={t('group.placeholder', { n: selectedModels.length })}
             rows={1}
           />
           <div className="input-actions">

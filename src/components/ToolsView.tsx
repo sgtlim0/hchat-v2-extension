@@ -7,34 +7,36 @@ import { extractPdfText, formatFileSize } from '../lib/pdfParser'
 import { generateInsightReport, type ReportProgress } from '../lib/insightReport'
 import { Usage } from '../lib/usage'
 import type { Config } from '../hooks/useConfig'
+import { useLocale } from '../i18n'
+import ko from '../i18n/ko'
+import en from '../i18n/en'
 
 type ToolId = 'summarize' | 'translate' | 'write' | 'youtube' | 'ocr' | 'grammar' | 'comments' | 'pdf' | 'insight'
-
-interface ToolDef { id: ToolId; icon: string; title: string; desc: string }
-
-const TOOLS: ToolDef[] = [
-  { id: 'summarize', icon: '📄', title: '페이지 요약', desc: '현재 페이지를 즉시 요약합니다' },
-  { id: 'youtube', icon: '▶️', title: 'YouTube 요약', desc: '유튜브 영상 내용을 핵심만 추출합니다' },
-  { id: 'comments', icon: '💬', title: '댓글 분석', desc: 'YouTube 댓글 감정·토픽·인사이트 분석' },
-  { id: 'insight', icon: '📊', title: '인사이트 리포트', desc: 'YouTube 자막+댓글 종합 분석 리포트' },
-  { id: 'pdf', icon: '📑', title: 'PDF 채팅', desc: 'PDF 업로드 후 내용에 대해 질문합니다' },
-  { id: 'translate', icon: '🌐', title: '텍스트 번역', desc: '50개 이상의 언어로 번역합니다' },
-  { id: 'write', icon: '✏️', title: '글쓰기 도구', desc: '교정·다듬기·재구성·톤 변경' },
-  { id: 'grammar', icon: '✅', title: '문법 교정', desc: '맞춤법·문법·어색한 표현 수정' },
-  { id: 'ocr', icon: '🔍', title: '이미지 OCR', desc: '이미지에서 텍스트를 추출합니다' },
-]
-
-const LANGS = ['한국어', '영어', '일본어', '중국어(간체)', '스페인어', '프랑스어', '독일어', '포르투갈어', '러시아어', '아랍어']
 
 interface Props { config: Config }
 
 export function ToolsView({ config }: Props) {
+  const { t, locale } = useLocale()
   const { getProvider, hasAnyKey } = useProvider(config)
+
+  const TOOLS: { id: ToolId; icon: string }[] = [
+    { id: 'summarize', icon: '📄' },
+    { id: 'youtube', icon: '▶️' },
+    { id: 'comments', icon: '💬' },
+    { id: 'insight', icon: '📊' },
+    { id: 'pdf', icon: '📑' },
+    { id: 'translate', icon: '🌐' },
+    { id: 'write', icon: '✏️' },
+    { id: 'grammar', icon: '✅' },
+    { id: 'ocr', icon: '🔍' },
+  ]
+
+  const LANGS = locale === 'en' ? en.tools.langs : ko.tools.langs
   const [activeTool, setActiveTool] = useState<ToolId | null>(null)
   const [result, setResult] = useState('')
   const [loading, setLoading] = useState(false)
   const [inputText, setInputText] = useState('')
-  const [selectedLang, setSelectedLang] = useState('한국어')
+  const [selectedLang, setSelectedLang] = useState(LANGS[0])
   const [selectedAction, setSelectedAction] = useState<WritingAction>('paraphrase')
   const [imgBase64, setImgBase64] = useState('')
   const [toast, setToast] = useState('')
@@ -52,7 +54,7 @@ export function ToolsView({ config }: Props) {
     const m = model ?? activeModel
     const provider = getProvider(m)
     if (!provider?.isConfigured()) {
-      if (!hasAnyKey) { setResult('❌ API 키를 먼저 설정해주세요 (설정 탭)'); return }
+      if (!hasAnyKey) { setResult(t('common.setApiKeyFirst')); return }
     }
     setResult('')
     setLoading(true)
@@ -80,7 +82,7 @@ export function ToolsView({ config }: Props) {
     // Prefer vision-capable model
     const visionModel = 'us.anthropic.claude-sonnet-4-6'
     const provider = getProvider(visionModel)
-    if (!provider?.isConfigured()) { setResult('❌ AWS Bedrock 키를 설정해주세요'); return }
+    if (!provider?.isConfigured()) { setResult(t('tools.bedrockKeyRequired')); return }
     setResult('')
     setLoading(true)
     try {
@@ -111,7 +113,7 @@ export function ToolsView({ config }: Props) {
     setLoading(true)
     try {
       const page = await getCurrentPageContent()
-      if (!page.text) { setResult('❌ 페이지 내용을 가져올 수 없습니다'); setLoading(false); return }
+      if (!page.text) { setResult(t('tools.noPageContent')); setLoading(false); return }
       await runStream(`다음 웹페이지 내용을 핵심 위주로 5-7개 항목으로 정리하여 요약해줘. 마지막에 1~2줄의 핵심 결론도 추가해줘.\n\n제목: ${page.title}\nURL: ${page.url}\n\n내용:\n${truncate(page.text)}`)
     } catch (err) {
       setResult('❌ ' + String(err))
@@ -124,9 +126,9 @@ export function ToolsView({ config }: Props) {
     setResult('')
     try {
       const page = await getCurrentPageContent()
-      if (!page.isYouTube) { setResult('❌ 현재 탭이 YouTube 동영상이 아닙니다'); setLoading(false); return }
+      if (!page.isYouTube) { setResult(t('tools.notYouTube')); setLoading(false); return }
       const transcript = await getYouTubeTranscript(page.youtubeId!)
-      if (!transcript) { setResult('❌ 자막을 찾을 수 없습니다. 자막이 있는 영상에서 시도해주세요'); setLoading(false); return }
+      if (!transcript) { setResult(t('tools.noSubtitles')); setLoading(false); return }
       await runStream(`다음은 YouTube 영상의 자막입니다. 핵심 내용을 구조적으로 요약해줘:\n\n제목: ${page.title}\n\n자막:\n${transcript}`)
     } catch (err) {
       setResult('❌ ' + String(err))
@@ -135,17 +137,17 @@ export function ToolsView({ config }: Props) {
   }
 
   const handleTranslate = async () => {
-    if (!inputText.trim()) { setResult('❌ 번역할 텍스트를 입력해주세요'); return }
+    if (!inputText.trim()) { setResult(t('tools.noText')); return }
     await runStream(`다음 텍스트를 자연스럽고 정확하게 ${selectedLang}로 번역해줘:\n\n${inputText}`)
   }
 
   const handleWrite = async () => {
-    if (!inputText.trim()) { setResult('❌ 텍스트를 입력해주세요'); return }
+    if (!inputText.trim()) { setResult(t('tools.noInputText')); return }
     await runStream(buildWritingPrompt(selectedAction, inputText))
   }
 
   const handleGrammar = async () => {
-    if (!inputText.trim()) { setResult('❌ 교정할 텍스트를 입력해주세요'); return }
+    if (!inputText.trim()) { setResult(t('tools.noGrammarText')); return }
     await runStream(`다음 텍스트의 맞춤법, 문법, 어색한 표현을 교정하고, 교정한 내용과 이유를 함께 설명해줘:\n\n${inputText}`)
   }
 
@@ -167,10 +169,10 @@ export function ToolsView({ config }: Props) {
     setResult('')
     try {
       const page = await getCurrentPageContent()
-      if (!page.isYouTube) { setResult('❌ 현재 탭이 YouTube 동영상이 아닙니다'); setLoading(false); return }
+      if (!page.isYouTube) { setResult(t('tools.notYouTube')); setLoading(false); return }
       const comments = await extractComments(200)
       if (comments.length === 0) {
-        setResult('❌ 댓글을 찾을 수 없습니다. 페이지를 스크롤하여 댓글을 로드한 후 다시 시도해주세요.')
+        setResult(t('tools.noComments'))
         setLoading(false)
         return
       }
@@ -193,7 +195,7 @@ export function ToolsView({ config }: Props) {
     try {
       const text = await extractPdfText(file)
       setPdfText(text)
-      setResult(`PDF 로드 완료 (${formatFileSize(file.size)}, ${text.length.toLocaleString()}자 추출)\n\n아래에 질문을 입력하세요.`)
+      setResult(t('tools.pdfLoaded', { size: formatFileSize(file.size), chars: text.length.toLocaleString() }))
     } catch (err) {
       setResult('❌ ' + String(err))
     } finally {
@@ -210,12 +212,12 @@ export function ToolsView({ config }: Props) {
   const handleInsightReport = async () => {
     setLoading(true)
     setResult('')
-    setReportProgress({ stage: '시작 중...', percent: 0 })
+    setReportProgress({ stage: t('tools.starting'), percent: 0 })
     abortRef.current = new AbortController()
     try {
       const provider = getProvider(activeModel)
       if (!provider?.isConfigured()) {
-        setResult('❌ API 키를 먼저 설정해주세요')
+        setResult(t('common.setApiKeyFirst'))
         setLoading(false)
         setReportProgress(null)
         return
@@ -249,14 +251,14 @@ export function ToolsView({ config }: Props) {
     return (
       <div>
         <div style={{ padding: '12px 14px 0', fontSize: 11, color: 'var(--text3)', fontFamily: 'var(--mono)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-          도구 선택
+          {t('tools.selectTitle')}
         </div>
         <div className="tools-grid">
-          {TOOLS.map((t) => (
-            <button key={t.id} className="tool-card" onClick={() => { setActiveTool(t.id); setResult('') }}>
-              <span className="t-icon">{t.icon}</span>
-              <span className="t-title">{t.title}</span>
-              <span className="t-desc">{t.desc}</span>
+          {TOOLS.map((tool) => (
+            <button key={tool.id} className="tool-card" onClick={() => { setActiveTool(tool.id); setResult('') }}>
+              <span className="t-icon">{tool.icon}</span>
+              <span className="t-title">{t(`tools.${tool.id}.title`)}</span>
+              <span className="t-desc">{t(`tools.${tool.id}.desc`)}</span>
             </button>
           ))}
         </div>
@@ -264,30 +266,30 @@ export function ToolsView({ config }: Props) {
     )
   }
 
-  const tool = TOOLS.find((t) => t.id === activeTool)!
+  const tool = TOOLS.find((tool) => tool.id === activeTool)!
 
   return (
     <div className="tool-view">
       <div className="tool-view-header">
-        <button className="btn btn-ghost btn-xs" onClick={() => { setActiveTool(null); setResult('') }}>← 뒤로</button>
-        <span className="tool-view-title">{tool.icon} {tool.title}</span>
+        <button className="btn btn-ghost btn-xs" onClick={() => { setActiveTool(null); setResult('') }}>{t('common.back')}</button>
+        <span className="tool-view-title">{tool.icon} {t(`tools.${tool.id}.title`)}</span>
       </div>
 
       {/* Tool-specific UI */}
       {activeTool === 'summarize' && (
         <div className="gap-2">
-          <p style={{ fontSize: 12, color: 'var(--text2)' }}>현재 열린 탭의 페이지 내용을 요약합니다.</p>
+          <p style={{ fontSize: 12, color: 'var(--text2)' }}>{t('tools.summarizeDesc')}</p>
           <button className="btn btn-primary" onClick={handleSummarize} disabled={loading}>
-            {loading ? <><span className="spinner" /> 요약 중...</> : '현재 페이지 요약 시작'}
+            {loading ? <><span className="spinner" /> {t('tools.summarizing')}</> : t('tools.summarizeAction')}
           </button>
         </div>
       )}
 
       {activeTool === 'youtube' && (
         <div className="gap-2">
-          <p style={{ fontSize: 12, color: 'var(--text2)' }}>YouTube 탭에서 실행하면 영상 자막을 분석합니다.</p>
+          <p style={{ fontSize: 12, color: 'var(--text2)' }}>{t('tools.youtubeDesc')}</p>
           <button className="btn btn-primary" onClick={handleYouTube} disabled={loading}>
-            {loading ? <><span className="spinner" /> 분석 중...</> : '▶ YouTube 영상 요약'}
+            {loading ? <><span className="spinner" /> {t('tools.analyzing')}</> : t('tools.youtubeAction')}
           </button>
         </div>
       )}
@@ -295,17 +297,17 @@ export function ToolsView({ config }: Props) {
       {activeTool === 'translate' && (
         <div className="gap-2">
           <div className="field">
-            <label className="field-label">번역 대상 언어</label>
+            <label className="field-label">{t('tools.translateTo')}</label>
             <select className="select" value={selectedLang} onChange={(e) => setSelectedLang(e.target.value)}>
               {LANGS.map((l) => <option key={l}>{l}</option>)}
             </select>
           </div>
           <div className="field">
-            <label className="field-label">원문 텍스트</label>
-            <textarea className="textarea" rows={5} value={inputText} onChange={(e) => setInputText(e.target.value)} placeholder="번역할 텍스트를 입력하세요..." />
+            <label className="field-label">{t('tools.sourceText')}</label>
+            <textarea className="textarea" rows={5} value={inputText} onChange={(e) => setInputText(e.target.value)} placeholder={t('tools.translatePlaceholder')} />
           </div>
           <button className="btn btn-primary" onClick={handleTranslate} disabled={loading}>
-            {loading ? <><span className="spinner" /> 번역 중...</> : `${selectedLang}로 번역`}
+            {loading ? <><span className="spinner" /> {t('tools.translating')}</> : t('tools.translateAction', { lang: selectedLang })}
           </button>
         </div>
       )}
@@ -313,7 +315,7 @@ export function ToolsView({ config }: Props) {
       {activeTool === 'write' && (
         <div className="gap-2">
           <div className="field">
-            <label className="field-label">작업 선택</label>
+            <label className="field-label">{t('tools.selectAction')}</label>
             <div className="writing-actions">
               {WRITING_ACTIONS.map((a) => (
                 <button
@@ -322,17 +324,17 @@ export function ToolsView({ config }: Props) {
                   onClick={() => setSelectedAction(a.id)}
                 >
                   <span>{a.emoji}</span>
-                  <span>{a.label}</span>
+                  <span>{t(`writing.${a.id}`)}</span>
                 </button>
               ))}
             </div>
           </div>
           <div className="field">
-            <label className="field-label">텍스트 입력</label>
-            <textarea className="textarea" rows={5} value={inputText} onChange={(e) => setInputText(e.target.value)} placeholder="작업할 텍스트를 입력하세요..." />
+            <label className="field-label">{t('tools.textInput')}</label>
+            <textarea className="textarea" rows={5} value={inputText} onChange={(e) => setInputText(e.target.value)} placeholder={t('tools.textPlaceholder')} />
           </div>
           <button className="btn btn-primary" onClick={handleWrite} disabled={loading}>
-            {loading ? <><span className="spinner" /> 처리 중...</> : `${WRITING_ACTIONS.find((a) => a.id === selectedAction)?.label ?? ''} 실행`}
+            {loading ? <><span className="spinner" /> {t('common.processing')}</> : t('tools.executeAction', { action: t(`writing.${selectedAction}`) })}
           </button>
         </div>
       )}
@@ -340,11 +342,11 @@ export function ToolsView({ config }: Props) {
       {activeTool === 'grammar' && (
         <div className="gap-2">
           <div className="field">
-            <label className="field-label">교정할 텍스트</label>
-            <textarea className="textarea" rows={6} value={inputText} onChange={(e) => setInputText(e.target.value)} placeholder="교정할 텍스트를 입력하세요..." />
+            <label className="field-label">{t('tools.grammarText')}</label>
+            <textarea className="textarea" rows={6} value={inputText} onChange={(e) => setInputText(e.target.value)} placeholder={t('tools.grammarPlaceholder')} />
           </div>
           <button className="btn btn-primary" onClick={handleGrammar} disabled={loading}>
-            {loading ? <><span className="spinner" /> 교정 중...</> : '문법 교정 실행'}
+            {loading ? <><span className="spinner" /> {t('tools.correcting')}</> : t('tools.grammarAction')}
           </button>
         </div>
       )}
@@ -352,10 +354,10 @@ export function ToolsView({ config }: Props) {
       {activeTool === 'comments' && (
         <div className="gap-2">
           <p style={{ fontSize: 12, color: 'var(--text2)' }}>
-            YouTube 탭에서 실행하세요. 댓글을 로드하려면 먼저 페이지를 스크롤해주세요.
+            {t('tools.commentsDesc')}
           </p>
           <button className="btn btn-primary" onClick={handleComments} disabled={loading}>
-            {loading ? <><span className="spinner" /> 댓글 분석 중...</> : '💬 댓글 분석 시작'}
+            {loading ? <><span className="spinner" /> {t('tools.analyzingComments')}</> : t('tools.commentsAction')}
           </button>
         </div>
       )}
@@ -363,7 +365,7 @@ export function ToolsView({ config }: Props) {
       {activeTool === 'insight' && (
         <div className="gap-2">
           <p style={{ fontSize: 12, color: 'var(--text2)' }}>
-            YouTube 영상의 자막과 댓글을 종합 분석하여 Markdown 리포트를 생성합니다.
+            {t('tools.insightDesc')}
           </p>
           {reportProgress && (
             <div className="insight-progress">
@@ -375,10 +377,10 @@ export function ToolsView({ config }: Props) {
           )}
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="btn btn-primary" onClick={handleInsightReport} disabled={loading}>
-              {loading ? <><span className="spinner" /> 리포트 생성 중...</> : '📊 인사이트 리포트 생성'}
+              {loading ? <><span className="spinner" /> {t('tools.generatingReport')}</> : t('tools.insightAction')}
             </button>
             {loading && (
-              <button className="btn btn-secondary" onClick={handleInsightStop}>중단</button>
+              <button className="btn btn-secondary" onClick={handleInsightStop}>{t('common.stop')}</button>
             )}
           </div>
           {result && !loading && (
@@ -392,10 +394,10 @@ export function ToolsView({ config }: Props) {
                 a.download = `insight-report-${new Date().toISOString().slice(0, 10)}.md`
                 a.click()
                 URL.revokeObjectURL(url)
-                showToast('다운로드 완료!')
+                showToast(t('common.downloadComplete'))
               }}
             >
-              Markdown 다운로드
+              {t('tools.markdownDownload')}
             </button>
           )}
         </div>
@@ -404,26 +406,26 @@ export function ToolsView({ config }: Props) {
       {activeTool === 'pdf' && (
         <div className="gap-2">
           <p style={{ fontSize: 12, color: 'var(--text2)' }}>
-            PDF 파일을 업로드하면 내용을 추출하고, 질문에 답변합니다.
+            {t('tools.pdfDesc')}
           </p>
           <label className="btn btn-secondary" style={{ cursor: 'pointer', justifyContent: 'center' }}>
-            📎 PDF 업로드
+            {t('tools.pdfUpload')}
             <input type="file" accept=".pdf" style={{ display: 'none' }} onChange={handlePdfUpload} />
           </label>
           {pdfFileName && (
             <div style={{ fontSize: 11, color: 'var(--text2)', padding: '4px 0' }}>
-              파일: {pdfFileName}
+              {t('common.file')}: {pdfFileName}
             </div>
           )}
           {pdfText && (
             <div className="field">
-              <label className="field-label">질문 입력</label>
+              <label className="field-label">{t('tools.pdfQuestionLabel')}</label>
               <textarea
                 className="textarea"
                 rows={3}
                 value={pdfQuestion}
                 onChange={(e) => setPdfQuestion(e.target.value)}
-                placeholder="PDF 내용에 대해 질문하세요..."
+                placeholder={t('tools.pdfQuestionPlaceholder')}
                 onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handlePdfChat() } }}
               />
               <button
@@ -432,7 +434,7 @@ export function ToolsView({ config }: Props) {
                 onClick={handlePdfChat}
                 disabled={loading || !pdfQuestion.trim()}
               >
-                {loading ? <><span className="spinner" /> 답변 중...</> : '질문하기'}
+                {loading ? <><span className="spinner" /> {t('tools.answering')}</> : t('tools.askQuestion')}
               </button>
             </div>
           )}
@@ -441,16 +443,16 @@ export function ToolsView({ config }: Props) {
 
       {activeTool === 'ocr' && (
         <div className="gap-2">
-          <p style={{ fontSize: 12, color: 'var(--text2)' }}>이미지에서 텍스트를 추출합니다. Vision 지원 API 키가 필요합니다.</p>
+          <p style={{ fontSize: 12, color: 'var(--text2)' }}>{t('tools.ocrDesc')}</p>
           <label className="btn btn-secondary" style={{ cursor: 'pointer', justifyContent: 'center' }}>
-            📎 이미지 업로드
+            {t('tools.imageUpload')}
             <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleOCR} />
           </label>
           {imgBase64 && (
             <>
               <img src={imgBase64} style={{ maxWidth: '100%', maxHeight: 160, borderRadius: 8, border: '1px solid var(--border2)' }} alt="" />
               <button className="btn btn-primary" onClick={handleOCRRun} disabled={loading}>
-                {loading ? <><span className="spinner" /> 추출 중...</> : '텍스트 추출'}
+                {loading ? <><span className="spinner" /> {t('tools.extracting')}</> : t('tools.extractText')}
               </button>
             </>
           )}
@@ -461,8 +463,8 @@ export function ToolsView({ config }: Props) {
       {result && (
         <div className="result-box">
           <div className="result-header">
-            <span>결과</span>
-            <button className="btn btn-ghost btn-xs" onClick={() => { navigator.clipboard.writeText(result); showToast('복사됨!') }}>복사</button>
+            <span>{t('common.result')}</span>
+            <button className="btn btn-ghost btn-xs" onClick={() => { navigator.clipboard.writeText(result); showToast(t('common.copied') + '!') }}>{t('common.copy')}</button>
           </div>
           <div className="result-content">{result}</div>
         </div>

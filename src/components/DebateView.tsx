@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { useProvider } from '../hooks/useProvider'
+import { useLocale } from '../i18n'
 import { runDebate, type DebateRound } from '../lib/debate'
 import type { Config } from '../hooks/useConfig'
 import type { ProviderType } from '../lib/providers/types'
@@ -10,15 +11,10 @@ const PROVIDER_COLORS: Record<ProviderType, string> = {
   gemini: '#4285f4',
 }
 
-const ROLE_LABELS: Record<string, string> = {
-  initial: '초기 답변',
-  critique: '비평',
-  synthesis: '종합',
-}
-
 interface Props { config: Config }
 
 export function DebateView({ config }: Props) {
+  const { t } = useLocale()
   const { configuredModels, getProvider, getModel } = useProvider(config)
   const [selectedModels, setSelectedModels] = useState<string[]>([])
   const [topic, setTopic] = useState('')
@@ -72,7 +68,7 @@ export function DebateView({ config }: Props) {
       {/* Model selection */}
       <div>
         <div style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'var(--mono)', marginBottom: 6 }}>
-          토론 모델 선택 (2-3개)
+          {t('debate.modelSelect')}
         </div>
         <div className="debate-model-select">
           {configuredModels.map((m) => {
@@ -97,20 +93,20 @@ export function DebateView({ config }: Props) {
         </div>
         {configuredModels.length < 2 && (
           <div style={{ fontSize: 11, color: 'var(--red)', marginTop: 4 }}>
-            토론에는 최소 2개 프로바이더의 API 키가 필요합니다
+            {t('debate.needModels')}
           </div>
         )}
       </div>
 
       {/* Topic input */}
       <div className="field">
-        <label className="field-label">토론 주제</label>
+        <label className="field-label">{t('debate.topicLabel')}</label>
         <textarea
           className="textarea"
           rows={3}
           value={topic}
           onChange={(e) => setTopic(e.target.value)}
-          placeholder="예: AI가 인간의 일자리를 대체할 것인가?"
+          placeholder={t('debate.topicPlaceholder')}
           disabled={isRunning}
         />
       </div>
@@ -121,10 +117,10 @@ export function DebateView({ config }: Props) {
           onClick={handleStart}
           disabled={isRunning || selectedModels.length < 2 || !topic.trim()}
         >
-          {isRunning ? <><span className="spinner" /> 토론 진행 중...</> : '🎯 토론 시작'}
+          {isRunning ? <><span className="spinner" /> {t('debate.running')}</> : t('debate.startAction')}
         </button>
         {isRunning && (
-          <button className="btn btn-secondary" onClick={handleStop}>중단</button>
+          <button className="btn btn-secondary" onClick={handleStop}>{t('common.stop')}</button>
         )}
       </div>
 
@@ -138,8 +134,8 @@ export function DebateView({ config }: Props) {
               <div className="debate-round-header">
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: color }} />
                 <span>{model?.shortLabel ?? r.modelId}</span>
-                <span style={{ color: 'var(--text3)', fontSize: 10 }}>· {ROLE_LABELS[r.role] ?? r.role}</span>
-                <span style={{ color: 'var(--text3)', fontSize: 10 }}>· 라운드 {r.round}</span>
+                <span style={{ color: 'var(--text3)', fontSize: 10 }}>· {t(`debate.roles.${r.role}`)}</span>
+                <span style={{ color: 'var(--text3)', fontSize: 10 }}>· {t('debate.round', { n: r.round })}</span>
                 {r.ms > 0 && <span style={{ marginLeft: 'auto', fontSize: 9, color: 'var(--text3)' }}>{(r.ms / 1000).toFixed(1)}s</span>}
               </div>
               <div className="debate-round-content">{r.content}</div>
@@ -152,7 +148,7 @@ export function DebateView({ config }: Props) {
           <div className="debate-round" style={{ borderColor: 'var(--accent-dim)' }}>
             <div className="debate-round-header">
               <span className="spinner-sm" />
-              <span style={{ color: 'var(--text2)', fontSize: 11 }}>실시간 스트리밍</span>
+              <span style={{ color: 'var(--text2)', fontSize: 11 }}>{t('debate.streaming')}</span>
             </div>
             <div className="debate-round-content" style={{ color: 'var(--text2)' }}>
               {Object.entries(currentChunks)
@@ -172,7 +168,7 @@ export function DebateView({ config }: Props) {
 
         {rounds.length === 0 && !isRunning && (
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text3)', fontSize: 12 }}>
-            모델 2-3개를 선택하고 토론 주제를 입력하세요
+            {t('debate.emptyMessage')}
           </div>
         )}
       </div>

@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useMemo } from 'react'
 import { useConfig } from '../hooks/useConfig'
 import { useShortcuts } from '../hooks/useShortcuts'
+import { useLocale } from '../i18n'
 import { ChatView } from '../components/ChatView'
 import { GroupChatView } from '../components/GroupChatView'
 import { ToolsView } from '../components/ToolsView'
@@ -15,20 +16,21 @@ import '../styles/global.css'
 
 type Tab = 'chat' | 'group' | 'tools' | 'debate' | 'prompts' | 'history' | 'bookmarks' | 'settings'
 
-const TABS: { id: Tab; icon: string; label: string }[] = [
-  { id: 'chat',      icon: '💬', label: '채팅' },
-  { id: 'group',     icon: '🤖', label: '그룹' },
-  { id: 'tools',     icon: '🛠', label: '도구' },
-  { id: 'debate',    icon: '🎯', label: '토론' },
-  { id: 'prompts',   icon: '📚', label: '프롬프트' },
-  { id: 'history',   icon: '🕐', label: '기록' },
-  { id: 'bookmarks', icon: '🔖', label: '북마크' },
-  { id: 'settings',  icon: '⚙️', label: '설정' },
+const TABS_BASE: { id: Tab; icon: string }[] = [
+  { id: 'chat',      icon: '💬' },
+  { id: 'group',     icon: '🤖' },
+  { id: 'tools',     icon: '🛠' },
+  { id: 'debate',    icon: '🎯' },
+  { id: 'prompts',   icon: '📚' },
+  { id: 'history',   icon: '🕐' },
+  { id: 'bookmarks', icon: '🔖' },
+  { id: 'settings',  icon: '⚙️' },
 ]
 
-const TAB_ORDER: Tab[] = TABS.map((t) => t.id)
+const TAB_ORDER: Tab[] = TABS_BASE.map((t) => t.id)
 
 export function App() {
+  const { t } = useLocale()
   const { config, loaded } = useConfig()
   const [tab, setTab] = useState<Tab>('chat')
   const [loadConvId, setLoadConvId] = useState<string | undefined>()
@@ -74,10 +76,10 @@ export function App() {
         <div className="topbar">
           <div className="logo">H</div>
           <div className="tab-bar">
-            {TABS.map((t) => (
-              <button key={t.id} className={`tab-btn ${tab === t.id ? 'active' : ''}`} onClick={() => setTab(t.id)}>
-                <span className="tab-icon">{t.icon}</span>
-                <span>{t.label}</span>
+            {TABS_BASE.map((tb) => (
+              <button key={tb.id} className={`tab-btn ${tab === tb.id ? 'active' : ''}`} onClick={() => setTab(tb.id)}>
+                <span className="tab-icon">{tb.icon}</span>
+                <span>{t(`tabs.${tb.id}`)}</span>
               </button>
             ))}
           </div>
@@ -85,13 +87,13 @@ export function App() {
         <div className="content" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div className="chat-empty">
             <div className="chat-empty-logo">H</div>
-            <h2>H Chat에 오신 것을 환영합니다</h2>
-            <p>Claude · GPT · Gemini 멀티 AI 어시스턴트</p>
+            <h2>{t('welcome.title')}</h2>
+            <p>{t('welcome.subtitle')}</p>
             <button className="btn btn-primary btn-lg" style={{ marginTop: 8 }} onClick={() => setTab('settings')}>
-              ⚙️ API 키 설정하기
+              {t('welcome.setupButton')}
             </button>
             <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 8 }}>
-              AWS Bedrock, OpenAI, 또는 Google Gemini API 키가 필요합니다
+              {t('welcome.setupHint')}
             </div>
           </div>
         </div>
@@ -104,19 +106,19 @@ export function App() {
       <div className="topbar">
         <div className="logo">H</div>
         <div className="tab-bar">
-          {TABS.map((t) => (
+          {TABS_BASE.map((tb) => (
             <button
-              key={t.id}
-              className={`tab-btn ${tab === t.id ? 'active' : ''}`}
-              onClick={() => setTab(t.id)}
+              key={tb.id}
+              className={`tab-btn ${tab === tb.id ? 'active' : ''}`}
+              onClick={() => setTab(tb.id)}
             >
-              <span className="tab-icon">{t.icon}</span>
-              <span>{t.label}</span>
+              <span className="tab-icon">{tb.icon}</span>
+              <span>{t(`tabs.${tb.id}`)}</span>
             </button>
           ))}
         </div>
         <div className="topbar-actions">
-          <button className="icon-btn" title="메시지 검색 (Ctrl+Shift+F)" onClick={() => setShowSearch(true)}>🔍</button>
+          <button className="icon-btn" title={t('chat.searchMessages')} onClick={() => setShowSearch(true)}>🔍</button>
         </div>
       </div>
 

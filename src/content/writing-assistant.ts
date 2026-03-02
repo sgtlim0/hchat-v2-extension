@@ -1,13 +1,15 @@
 // content/writing-assistant.ts — AI writing toolbar for textarea/contenteditable
 
+import { getLocale, tSync, type Locale } from '../i18n'
+
 const WRITING_TRANSFORMS = [
-  { id: 'improve', icon: '✨', label: '다듬기' },
-  { id: 'shorter', icon: '📏', label: '짧게' },
-  { id: 'longer', icon: '📐', label: '길게' },
-  { id: 'formal', icon: '👔', label: '격식체' },
-  { id: 'casual', icon: '😊', label: '캐주얼' },
-  { id: 'translate-en', icon: '🇺🇸', label: '영어' },
-  { id: 'translate-ko', icon: '🇰🇷', label: '한국어' },
+  { id: 'improve', icon: '✨', labelKey: 'writingAssistant.improve' },
+  { id: 'shorter', icon: '📏', labelKey: 'writingAssistant.shorter' },
+  { id: 'longer', icon: '📐', labelKey: 'writingAssistant.longer' },
+  { id: 'formal', icon: '👔', labelKey: 'writingAssistant.formal' },
+  { id: 'casual', icon: '😊', labelKey: 'writingAssistant.casual' },
+  { id: 'translate-en', icon: '🇺🇸', labelKey: 'writingAssistant.translateEn' },
+  { id: 'translate-ko', icon: '🇰🇷', labelKey: 'writingAssistant.translateKo' },
 ]
 
 const PROMPTS: Record<string, (text: string) => string> = {
@@ -65,7 +67,7 @@ function createButton(): HTMLElement {
   return btn
 }
 
-function createPopup(el: HTMLElement, text: string, btnRect: DOMRect): HTMLElement {
+function createPopup(el: HTMLElement, text: string, btnRect: DOMRect, locale: Locale): HTMLElement {
   const popup = document.createElement('div')
   popup.className = 'hchat-writing-popup'
   popup.style.cssText = `
@@ -78,7 +80,8 @@ function createPopup(el: HTMLElement, text: string, btnRect: DOMRect): HTMLEleme
 
   for (const t of WRITING_TRANSFORMS) {
     const chip = document.createElement('button')
-    chip.textContent = `${t.icon} ${t.label}`
+    const label = tSync(locale, t.labelKey)
+    chip.textContent = `${t.icon} ${label}`
     chip.style.cssText = `
       background: #2a2a3e; color: #e0e0e0; border: 1px solid #444;
       border-radius: 6px; padding: 4px 8px; font-size: 12px;
@@ -88,7 +91,7 @@ function createPopup(el: HTMLElement, text: string, btnRect: DOMRect): HTMLEleme
     chip.addEventListener('mouseleave', () => { chip.style.background = '#2a2a3e' })
     chip.addEventListener('click', (e) => {
       e.stopPropagation()
-      runTransform(el, text, t.id, popup)
+      runTransform(el, text, t.id, popup, locale)
     })
     popup.appendChild(chip)
   }
@@ -97,7 +100,7 @@ function createPopup(el: HTMLElement, text: string, btnRect: DOMRect): HTMLEleme
   return popup
 }
 
-function runTransform(el: HTMLElement, text: string, transformId: string, popup: HTMLElement) {
+function runTransform(el: HTMLElement, text: string, transformId: string, popup: HTMLElement, locale: Locale) {
   const promptFn = PROMPTS[transformId]
   if (!promptFn) return
 
@@ -105,7 +108,7 @@ function runTransform(el: HTMLElement, text: string, transformId: string, popup:
   popup.innerHTML = `
     <div style="color: #aaa; font-size: 12px; padding: 8px; display: flex; align-items: center; gap: 8px;">
       <span style="animation: spin 1s linear infinite; display:inline-block;">⏳</span>
-      처리 중...
+      ${tSync(locale, 'writingAssistant.processing')}
     </div>
     <style>@keyframes spin { from{transform:rotate(0)} to{transform:rotate(360deg)} }</style>
   `
@@ -129,16 +132,16 @@ function runTransform(el: HTMLElement, text: string, transformId: string, popup:
       `
     }
     if (msg.type === 'done' || msg.type === 'error') {
-      const finalText = msg.type === 'error' ? '⚠ 오류: ' + msg.message : result
+      const finalText = msg.type === 'error' ? `⚠ ${tSync(locale, 'writingAssistant.error')} ` + msg.message : result
 
       popup.innerHTML = `
         <div style="color: #e0e0e0; font-size: 12px; padding: 8px; max-height: 200px; overflow-y: auto; white-space: pre-wrap; line-height: 1.5;">
           ${escapeHtml(finalText)}
         </div>
         <div style="display: flex; gap: 6px; padding: 4px 8px;">
-          <button id="hchat-accept" style="background: #10b981; color: #fff; border: none; border-radius: 6px; padding: 4px 12px; font-size: 11px; cursor: pointer;">적용</button>
-          <button id="hchat-copy" style="background: #333; color: #ccc; border: 1px solid #555; border-radius: 6px; padding: 4px 12px; font-size: 11px; cursor: pointer;">복사</button>
-          <button id="hchat-close" style="background: none; color: #888; border: none; padding: 4px 8px; font-size: 11px; cursor: pointer;">닫기</button>
+          <button id="hchat-accept" style="background: #10b981; color: #fff; border: none; border-radius: 6px; padding: 4px 12px; font-size: 11px; cursor: pointer;">${tSync(locale, 'writingAssistant.apply')}</button>
+          <button id="hchat-copy" style="background: #333; color: #ccc; border: 1px solid #555; border-radius: 6px; padding: 4px 12px; font-size: 11px; cursor: pointer;">${tSync(locale, 'writingAssistant.copy')}</button>
+          <button id="hchat-close" style="background: none; color: #888; border: none; padding: 4px 8px; font-size: 11px; cursor: pointer;">${tSync(locale, 'writingAssistant.close')}</button>
         </div>
       `
 
@@ -149,7 +152,7 @@ function runTransform(el: HTMLElement, text: string, transformId: string, popup:
       popup.querySelector('#hchat-copy')?.addEventListener('click', () => {
         navigator.clipboard.writeText(result)
         const btn = popup.querySelector('#hchat-copy') as HTMLElement
-        if (btn) btn.textContent = '✓ 복사됨'
+        if (btn) btn.textContent = `✓ ${tSync(locale, 'writingAssistant.copied')}`
       })
       popup.querySelector('#hchat-close')?.addEventListener('click', cleanup)
     }
@@ -177,11 +180,13 @@ function isEditableElement(el: Element): el is HTMLElement {
   return false
 }
 
-function showButton(el: HTMLElement) {
+async function showButton(el: HTMLElement) {
   cleanup()
 
   const text = getSelectedText(el)
   if (!text || text.length < 2) return
+
+  const locale = await getLocale()
 
   const rect = el.getBoundingClientRect()
   const sel = window.getSelection()
@@ -195,7 +200,7 @@ function showButton(el: HTMLElement) {
 
   btn.addEventListener('click', (e) => {
     e.stopPropagation()
-    const popup = createPopup(el, text, btn.getBoundingClientRect())
+    const popup = createPopup(el, text, btn.getBoundingClientRect(), locale)
     activePopup = popup
     btn.remove()
     activeButton = null

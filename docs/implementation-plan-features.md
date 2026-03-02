@@ -1,6 +1,6 @@
-# WorksAI 기반 신규 기능 구현 방안
+# 경쟁사 기반 신규 기능 구현 방안
 
-> `docs/feature-design-worksai-inspired.md` 설계안의 4가지 기능 구현 계획
+> `docs/feature-design-inspired.md` 설계안의 4가지 기능 구현 계획
 
 ---
 

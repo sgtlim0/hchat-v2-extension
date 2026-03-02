@@ -292,8 +292,8 @@ hchat-v2-extension/
 ├── popup.html                     # 팝업 엔트리
 ├── docs/
 │   ├── additional-features-design.md  # 기능 로드맵
-│   ├── feature-design-worksai-inspired.md  # WorksAI 영감 기능 설계서
-│   └── implementation-plan-worksai-features.md  # 4대 기능 구현 계획서
+│   ├── feature-design-inspired.md          # 경쟁사 영감 기능 설계서
+│   └── implementation-plan-features.md     # 4대 기능 구현 계획서
 ├── public/
 │   ├── icons/                     # 확장 아이콘 (16, 48, 128px)
 │   └── content.css                # 하이라이트 스타일
@@ -577,7 +577,7 @@ npm run build      # 프로덕션 빌드 → dist/
 | 스트리밍 에러 복구 | streamWithRetry() (자동 재시도 2회) |
 | 사용량 SVG 차트 | UsageChart.tsx (일별 비용 시각화) |
 
-### v3.1 (2026-03) — WorksAI 영감 기능 + 품질 개선
+### v3.1 (2026-03) — 경쟁사 영감 기능 + 품질 개선
 
 #### v3.1에서 추가 (주요 기능)
 | 기능 | 설명 |

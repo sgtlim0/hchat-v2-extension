@@ -48,9 +48,7 @@
 
   "permissions": [
     "storage",
-    "alarms",
     "sidePanel",
-    "notifications",
     "contextMenus",
     "activeTab",
     "scripting",
@@ -58,9 +56,6 @@
   ],
 
   "host_permissions": [
-    "https://bedrock-runtime.*.amazonaws.com/*",
-    "https://api.openai.com/*",
-    "https://generativelanguage.googleapis.com/*",
     "<all_urls>"
   ],
 

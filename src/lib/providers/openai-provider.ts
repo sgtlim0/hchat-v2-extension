@@ -60,18 +60,26 @@ export class OpenAIProvider implements AIProvider {
   }
 
   async *stream(params: SendParams): AsyncGenerator<string, string> {
-    const { model, messages, systemPrompt, maxTokens = 2048 } = params
+    const { model, messages, systemPrompt, maxTokens = 2048, thinkingDepth } = params
 
     if (!this.isConfigured()) {
       throw new Error('OpenAI API 키가 설정되지 않았습니다')
     }
 
-    const body = JSON.stringify({
+    const effectiveMaxTokens = thinkingDepth === 'fast' ? Math.min(maxTokens, 1024) : maxTokens
+    const bodyObj: Record<string, unknown> = {
       model,
       messages: convertMessages(messages, systemPrompt),
-      max_tokens: maxTokens,
+      max_tokens: effectiveMaxTokens,
       stream: true,
-    })
+    }
+
+    // Deep mode: request thorough reasoning via reasoning_effort (o-series models)
+    if (thinkingDepth === 'deep') {
+      bodyObj.reasoning_effort = 'high'
+    }
+
+    const body = JSON.stringify(bodyObj)
 
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',

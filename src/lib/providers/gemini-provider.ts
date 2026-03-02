@@ -64,16 +64,24 @@ export class GeminiProvider implements AIProvider {
   }
 
   async *stream(params: SendParams): AsyncGenerator<string, string> {
-    const { model, messages, systemPrompt, maxTokens = 2048 } = params
+    const { model, messages, systemPrompt, maxTokens = 2048, thinkingDepth } = params
 
     if (!this.isConfigured()) {
       throw new Error('Gemini API 키가 설정되지 않았습니다')
     }
 
+    const effectiveMaxTokens = thinkingDepth === 'fast' ? Math.min(maxTokens, 1024) : maxTokens
     const contents = convertToGeminiMessages(messages)
+    const generationConfig: Record<string, unknown> = { maxOutputTokens: effectiveMaxTokens }
+
+    // Deep mode: enable Gemini thinking (2.0+ models with thinking support)
+    if (thinkingDepth === 'deep') {
+      generationConfig.thinkingConfig = { thinkingBudget: 10000 }
+    }
+
     const body: Record<string, unknown> = {
       contents,
-      generationConfig: { maxOutputTokens: maxTokens },
+      generationConfig,
     }
 
     if (systemPrompt) {

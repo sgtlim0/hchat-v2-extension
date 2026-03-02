@@ -105,6 +105,9 @@ const en = {
     agentModeOff: 'Disable agent mode',
     voiceInput: 'Voice input',
     voiceInputStop: 'Stop voice input',
+    voiceModeOn: 'Enable voice conversation mode',
+    voiceModeOff: 'Disable voice conversation mode',
+    voiceModeBadge: 'Voice',
     fileAttach: 'Attach file',
     stopBtn: 'Stop',
     sources: 'Sources:',
@@ -170,6 +173,7 @@ const en = {
   tools: {
     selectTitle: 'Select Tool',
     summarize: { title: 'Page Summary', desc: 'Summarize the current page instantly' },
+    multitab: { title: 'Multi-Tab Summary', desc: 'Summarize all open tabs at once' },
     youtube: { title: 'YouTube Summary', desc: 'Extract key points from YouTube videos' },
     comments: { title: 'Comment Analysis', desc: 'YouTube comment sentiment & topic analysis' },
     insight: { title: 'Insight Report', desc: 'YouTube transcript + comments comprehensive report' },
@@ -179,6 +183,10 @@ const en = {
     grammar: { title: 'Grammar Check', desc: 'Fix spelling, grammar, and awkward expressions' },
     ocr: { title: 'Image OCR', desc: 'Extract text from images' },
 
+    multitabAction: 'Summarize all open tabs',
+    multitabDesc: 'Analyzes and summarizes the content of all tabs in the current window. (Max 10)',
+    noTabs: 'No tabs available for summarization.',
+    tabLabel: 'Tab',
     summarizeAction: 'Start page summary',
     summarizing: 'Summarizing...',
     summarizeDesc: 'Summarizes the content of the currently open tab.',
@@ -462,6 +470,7 @@ const en = {
   aiPrompts: {
     newConversation: 'New conversation',
     summarizePage: 'Summarize the following webpage content into 5-7 key bullet points. Add a 1-2 line conclusion at the end.',
+    multiTabSummarize: 'Below is the content from {count} browser tabs. Summarize each tab concisely, then analyze common themes or connections across all tabs.',
     summarizeYoutube: 'The following is a YouTube video transcript. Summarize the key points in a structured format:',
     translateTo: 'Translate the following text naturally and accurately into {lang}:',
     grammarCheck: 'Check the following text for spelling, grammar, and awkward expressions. Explain each correction and the reason.',

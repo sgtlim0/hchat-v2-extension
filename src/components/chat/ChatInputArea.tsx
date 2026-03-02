@@ -12,6 +12,8 @@ interface ChatInputAreaProps {
   agentMode: boolean
   onToggleAgent: () => void
   onSTT: () => void
+  voiceMode?: boolean
+  onToggleVoiceMode?: () => void
   attachment: { name: string; base64: string } | null
   onRemoveAttachment: () => void
   onFileSelect: (e: React.ChangeEvent<HTMLInputElement>) => void
@@ -33,6 +35,8 @@ export function ChatInputArea({
   agentMode,
   onToggleAgent,
   onSTT,
+  voiceMode,
+  onToggleVoiceMode,
   attachment,
   onRemoveAttachment,
   onFileSelect,
@@ -91,12 +95,19 @@ export function ChatInputArea({
               title={agentMode ? t('chat.agentModeOff') : t('chat.agentModeOn')}
               onClick={onToggleAgent}
             >🤖</button>
-            {STT.isSupported() && (
+            {STT.isSupported() && !voiceMode && (
               <button
                 className={`icon-btn stt-btn${STT.getState() === 'listening' ? ' listening' : ''}`}
                 title={STT.getState() === 'listening' ? t('chat.voiceInputStop') : t('chat.voiceInput')}
                 onClick={onSTT}
               >🎤</button>
+            )}
+            {STT.isSupported() && onToggleVoiceMode && (
+              <button
+                className={`icon-btn voice-mode-btn${voiceMode ? ' active' : ''}`}
+                title={voiceMode ? t('chat.voiceModeOff') : t('chat.voiceModeOn')}
+                onClick={onToggleVoiceMode}
+              >🎙️</button>
             )}
             <button className="icon-btn" title={t('chat.fileAttach')} onClick={() => fileRef.current?.click()}>📎</button>
             {isLoading ? (

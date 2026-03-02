@@ -9,6 +9,7 @@ export interface TTSState {
 let currentUtterance: SpeechSynthesisUtterance | null = null
 let currentMsgId: string | null = null
 let onStateChange: ((state: TTSState) => void) | null = null
+let onEndCallback: (() => void) | null = null
 
 function getState(): TTSState {
   return {
@@ -56,11 +57,15 @@ export const TTS = {
       currentMsgId = null
       currentUtterance = null
       notify()
+      const cb = onEndCallback
+      onEndCallback = null
+      cb?.()
     }
     currentUtterance.onerror = () => {
       currentMsgId = null
       currentUtterance = null
       notify()
+      onEndCallback = null
     }
 
     speechSynthesis.speak(currentUtterance)
@@ -85,6 +90,7 @@ export const TTS = {
     speechSynthesis.cancel()
     currentMsgId = null
     currentUtterance = null
+    onEndCallback = null
     notify()
   },
 
@@ -98,6 +104,11 @@ export const TTS = {
 
   onStateChange(cb: (state: TTSState) => void): void {
     onStateChange = cb
+  },
+
+  /** Register a one-time callback fired when current utterance ends */
+  onEnd(cb: () => void): void {
+    onEndCallback = cb
   },
 
   getState,

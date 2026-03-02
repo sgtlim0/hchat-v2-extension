@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { useProvider } from '../hooks/useProvider'
-import { getCurrentPageContent, getYouTubeTranscript, fileToBase64, truncate } from '../lib/pageReader'
+import { getCurrentPageContent, getYouTubeTranscript, fileToBase64, truncate, getAllTabsContent } from '../lib/pageReader'
 import { WRITING_ACTIONS, buildWritingPrompt, type WritingAction } from '../lib/writingTools'
 import { extractComments, buildCommentAnalysisPrompt } from '../lib/commentAnalyzer'
 import { extractPdfText, formatFileSize } from '../lib/pdfParser'
@@ -11,7 +11,7 @@ import { useLocale } from '../i18n'
 import ko from '../i18n/ko'
 import en from '../i18n/en'
 
-type ToolId = 'summarize' | 'translate' | 'write' | 'youtube' | 'ocr' | 'grammar' | 'comments' | 'pdf' | 'insight'
+type ToolId = 'summarize' | 'multitab' | 'translate' | 'write' | 'youtube' | 'ocr' | 'grammar' | 'comments' | 'pdf' | 'insight'
 
 interface Props { config: Config }
 
@@ -21,6 +21,7 @@ export default function ToolsView({ config }: Props) {
 
   const TOOLS: { id: ToolId; icon: string }[] = [
     { id: 'summarize', icon: '📄' },
+    { id: 'multitab', icon: '📑' },
     { id: 'youtube', icon: '▶️' },
     { id: 'comments', icon: '💬' },
     { id: 'insight', icon: '📊' },
@@ -115,6 +116,22 @@ export default function ToolsView({ config }: Props) {
       const page = await getCurrentPageContent()
       if (!page.text) { setResult(t('tools.noPageContent')); setLoading(false); return }
       await runStream(`${t('aiPrompts.summarizePage')}\n\n제목: ${page.title}\nURL: ${page.url}\n\n내용:\n${truncate(page.text)}`)
+    } catch (err) {
+      setResult('❌ ' + String(err))
+      setLoading(false)
+    }
+  }
+
+  const handleMultiTab = async () => {
+    setLoading(true)
+    setResult('')
+    try {
+      const tabs = await getAllTabsContent(10)
+      if (tabs.length === 0) { setResult(t('tools.noTabs')); setLoading(false); return }
+      const tabSummaries = tabs.map((tab, i) =>
+        `--- ${t('tools.tabLabel')} ${i + 1}: ${tab.title} ---\nURL: ${tab.url}\n${truncate(tab.text, 2000)}`
+      ).join('\n\n')
+      await runStream(`${t('aiPrompts.multiTabSummarize', { count: tabs.length })}\n\n${tabSummaries}`)
     } catch (err) {
       setResult('❌ ' + String(err))
       setLoading(false)
@@ -281,6 +298,15 @@ export default function ToolsView({ config }: Props) {
           <p style={{ fontSize: 12, color: 'var(--text2)' }}>{t('tools.summarizeDesc')}</p>
           <button className="btn btn-primary" onClick={handleSummarize} disabled={loading}>
             {loading ? <><span className="spinner" /> {t('tools.summarizing')}</> : t('tools.summarizeAction')}
+          </button>
+        </div>
+      )}
+
+      {activeTool === 'multitab' && (
+        <div className="gap-2">
+          <p style={{ fontSize: 12, color: 'var(--text2)' }}>{t('tools.multitabDesc')}</p>
+          <button className="btn btn-primary" onClick={handleMultiTab} disabled={loading}>
+            {loading ? <><span className="spinner" /> {t('tools.summarizing')}</> : t('tools.multitabAction')}
           </button>
         </div>
       )}

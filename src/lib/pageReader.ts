@@ -229,6 +229,52 @@ export function fileToBase64(file: File): Promise<string> {
   })
 }
 
+export interface TabSummaryItem {
+  tabId: number
+  url: string
+  title: string
+  text: string
+}
+
+/** Extract content from all open tabs in the current window */
+export async function getAllTabsContent(maxTabs = 10): Promise<TabSummaryItem[]> {
+  const tabs = await chrome.tabs.query({ currentWindow: true })
+  const blockedPrefixes = ['chrome://', 'chrome-extension://', 'about:', 'edge://', 'devtools://']
+  const validTabs = tabs.filter(
+    (tab) => tab.id && tab.url && !blockedPrefixes.some((p) => tab.url!.startsWith(p)),
+  ).slice(0, maxTabs)
+
+  const results: TabSummaryItem[] = []
+
+  const settled = await Promise.allSettled(
+    validTabs.map(async (tab) => {
+      const execResults = await chrome.scripting.executeScript({
+        target: { tabId: tab.id! },
+        func: () => {
+          const clone = document.cloneNode(true) as Document
+          clone.querySelectorAll('script,style,nav,header,footer,aside,[class*="ad"],[id*="ad"]').forEach((e) => e.remove())
+          const main = clone.querySelector('main, article, [role="main"]') ?? clone.body
+          return (main?.innerText ?? '').replace(/\n{3,}/g, '\n\n').trim().slice(0, 3000)
+        },
+      })
+      return {
+        tabId: tab.id!,
+        url: tab.url!,
+        title: tab.title ?? '',
+        text: execResults?.[0]?.result ?? '',
+      }
+    }),
+  )
+
+  for (const r of settled) {
+    if (r.status === 'fulfilled' && r.value.text) {
+      results.push(r.value)
+    }
+  }
+
+  return results
+}
+
 export function truncate(text: string, maxChars = 6000): string {
   if (text.length <= maxChars) return text
   return text.slice(0, maxChars) + `\n\n...(${text.length - maxChars}자 생략)`

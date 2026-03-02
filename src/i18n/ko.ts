@@ -105,6 +105,9 @@ const ko = {
     agentModeOff: '에이전트 모드 끄기',
     voiceInput: '음성 입력',
     voiceInputStop: '음성 입력 중지',
+    voiceModeOn: '음성 대화 모드 켜기',
+    voiceModeOff: '음성 대화 모드 끄기',
+    voiceModeBadge: '음성 대화',
     fileAttach: '파일 첨부',
     stopBtn: '중지',
     sources: '출처:',
@@ -170,6 +173,7 @@ const ko = {
   tools: {
     selectTitle: '도구 선택',
     summarize: { title: '페이지 요약', desc: '현재 페이지를 즉시 요약합니다' },
+    multitab: { title: '멀티 탭 요약', desc: '열린 탭들의 내용을 한번에 요약합니다' },
     youtube: { title: 'YouTube 요약', desc: '유튜브 영상 내용을 핵심만 추출합니다' },
     comments: { title: '댓글 분석', desc: 'YouTube 댓글 감정·토픽·인사이트 분석' },
     insight: { title: '인사이트 리포트', desc: 'YouTube 자막+댓글 종합 분석 리포트' },
@@ -179,6 +183,10 @@ const ko = {
     grammar: { title: '문법 교정', desc: '맞춤법·문법·어색한 표현 수정' },
     ocr: { title: '이미지 OCR', desc: '이미지에서 텍스트를 추출합니다' },
 
+    multitabAction: '열린 탭 모두 요약',
+    multitabDesc: '현재 창에 열린 모든 탭의 페이지 내용을 분석하고 요약합니다. (최대 10개)',
+    noTabs: '요약할 수 있는 탭이 없습니다.',
+    tabLabel: '탭',
     summarizeAction: '현재 페이지 요약 시작',
     summarizing: '요약 중...',
     summarizeDesc: '현재 열린 탭의 페이지 내용을 요약합니다.',
@@ -462,6 +470,7 @@ const ko = {
   aiPrompts: {
     newConversation: '새 대화',
     summarizePage: '다음 웹페이지 내용을 핵심 위주로 5-7개 항목으로 정리하여 요약해줘. 마지막에 1~2줄의 핵심 결론도 추가해줘.',
+    multiTabSummarize: '다음은 현재 브라우저에 열린 {count}개 탭의 내용입니다. 각 탭의 핵심 내용을 탭별로 간결하게 요약하고, 마지막에 전체 탭의 공통 주제나 관련성을 분석해줘.',
     summarizeYoutube: '다음은 YouTube 영상의 자막입니다. 핵심 내용을 구조적으로 요약해줘:',
     translateTo: '다음 텍스트를 자연스럽고 정확하게 {lang}로 번역해줘:',
     grammarCheck: '다음 텍스트의 맞춤법, 문법, 어색한 표현을 교정하고, 교정한 내용과 이유를 함께 설명해줘:',

@@ -35,6 +35,8 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
   const { conv, messages, isLoading, isSearching, agentMode, setAgentMode, personaId, setPersonaId, error, currentModel, setCurrentModel, sendMessage, startNew, loadConv, stop, editAndResend, regenerate } = useChat(config)
   const [, setTTSRefresh] = useState(0)
   const [, setSTTRefresh] = useState(0)
+  const [voiceMode, setVoiceMode] = useState(false)
+  const voiceModeRef = useRef(false)
   const [input, setInput] = useState('')
   const [attachment, setAttachment] = useState<{ name: string; base64: string } | null>(null)
   const [showPrompts, setShowPrompts] = useState(false)
@@ -108,6 +110,62 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
       })
     }
   }, [])
+
+  // Voice conversation mode: auto-send when STT gets final text
+  const startVoiceSTT = useCallback(() => {
+    STT.start((text, isFinal) => {
+      if (isFinal && text.trim()) {
+        setInput(text.trim())
+      }
+    })
+  }, [])
+
+  const toggleVoiceMode = useCallback(() => {
+    setVoiceMode((prev) => {
+      const next = !prev
+      voiceModeRef.current = next
+      if (next) {
+        // Start listening
+        startVoiceSTT()
+      } else {
+        // Stop everything
+        STT.stop()
+        TTS.stop()
+      }
+      return next
+    })
+  }, [startVoiceSTT])
+
+  // Voice mode: auto-TTS last assistant message when response completes
+  const prevLoadingRef = useRef(false)
+  useEffect(() => {
+    const wasLoading = prevLoadingRef.current
+    prevLoadingRef.current = isLoading
+    if (wasLoading && !isLoading && voiceModeRef.current && messages.length > 0) {
+      const lastMsg = messages[messages.length - 1]
+      if (lastMsg.role === 'assistant' && lastMsg.content) {
+        TTS.onEnd(() => {
+          if (voiceModeRef.current) startVoiceSTT()
+        })
+        TTS.speak(lastMsg.content, lastMsg.id)
+      }
+    }
+  }, [isLoading, messages, startVoiceSTT])
+
+  // Voice mode: auto-send when input is set by STT
+  useEffect(() => {
+    if (!voiceModeRef.current || !input.trim() || isLoading) return
+    if (STT.getState() === 'listening') return
+    const text = input.trim()
+    const timer = setTimeout(() => {
+      if (voiceModeRef.current && text) {
+        setInput('')
+        if (textareaRef.current) textareaRef.current.style.height = 'auto'
+        sendMessage(text)
+      }
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [input, isLoading, sendMessage]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleEdit = useCallback((msgId: string, newContent: string) => {
     editAndResend(msgId, newContent)
@@ -340,6 +398,8 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
         agentMode={agentMode}
         onToggleAgent={() => setAgentMode(!agentMode)}
         onSTT={handleSTT}
+        voiceMode={voiceMode}
+        onToggleVoiceMode={toggleVoiceMode}
         attachment={attachment}
         onRemoveAttachment={() => setAttachment(null)}
         onFileSelect={handleFile}
@@ -355,6 +415,7 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
         <ModelSelector value={currentModel} onChange={setCurrentModel} config={config} />
         <PersonaSelector value={personaId} onChange={setPersonaId} />
         {agentMode && <span className="agent-badge">🤖 {t('chat.agentMode')}</span>}
+        {voiceMode && <span className="agent-badge voice">🎙️ {t('chat.voiceModeBadge')}</span>}
         <span className="text-xs">{t('chat.promptHint')}</span>
       </div>
 

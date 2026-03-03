@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { AssistantRegistry, type CustomAssistant } from '../lib/assistantBuilder'
+import { useState, useEffect, useRef } from 'react'
+import { AssistantRegistry, type CustomAssistant, type AssistantCategory } from '../lib/assistantBuilder'
 import { useLocale } from '../i18n'
 
 interface Props {
@@ -30,6 +30,10 @@ export function AssistantSelector({ value, onChange, onCreateNew: _onCreateNew }
   const [newDesc, setNewDesc] = useState('')
   const [newModel, setNewModel] = useState('')
   const [newCategory, setNewCategory] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState<AssistantCategory | 'all'>('all')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [sortByPopular, setSortByPopular] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const load = () => AssistantRegistry.list().then(setAssistants)
   useEffect(() => { load() }, [])
@@ -77,8 +81,48 @@ export function AssistantSelector({ value, onChange, onCreateNew: _onCreateNew }
     load()
   }
 
-  const builtinAssistants = assistants.filter((a) => a.isBuiltIn)
-  const customAssistants = assistants.filter((a) => !a.isBuiltIn)
+  const handleExport = async () => {
+    const json = await AssistantRegistry.exportAssistants()
+    const blob = new Blob([json], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `assistants-${Date.now()}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    try {
+      const text = await file.text()
+      const result = await AssistantRegistry.importAssistants(text)
+      alert(t('assistant.importSuccess', { imported: result.imported, skipped: result.skipped }))
+      load()
+    } catch {
+      alert(t('assistant.importError'))
+    }
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  // Filter and sort assistants
+  let filtered = assistants
+  if (selectedCategory !== 'all') {
+    filtered = filtered.filter((a) => a.category === selectedCategory)
+  }
+  if (searchQuery.trim()) {
+    const query = searchQuery.toLowerCase()
+    filtered = filtered.filter(
+      (a) => a.name.toLowerCase().includes(query) || a.description.toLowerCase().includes(query),
+    )
+  }
+  if (sortByPopular) {
+    filtered = [...filtered].sort((a, b) => b.usageCount - a.usageCount)
+  }
+
+  const builtinAssistants = filtered.filter((a) => a.isBuiltIn)
+  const customAssistants = filtered.filter((a) => !a.isBuiltIn)
 
   return (
     <div className="persona-selector">
@@ -94,6 +138,61 @@ export function AssistantSelector({ value, onChange, onCreateNew: _onCreateNew }
 
       {showList && (
         <div className="persona-dropdown">
+          {/* Category tabs */}
+          <div style={{ display: 'flex', gap: 4, marginBottom: 8, flexWrap: 'wrap' }}>
+            {(['all', 'translate', 'document', 'analysis', 'code', 'writing', 'other'] as const).map((cat) => (
+              <button
+                key={cat}
+                className={`btn btn-xs ${selectedCategory === cat ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => setSelectedCategory(cat)}
+                style={{ fontSize: 11 }}
+              >
+                {t(`assistant.category${cat.charAt(0).toUpperCase() + cat.slice(1)}` as never)}
+              </button>
+            ))}
+          </div>
+
+          {/* Search and controls */}
+          <div style={{ display: 'flex', gap: 4, marginBottom: 8 }}>
+            <input
+              className="input"
+              style={{ flex: 1, fontSize: 12, padding: '4px 8px' }}
+              placeholder={t('assistant.searchAssistant')}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <button
+              className={`btn btn-xs ${sortByPopular ? 'btn-primary' : 'btn-ghost'}`}
+              onClick={() => setSortByPopular(!sortByPopular)}
+              title={t('assistant.sortPopular')}
+            >
+              ⭐
+            </button>
+          </div>
+
+          {/* Export/Import buttons */}
+          <div style={{ display: 'flex', gap: 4, marginBottom: 8 }}>
+            <button className="btn btn-xs btn-ghost" onClick={handleExport} style={{ flex: 1, fontSize: 11 }}>
+              ⬇️ {t('assistant.exportAssistants')}
+            </button>
+            <button
+              className="btn btn-xs btn-ghost"
+              onClick={() => fileInputRef.current?.click()}
+              style={{ flex: 1, fontSize: 11 }}
+            >
+              ⬆️ {t('assistant.importAssistants')}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json"
+              style={{ display: 'none' }}
+              onChange={handleImport}
+            />
+          </div>
+
+          <div className="persona-divider" />
+
           {builtinAssistants.length > 0 && (
             <>
               <div className="assistant-category-header">{t('assistant.builtIn')}</div>

@@ -22,8 +22,9 @@ import ImageGenTool from './tools/ImageGenTool'
 import DocWriteTool from './tools/DocWriteTool'
 import DocTranslateTool from './tools/DocTranslateTool'
 import DocTemplateTool from './tools/DocTemplateTool'
+import PptxPlanTool from './tools/PptxPlanTool'
 
-type ToolId = 'summarize' | 'multitab' | 'translate' | 'write' | 'docWrite' | 'youtube' | 'ocr' | 'batchOcr' | 'grammar' | 'comments' | 'pdf' | 'insight' | 'dataAnalysis' | 'imageGen' | 'docTranslate' | 'docTemplate'
+type ToolId = 'summarize' | 'multitab' | 'translate' | 'write' | 'docWrite' | 'youtube' | 'ocr' | 'batchOcr' | 'grammar' | 'comments' | 'pdf' | 'insight' | 'dataAnalysis' | 'imageGen' | 'docTranslate' | 'docTemplate' | 'pptxPlan'
 
 interface Props { config: Config }
 
@@ -42,6 +43,7 @@ export default function ToolsView({ config }: Props) {
     { id: 'translate', icon: '🌐' },
     { id: 'write', icon: '✏️' },
     { id: 'docWrite', icon: '📝' },
+    { id: 'pptxPlan', icon: '📊' },
     { id: 'grammar', icon: '✅' },
     { id: 'ocr', icon: '🔍' },
     { id: 'batchOcr', icon: '📸' },
@@ -187,6 +189,7 @@ export default function ToolsView({ config }: Props) {
       case 'translate': return <TranslateTool {...commonProps} langs={LANGS} />
       case 'write': return <WriteTool {...commonProps} />
       case 'docWrite': return <DocWriteTool {...commonProps} runStreamDirect={runStreamDirect} />
+      case 'pptxPlan': return <PptxPlanTool {...commonProps} runStreamDirect={runStreamDirect} getProvider={getProvider} activeModel={activeModel} />
       case 'grammar': return <GrammarTool {...commonProps} />
       case 'ocr': return <OcrTool {...commonProps} runVisionStream={runVisionStream} />
       case 'batchOcr': return <BatchOcrTool {...commonProps} runVisionDirect={runVisionDirect} />

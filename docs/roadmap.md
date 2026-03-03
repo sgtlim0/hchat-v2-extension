@@ -1,7 +1,7 @@
 # H Chat 로드맵
 
 > 마지막 업데이트: 2026-03-03
-> 현재 버전: v4.4
+> 현재 버전: v4.5
 
 ---
 
@@ -36,6 +36,14 @@
 - **DALL-E 3**: 3가지 크기, Standard/HD 품질, Vivid/Natural 스타일, 비용 추정, 세션 히스토리
 - 498 tests, 30 files
 
+### v4.5 — 추가 UX 개선 ✅
+
+| 기능 | 설명 |
+|------|------|
+| 번역 진행 상황 표시 | timeFormat.ts 유틸리티 (ko/en/ja 시간 포맷, ETA 계산), DocTranslateTool 경과 시간 + 예상 남은 시간 표시, performance.now() 기반 청크 타이밍 |
+| 템플릿 갤러리 공유 | docTemplateStore.ts exportTemplates/importTemplates 메서드, 갤러리 탭 내보내기/가져오기 버튼, JSON 포맷 (version 1), 중복 건너뛰기, 최대 10개 제한 |
+| 도구 | 16개 도구, 649 tests (36 files), 670+ i18n 키 (ko/en/ja) |
+
 ### v4.4 — UX 개선 ✅
 
 | 기능 | 설명 |
@@ -55,29 +63,17 @@
 
 ---
 
-## 현재 수치 (v4.4)
+## 현재 수치 (v4.5)
 
 | 항목 | 수치 |
 |------|------|
-| 테스트 | 620 tests, 35 files |
+| 테스트 | 649 tests, 36 files |
 | 도구 | 16개 (요약, 멀티탭, 번역, 글쓰기, 문서작성, YouTube, OCR, 배치OCR, 문법, 댓글분석, PDF, 인사이트, 데이터분석, 이미지생성, 문서번역, 템플릿문서) |
-| 언어 | 3개 (ko/en/ja), 660+ i18n keys |
+| 언어 | 3개 (ko/en/ja), 670+ i18n keys |
 | AI 프로바이더 | 3개 (Bedrock/OpenAI/Gemini) |
 | 모델 | 9개 (Claude Sonnet 4.6/Opus 4.6/Haiku 4.5, GPT-4o/4o-mini/o1-mini, Gemini 2.0 Flash/1.5 Pro/1.5 Flash) |
 | 비서 | 8개 내장 + 커스텀 빌더 |
 | 번들 | sidepanel 86KB (31KB gzip), 7 lazy chunks + xlsx/docx/jszip 동적 임포트 |
-
----
-
-## 향후 로드맵
-
-### v4.5 — 추가 UX 개선 (예정)
-
-| 항목 | 설명 | 난이도 |
-|------|------|--------|
-| HWP 안내 개선 | HWP → DOCX 변환 가이드 + 인라인 도움말 | 낮음 |
-| 번역 진행 상황 표시 | 청크별 진행률 바, 예상 남은 시간 | 낮음 |
-| 템플릿 갤러리 공유 | 템플릿 내보내기/가져오기 (JSON 포맷) | 중간 |
 
 ---
 

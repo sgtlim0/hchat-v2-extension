@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import {
   parseDocxTemplate,
   TemplateParseError,
@@ -12,6 +12,7 @@ import {
 import { markdownToDocx } from '../../lib/docGenerator'
 import { DocProjects } from '../../lib/docProjects'
 import { downloadBlob } from '../../lib/exportChat'
+import { DocTemplateStore, base64ToFile, type SavedTemplate } from '../../lib/docTemplateStore'
 import type { ToolPanelProps } from './types'
 
 type Props = Pick<ToolPanelProps, 'loading' | 'setLoading' | 'setResult' | 'showToast' | 't' | 'locale'> & {
@@ -30,8 +31,13 @@ export default function DocTemplateTool({
   const [progress, setProgress] = useState({ current: 0, total: 0 })
   const [suggesting, setSuggesting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const originalFileRef = useRef<File | null>(null)
+  const [activeTab, setActiveTab] = useState<'gallery' | 'upload'>('upload')
+  const [savedTemplates, setSavedTemplates] = useState<SavedTemplate[]>([])
+  const [templateName, setTemplateName] = useState('')
 
   const handleFile = useCallback(async (file: File) => {
+    originalFileRef.current = file
     setResult('')
     setTemplate(null)
     setFieldValues({})
@@ -179,6 +185,34 @@ export default function DocTemplateTool({
     else if (step === 'result') setStep('fields')
   }, [step])
 
+  const loadGallery = useCallback(async () => {
+    const list = await DocTemplateStore.list()
+    setSavedTemplates(list)
+  }, [])
+
+  useEffect(() => {
+    loadGallery()
+  }, [loadGallery])
+
+  const handleGallerySelect = useCallback(async (saved: SavedTemplate) => {
+    const file = base64ToFile(saved.docxBase64, `${saved.name}.docx`)
+    await DocTemplateStore.incrementUsage(saved.id)
+    await handleFile(file)
+  }, [handleFile])
+
+  const handleSaveToGallery = useCallback(async () => {
+    if (!template || !originalFileRef.current) return
+    const name = templateName.trim() || template.title || 'Untitled Template'
+    try {
+      await DocTemplateStore.save(name, originalFileRef.current, template.fields.length, 'general')
+      showToast(t('tools.docTemplate.templateSaved'))
+      setTemplateName('')
+      loadGallery()
+    } catch (err) {
+      showToast('Error: ' + String(err))
+    }
+  }, [template, templateName, showToast, t, loadGallery])
+
   return (
     <div className="gap-2">
       <p style={{ fontSize: 12, color: 'var(--text2)' }}>
@@ -193,30 +227,97 @@ export default function DocTemplateTool({
 
       {/* Step 1: Upload */}
       {step === 'upload' && (
-        <div
-          onDrop={handleDrop}
-          onDragOver={handleDragOver}
-          onClick={() => fileInputRef.current?.click()}
-          style={{
-            border: '2px dashed var(--border)',
-            borderRadius: 8,
-            padding: '20px 16px',
-            textAlign: 'center',
-            cursor: 'pointer',
-            fontSize: 12,
-            color: 'var(--text2)',
-            transition: 'border-color 0.2s',
-          }}
-        >
-          {t('tools.docTemplate.uploadZone')}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".docx"
-            style={{ display: 'none' }}
-            onChange={handleFileInput}
-          />
-        </div>
+        <>
+          {/* Tab switcher */}
+          <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid var(--border)', paddingBottom: 4 }}>
+            <button
+              className={`btn btn-xs ${activeTab === 'gallery' ? 'btn-primary' : 'btn-ghost'}`}
+              onClick={() => setActiveTab('gallery')}
+            >
+              {t('tools.docTemplate.gallery')} ({savedTemplates.length})
+            </button>
+            <button
+              className={`btn btn-xs ${activeTab === 'upload' ? 'btn-primary' : 'btn-ghost'}`}
+              onClick={() => setActiveTab('upload')}
+            >
+              {t('tools.docTemplate.uploadZone').split('(')[0].trim()}
+            </button>
+          </div>
+
+          {activeTab === 'upload' && (
+            <div
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onClick={() => fileInputRef.current?.click()}
+              style={{
+                border: '2px dashed var(--border)',
+                borderRadius: 8,
+                padding: '20px 16px',
+                textAlign: 'center',
+                cursor: 'pointer',
+                fontSize: 12,
+                color: 'var(--text2)',
+                transition: 'border-color 0.2s',
+              }}
+            >
+              {t('tools.docTemplate.uploadZone')}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".docx"
+                style={{ display: 'none' }}
+                onChange={handleFileInput}
+              />
+            </div>
+          )}
+
+          {activeTab === 'gallery' && (
+            <>
+              {savedTemplates.length === 0 && (
+                <div style={{ textAlign: 'center', padding: 20, color: 'var(--text3)', fontSize: 12 }}>
+                  {t('tools.docTemplate.noSavedTemplates')}
+                </div>
+              )}
+              {savedTemplates.map((st) => (
+                <div
+                  key={st.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '8px 10px',
+                    borderRadius: 8,
+                    border: '1px solid var(--border)',
+                    cursor: 'pointer',
+                    transition: 'background 0.15s',
+                  }}
+                  onClick={() => handleGallerySelect(st)}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg2)' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = '' }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {st.name}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text3)' }}>
+                      {st.fieldCount} fields · {t('assistant.usageCount', { n: st.usageCount })}
+                    </div>
+                  </div>
+                  <button
+                    className="btn btn-ghost btn-xs"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      DocTemplateStore.delete(st.id).then(() => loadGallery())
+                    }}
+                    style={{ color: 'var(--danger)', flexShrink: 0 }}
+                  >
+                    {t('common.delete')}
+                  </button>
+                </div>
+              ))}
+            </>
+          )}
+        </>
       )}
 
       {/* Step 2: Fields */}
@@ -241,6 +342,25 @@ export default function DocTemplateTool({
               : t('tools.docTemplate.suggestAll')
             }
           </button>
+
+          {originalFileRef.current && (
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <input
+                className="input"
+                placeholder={t('tools.docTemplate.templateName')}
+                value={templateName}
+                onChange={(e) => setTemplateName(e.target.value)}
+                style={{ flex: 1, fontSize: 12 }}
+              />
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={handleSaveToGallery}
+                style={{ flexShrink: 0 }}
+              >
+                {t('tools.docTemplate.saveTemplate')}
+              </button>
+            </div>
+          )}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {template.fields.map((field) => (

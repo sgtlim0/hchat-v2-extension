@@ -71,6 +71,7 @@ describe('detectFormat', () => {
     const file = new File([''], 'noext')
     expect(() => detectFormat(file)).toThrow(DocTranslateError)
   })
+
 })
 
 // --- extractTexts ---
@@ -127,8 +128,9 @@ describe('translateChunks', () => {
 
     const result = await translateChunks(chunks, 'en', 'ko', translateFn, onProgress)
 
-    expect(result).toHaveLength(2)
-    expect(result[0]).toBe('translated: Translate the following text from en to ko.\nPreserve the original formatting (newlines, tabs, spacing).\nOutput ONLY the translated text, nothing else.\n\nHello')
+    expect(result.translated).toHaveLength(2)
+    expect(result.translated[0]).toBe('translated: Translate the following text from en to ko.\nPreserve the original formatting (newlines, tabs, spacing).\nOutput ONLY the translated text, nothing else.\n\nHello')
+    expect(result.cancelled).toBe(false)
     expect(translateFn).toHaveBeenCalledTimes(2)
   })
 
@@ -150,7 +152,8 @@ describe('translateChunks', () => {
     const translateFn = vi.fn()
     const onProgress = vi.fn()
     const result = await translateChunks([], 'en', 'ko', translateFn, onProgress)
-    expect(result).toEqual([])
+    expect(result.translated).toEqual([])
+    expect(result.cancelled).toBe(false)
     expect(translateFn).not.toHaveBeenCalled()
   })
 
@@ -188,6 +191,98 @@ describe('translateChunks', () => {
     const prompt = translateFn.mock.calls[0][0] as string
     expect(prompt).not.toContain('from auto')
     expect(prompt).toContain('to ko')
+  })
+})
+
+describe('translateChunks - 취소 기능', () => {
+  it('정상 완료 시 cancelled: false', async () => {
+    const chunks = ['Hello', 'World']
+    const translateFn = vi.fn(async (text: string) => `t:${text}`)
+    const onProgress = vi.fn()
+    const result = await translateChunks(chunks, 'en', 'ko', translateFn, onProgress)
+    expect(result.cancelled).toBe(false)
+    expect(result.translated).toHaveLength(2)
+  })
+
+  it('중간 취소 시 부분 결과 반환', async () => {
+    const chunks = ['A', 'B', 'C', 'D']
+    const controller = new AbortController()
+    let callCount = 0
+    const translateFn = vi.fn(async (text: string) => {
+      callCount++
+      if (callCount === 2) controller.abort()
+      return `t:${text}`
+    })
+    const onProgress = vi.fn()
+    const result = await translateChunks(chunks, 'en', 'ko', translateFn, onProgress, controller.signal)
+    expect(result.cancelled).toBe(true)
+    expect(result.translated.length).toBeLessThan(4)
+    expect(result.translated.length).toBeGreaterThan(0)
+  })
+
+  it('첫 청크 전 취소', async () => {
+    const chunks = ['A', 'B']
+    const controller = new AbortController()
+    controller.abort() // Pre-abort
+    const translateFn = vi.fn(async (text: string) => text)
+    const onProgress = vi.fn()
+    const result = await translateChunks(chunks, 'en', 'ko', translateFn, onProgress, controller.signal)
+    expect(result.cancelled).toBe(true)
+    expect(result.translated).toHaveLength(0)
+    expect(translateFn).not.toHaveBeenCalled()
+  })
+
+  it('마지막 청크 후에는 cancelled: false', async () => {
+    const chunks = ['A']
+    const controller = new AbortController()
+    const translateFn = vi.fn(async (text: string) => {
+      // Abort after translation completes
+      return `t:${text}`
+    })
+    const onProgress = vi.fn()
+    const result = await translateChunks(chunks, 'en', 'ko', translateFn, onProgress, controller.signal)
+    expect(result.cancelled).toBe(false)
+    expect(result.translated).toHaveLength(1)
+  })
+
+  it('signal 없이도 정상 동작 (하위 호환)', async () => {
+    const chunks = ['Hello']
+    const translateFn = vi.fn(async (text: string) => `t:${text}`)
+    const onProgress = vi.fn()
+    const result = await translateChunks(chunks, 'en', 'ko', translateFn, onProgress)
+    expect(result.cancelled).toBe(false)
+    expect(result.translated).toHaveLength(1)
+  })
+
+  it('빈 청크 배열 + signal', async () => {
+    const controller = new AbortController()
+    const translateFn = vi.fn()
+    const onProgress = vi.fn()
+    const result = await translateChunks([], 'en', 'ko', translateFn, onProgress, controller.signal)
+    expect(result.cancelled).toBe(false)
+    expect(result.translated).toEqual([])
+  })
+
+  it('부분 결과로 buildOutput 동작 확인', async () => {
+    const chunks = ['Hello']
+    const file = new File(['Hello'], 'test.txt', { type: 'text/plain' })
+    const result = await buildOutput(chunks, file, 'txt')
+    expect(result.blob).toBeInstanceOf(Blob)
+    expect(result.filename).toBe('test_translated.txt')
+  })
+
+  it('취소된 부분 결과의 진행률 확인', async () => {
+    const chunks = ['A', 'B', 'C']
+    const controller = new AbortController()
+    const translateFn = vi.fn(async (text: string) => {
+      if (text.includes('B')) controller.abort()
+      return `t:${text}`
+    })
+    const onProgress = vi.fn()
+    const result = await translateChunks(chunks, 'en', 'ko', translateFn, onProgress, controller.signal)
+    expect(result.cancelled).toBe(true)
+    // Progress should have been called for each processed chunk
+    expect(onProgress).toHaveBeenCalled()
   })
 })
 

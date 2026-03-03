@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { DocProjects, type DocProjectIndex } from '../../lib/docProjects'
+import type { DocType } from '../../lib/docGenerator'
 import type { TFunction } from '../../i18n'
 
 interface Props {
@@ -9,9 +10,13 @@ interface Props {
   showToast: (msg: string) => void
 }
 
+const DOC_TYPES: (DocType | null)[] = [null, 'report', 'email', 'proposal', 'meeting', 'memo']
+
 export default function DocProjectList({ t, onSelect, onBack, showToast }: Props) {
   const [projects, setProjects] = useState<DocProjectIndex[]>([])
   const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [typeFilter, setTypeFilter] = useState<DocType | null>(null)
 
   const loadProjects = useCallback(async () => {
     setLoading(true)
@@ -34,11 +39,24 @@ export default function DocProjectList({ t, onSelect, onBack, showToast }: Props
     loadProjects()
   }, [t, showToast, loadProjects])
 
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase()
+    return projects.filter((p) =>
+      (!search || p.title.toLowerCase().includes(q) || (p.topic ?? '').toLowerCase().includes(q)) &&
+      (!typeFilter || p.type === typeFilter),
+    )
+  }, [projects, search, typeFilter])
+
   const formatDate = (timestamp: number) => {
     return new Date(timestamp).toLocaleString()
   }
 
   const typeLabel = (type: string) => {
+    return t(`tools.docWrite.type_${type}`) || type
+  }
+
+  const filterLabel = (type: DocType | null) => {
+    if (type === null) return t('tools.docProject.filterAll')
     return t(`tools.docWrite.type_${type}`) || type
   }
 
@@ -53,19 +71,42 @@ export default function DocProjectList({ t, onSelect, onBack, showToast }: Props
         </span>
       </div>
 
+      {/* Search input */}
+      <input
+        className="input"
+        placeholder={t('tools.docProject.searchProjects')}
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        style={{ fontSize: 12 }}
+      />
+
+      {/* Type filter chips */}
+      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+        {DOC_TYPES.map((type) => (
+          <button
+            key={type ?? 'all'}
+            className={`btn btn-xs ${typeFilter === type ? 'btn-primary' : 'btn-ghost'}`}
+            onClick={() => setTypeFilter(type)}
+            style={{ fontSize: 11 }}
+          >
+            {filterLabel(type)}
+          </button>
+        ))}
+      </div>
+
       {loading && (
         <div style={{ textAlign: 'center', padding: 20, color: 'var(--text3)' }}>
           <span className="spinner" />
         </div>
       )}
 
-      {!loading && projects.length === 0 && (
+      {!loading && filtered.length === 0 && (
         <div style={{ textAlign: 'center', padding: 20, color: 'var(--text3)', fontSize: 12 }}>
-          {t('tools.docWrite.noProjects')}
+          {search || typeFilter ? t('tools.docProject.noResults') : t('tools.docWrite.noProjects')}
         </div>
       )}
 
-      {!loading && projects.map((p) => (
+      {!loading && filtered.map((p) => (
         <div
           key={p.id}
           style={{

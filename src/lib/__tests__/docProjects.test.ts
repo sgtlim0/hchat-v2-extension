@@ -318,3 +318,56 @@ describe('DocProjects.restoreVersion', () => {
     expect(restored!.updatedAt).toBeGreaterThanOrEqual(beforeRestore)
   })
 })
+
+// --- search ---
+
+describe('DocProjects.search', () => {
+  beforeEach(async () => {
+    await chrome.storage.local.clear()
+    await DocProjects.create({
+      title: '주간 보고서', type: 'report', topic: 'AI 프로젝트',
+      context: '', outline: [], sections: [], markdown: '',
+    })
+    await DocProjects.create({
+      title: '회의록 정리', type: 'meeting', topic: '팀 미팅',
+      context: '', outline: [], sections: [], markdown: '',
+    })
+    await DocProjects.create({
+      title: '제안서 초안', type: 'proposal', topic: 'AI 도입',
+      context: '', outline: [], sections: [], markdown: '',
+    })
+  })
+
+  it('제목으로 검색', async () => {
+    const results = await DocProjects.search('보고서')
+    expect(results).toHaveLength(1)
+    expect(results[0].title).toBe('주간 보고서')
+  })
+
+  it('주제로 검색', async () => {
+    const results = await DocProjects.search('AI')
+    expect(results).toHaveLength(2)
+  })
+
+  it('유형 필터링', async () => {
+    const results = await DocProjects.search('', 'meeting')
+    expect(results).toHaveLength(1)
+    expect(results[0].type).toBe('meeting')
+  })
+
+  it('복합 필터 (검색 + 유형)', async () => {
+    const results = await DocProjects.search('AI', 'report')
+    expect(results).toHaveLength(1)
+    expect(results[0].title).toBe('주간 보고서')
+  })
+
+  it('빈 결과', async () => {
+    const results = await DocProjects.search('존재하지않는검색어')
+    expect(results).toHaveLength(0)
+  })
+
+  it('대소문자 무시', async () => {
+    const results = await DocProjects.search('ai')
+    expect(results).toHaveLength(2)
+  })
+})

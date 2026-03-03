@@ -5,7 +5,7 @@ export type SupportedFormat = 'txt' | 'xlsx' | 'csv' | 'pptx' | 'pdf'
 export interface TranslationProgress {
   current: number
   total: number
-  status: 'parsing' | 'translating' | 'building' | 'done' | 'error'
+  status: 'parsing' | 'translating' | 'building' | 'done' | 'error' | 'cancelled'
 }
 
 export interface TranslationResult {
@@ -137,11 +137,16 @@ export async function translateChunks(
   targetLang: string,
   translateFn: (text: string) => Promise<string>,
   onProgress: (p: TranslationProgress) => void,
-): Promise<string[]> {
+  signal?: AbortSignal,
+): Promise<{ translated: string[]; cancelled: boolean }> {
   const total = chunks.length
   const results: string[] = []
 
   for (let i = 0; i < chunks.length; i++) {
+    if (signal?.aborted) {
+      return { translated: results, cancelled: true }
+    }
+
     onProgress({ current: i, total, status: 'translating' })
 
     try {
@@ -156,7 +161,7 @@ export async function translateChunks(
   }
 
   onProgress({ current: total, total, status: 'translating' })
-  return results
+  return { translated: results, cancelled: false }
 }
 
 function buildTranslatePrompt(

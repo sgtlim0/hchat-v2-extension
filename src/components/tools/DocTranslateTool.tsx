@@ -39,6 +39,7 @@ export default function DocTranslateTool({
   const [translationResult, setTranslationResult] = useState<TranslationResult | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const dropZoneRef = useRef<HTMLDivElement>(null)
+  const abortRef = useRef<AbortController | null>(null)
 
   const costInfo = chunks.length > 0 ? estimateCost(chunks) : null
 
@@ -103,6 +104,7 @@ export default function DocTranslateTool({
     setLoading(true)
     setResult('')
     setTranslationResult(null)
+    abortRef.current = new AbortController()
 
     try {
       const srcLang = sourceLang === 'auto'
@@ -112,20 +114,31 @@ export default function DocTranslateTool({
 
       setProgress({ current: 0, total: chunks.length, status: 'parsing' })
 
-      const translated = await translateChunks(
+      const { translated, cancelled } = await translateChunks(
         chunks,
         srcLang,
         tgtLang,
         translateFn,
         setProgress,
+        abortRef.current.signal,
       )
 
-      setProgress({ current: chunks.length, total: chunks.length, status: 'building' })
-
-      const result = await buildOutput(translated, file, format)
-      setTranslationResult(result)
-      setProgress({ current: chunks.length, total: chunks.length, status: 'done' })
-      setResult(t('tools.docTranslate.complete'))
+      if (cancelled) {
+        setProgress({ current: translated.length, total: chunks.length, status: 'cancelled' })
+        if (translated.length > 0) {
+          const result = await buildOutput(translated, file, format)
+          setTranslationResult(result)
+          setResult(t('tools.docTranslate.translationCancelled'))
+        } else {
+          setResult(t('tools.docTranslate.translationCancelled'))
+        }
+      } else {
+        setProgress({ current: chunks.length, total: chunks.length, status: 'building' })
+        const result = await buildOutput(translated, file, format)
+        setTranslationResult(result)
+        setProgress({ current: chunks.length, total: chunks.length, status: 'done' })
+        setResult(t('tools.docTranslate.complete'))
+      }
     } catch (err) {
       setProgress((prev) =>
         prev ? { ...prev, status: 'error' } : { current: 0, total: 0, status: 'error' },
@@ -137,8 +150,13 @@ export default function DocTranslateTool({
       }
     } finally {
       setLoading(false)
+      abortRef.current = null
     }
   }, [file, format, chunks, sourceLang, targetLang, costInfo, setLoading, setResult, translateFn, t])
+
+  const handleCancel = useCallback(() => {
+    abortRef.current?.abort()
+  }, [])
 
   const handleDownload = useCallback(() => {
     if (!translationResult) return
@@ -233,16 +251,23 @@ export default function DocTranslateTool({
           )}
 
           {/* Translate button */}
-          <button
-            className="btn btn-primary"
-            onClick={handleTranslate}
-            disabled={loading}
-          >
-            {loading
-              ? <><span className="spinner" /> {t('tools.docTranslate.translating')}</>
-              : t('tools.docTranslate.startTranslate')
-            }
-          </button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              className="btn btn-primary"
+              onClick={handleTranslate}
+              disabled={loading}
+            >
+              {loading
+                ? <><span className="spinner" /> {t('tools.docTranslate.translating')}</>
+                : t('tools.docTranslate.startTranslate')
+              }
+            </button>
+            {loading && (
+              <button className="btn btn-secondary btn-sm" onClick={handleCancel} style={{ marginLeft: 0 }}>
+                {t('tools.docTranslate.cancelTranslation')}
+              </button>
+            )}
+          </div>
 
           {/* Progress bar */}
           {progress && progress.status === 'translating' && (

@@ -9,6 +9,7 @@ export interface StorageBreakdown {
   usage: number
   config: number
   docProjects: number
+  docTemplates: number
   other: number
   conversationCount: number
 }
@@ -32,6 +33,7 @@ export async function analyzeStorage(): Promise<StorageBreakdown> {
     usage: 0,
     config: 0,
     docProjects: 0,
+    docTemplates: 0,
     other: 0,
     conversationCount: 0,
   }
@@ -53,6 +55,8 @@ export async function analyzeStorage(): Promise<StorageBreakdown> {
       breakdown.config += size
     } else if (key === 'hchat:doc-projects' || key.startsWith('hchat:doc-project:')) {
       breakdown.docProjects += size
+    } else if (key === 'hchat:doc-templates') {
+      breakdown.docTemplates += size
     } else {
       breakdown.other += size
     }

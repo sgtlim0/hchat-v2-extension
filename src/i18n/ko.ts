@@ -280,6 +280,11 @@ const ko = {
       noProjects: '저장된 프로젝트가 없습니다',
       projectSaved: '프로젝트가 저장되었습니다',
     },
+    docProject: {
+      searchProjects: '프로젝트 검색...',
+      filterAll: '전체',
+      noResults: '검색 결과가 없습니다',
+    },
     docTranslate: {
       title: '문서 번역',
       desc: '문서 파일을 업로드하여 포맷을 유지하면서 번역합니다',
@@ -297,6 +302,9 @@ const ko = {
       complete: '번역 완료!',
       costWarning: '대용량 파일입니다. 번역 비용이 {cost} 이상 예상됩니다. 계속하시겠습니까?',
       pdfNote: 'PDF는 텍스트 추출 후 Markdown으로 번역됩니다. 원본 레이아웃은 유지되지 않습니다.',
+      cancelTranslation: '번역 중단',
+      translationCancelled: '번역이 중단되었습니다. 부분 결과를 다운로드할 수 있습니다.',
+      partialResult: '부분 결과',
     },
     docTemplate: {
       title: '템플릿 문서',
@@ -316,6 +324,14 @@ const ko = {
       preview: '미리보기',
       saveAsProject: '프로젝트로 저장',
       savedAsProject: '프로젝트로 저장되었습니다',
+      gallery: '갤러리',
+      saveTemplate: '템플릿 저장',
+      savedTemplates: '저장된 템플릿',
+      useTemplate: '템플릿 사용',
+      deleteTemplate: '템플릿 삭제',
+      noSavedTemplates: '저장된 템플릿이 없습니다',
+      templateSaved: '템플릿이 저장되었습니다',
+      templateName: '템플릿 이름',
     },
     dataAnalysis: {
       title: '데이터 분석',

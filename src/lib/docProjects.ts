@@ -32,6 +32,7 @@ export interface DocProjectIndex {
   id: string
   title: string
   type: DocType
+  topic?: string
   updatedAt: number
 }
 
@@ -56,6 +57,18 @@ export const DocProjects = {
   async list(): Promise<DocProjectIndex[]> {
     const index = await getIndex()
     return index.sort((a, b) => b.updatedAt - a.updatedAt)
+  },
+
+  /** Search projects by title/topic with optional type filter */
+  async search(query: string, typeFilter?: DocType): Promise<DocProjectIndex[]> {
+    const index = await getIndex()
+    const q = query.toLowerCase()
+    return index
+      .filter((p) =>
+        (!query || p.title.toLowerCase().includes(q) || (p.topic ?? '').toLowerCase().includes(q)) &&
+        (!typeFilter || p.type === typeFilter),
+      )
+      .sort((a, b) => b.updatedAt - a.updatedAt)
   },
 
   /** Get a single project by ID */
@@ -93,7 +106,7 @@ export const DocProjects = {
     const index = await getIndex()
     const newIndex = [
       ...index,
-      { id: project.id, title: project.title, type: project.type, updatedAt: now },
+      { id: project.id, title: project.title, type: project.type, topic: data.topic, updatedAt: now },
     ]
     await saveIndex(newIndex)
 

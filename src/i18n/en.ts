@@ -280,6 +280,11 @@ const en = {
       noProjects: 'No saved projects',
       projectSaved: 'Project saved',
     },
+    docProject: {
+      searchProjects: 'Search projects...',
+      filterAll: 'All',
+      noResults: 'No results found',
+    },
     docTranslate: {
       title: 'Document Translation',
       desc: 'Upload a document file to translate while preserving formatting',
@@ -297,6 +302,9 @@ const en = {
       complete: 'Translation complete!',
       costWarning: 'Large file. Estimated translation cost is {cost} or more. Continue?',
       pdfNote: 'PDF will be translated as Markdown after text extraction. Original layout is not preserved.',
+      cancelTranslation: 'Cancel Translation',
+      translationCancelled: 'Translation cancelled. You can download partial results.',
+      partialResult: 'Partial Result',
     },
     docTemplate: {
       title: 'Template Document',
@@ -316,6 +324,14 @@ const en = {
       preview: 'Preview',
       saveAsProject: 'Save as Project',
       savedAsProject: 'Saved as project',
+      gallery: 'Gallery',
+      saveTemplate: 'Save Template',
+      savedTemplates: 'Saved Templates',
+      useTemplate: 'Use Template',
+      deleteTemplate: 'Delete Template',
+      noSavedTemplates: 'No saved templates',
+      templateSaved: 'Template saved',
+      templateName: 'Template name',
     },
     dataAnalysis: {
       title: 'Data Analysis',

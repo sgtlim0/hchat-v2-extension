@@ -279,6 +279,11 @@ const ja = {
       noProjects: '保存されたプロジェクトはありません',
       projectSaved: 'プロジェクトが保存されました',
     },
+    docProject: {
+      searchProjects: 'プロジェクトを検索...',
+      filterAll: '全て',
+      noResults: '検索結果がありません',
+    },
     docTranslate: {
       title: 'ドキュメント翻訳',
       desc: 'ドキュメントファイルをアップロードしてフォーマットを維持しながら翻訳します',
@@ -296,6 +301,9 @@ const ja = {
       complete: '翻訳完了！',
       costWarning: '大容量ファイルです。翻訳コストが{cost}以上になる見込みです。続行しますか？',
       pdfNote: 'PDFはテキスト抽出後、Markdownとして翻訳されます。元のレイアウトは維持されません。',
+      cancelTranslation: '翻訳を中断',
+      translationCancelled: '翻訳が中断されました。部分的な結果をダウンロードできます。',
+      partialResult: '部分結果',
     },
     docTemplate: {
       title: 'テンプレートドキュメント',
@@ -315,6 +323,14 @@ const ja = {
       preview: 'プレビュー',
       saveAsProject: 'プロジェクトとして保存',
       savedAsProject: 'プロジェクトとして保存されました',
+      gallery: 'ギャラリー',
+      saveTemplate: 'テンプレートを保存',
+      savedTemplates: '保存されたテンプレート',
+      useTemplate: 'テンプレートを使用',
+      deleteTemplate: 'テンプレートを削除',
+      noSavedTemplates: '保存されたテンプレートはありません',
+      templateSaved: 'テンプレートが保存されました',
+      templateName: 'テンプレート名',
     },
     dataAnalysis: {
       title: 'データ分析',

@@ -305,6 +305,9 @@ const en = {
       cancelTranslation: 'Cancel Translation',
       translationCancelled: 'Translation cancelled. You can download partial results.',
       partialResult: 'Partial Result',
+      timeRemaining: 'Estimated time remaining: {time}',
+      elapsed: 'Elapsed: {time}',
+      estimating: 'Estimating...',
     },
     docTemplate: {
       title: 'Template Document',
@@ -332,6 +335,12 @@ const en = {
       noSavedTemplates: 'No saved templates',
       templateSaved: 'Template saved',
       templateName: 'Template name',
+      exportTemplates: 'Export',
+      importTemplates: 'Import',
+      exportComplete: 'Exported {count} templates',
+      importComplete: 'Import complete: {imported} added, {skipped} skipped',
+      importError: 'Import failed: Invalid JSON file',
+      noTemplatesExport: 'No templates to export',
     },
     dataAnalysis: {
       title: 'Data Analysis',

@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import {
   detectFormat,
   extractTexts,
@@ -11,6 +11,7 @@ import {
   type TranslationResult,
 } from '../../lib/docTranslator'
 import { downloadBlob } from '../../lib/exportChat'
+import { formatTime, calculateRemainingTime } from '../../lib/timeFormat'
 import type { ToolPanelProps } from './types'
 
 type Props = Pick<ToolPanelProps, 'loading' | 'setLoading' | 'setResult' | 'showToast' | 't' | 'locale'> & {
@@ -28,7 +29,7 @@ const LANG_KEYS: Record<string, string> = {
 }
 
 export default function DocTranslateTool({
-  loading, setLoading, setResult, showToast, t, runStreamDirect,
+  loading, setLoading, setResult, showToast, t, runStreamDirect, locale,
 }: Props) {
   const [file, setFile] = useState<File | null>(null)
   const [format, setFormat] = useState<SupportedFormat | null>(null)
@@ -40,8 +41,29 @@ export default function DocTranslateTool({
   const fileInputRef = useRef<HTMLInputElement>(null)
   const dropZoneRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
+  const startTimeRef = useRef<number>(0)
+  const chunkTimesRef = useRef<number[]>([])
+  const lastChunkIndexRef = useRef<number>(0)
 
   const costInfo = chunks.length > 0 ? estimateCost(chunks) : null
+
+  // Track chunk completion times
+  useEffect(() => {
+    if (!progress || progress.status !== 'translating') {
+      return
+    }
+
+    const currentIndex = progress.current
+    if (currentIndex > lastChunkIndexRef.current && currentIndex > 0) {
+      const now = performance.now()
+      const previousTime = chunkTimesRef.current.length === 0
+        ? startTimeRef.current
+        : startTimeRef.current + chunkTimesRef.current.reduce((sum, t) => sum + t, 0)
+      const chunkTime = now - previousTime
+      chunkTimesRef.current.push(chunkTime)
+      lastChunkIndexRef.current = currentIndex
+    }
+  }, [progress])
 
   const handleFile = useCallback(async (f: File) => {
     setResult('')
@@ -105,6 +127,9 @@ export default function DocTranslateTool({
     setResult('')
     setTranslationResult(null)
     abortRef.current = new AbortController()
+    startTimeRef.current = performance.now()
+    chunkTimesRef.current = []
+    lastChunkIndexRef.current = 0
 
     try {
       const srcLang = sourceLang === 'auto'
@@ -270,34 +295,71 @@ export default function DocTranslateTool({
           </div>
 
           {/* Progress bar */}
-          {progress && progress.status === 'translating' && (
-            <div>
-              <div style={{
-                fontSize: 11,
-                color: 'var(--text2)',
-                marginBottom: 4,
-              }}>
-                {t('tools.docTranslate.progress', {
-                  current: progress.current,
-                  total: progress.total,
-                })}
-              </div>
-              <div style={{
-                height: 6,
-                background: 'var(--bg3, #222)',
-                borderRadius: 3,
-                overflow: 'hidden',
-              }}>
+          {progress && progress.status === 'translating' && (() => {
+            const elapsedMs = performance.now() - startTimeRef.current
+            const elapsedSeconds = Math.round(elapsedMs / 1000)
+            const remainingSeconds = calculateRemainingTime(
+              progress.current,
+              progress.total,
+              chunkTimesRef.current,
+            )
+
+            return (
+              <div>
                 <div style={{
-                  height: '100%',
-                  width: `${progressPercent}%`,
-                  background: 'var(--accent, #10a37f)',
+                  fontSize: 11,
+                  color: 'var(--text2)',
+                  marginBottom: 4,
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}>
+                  <span>
+                    {t('tools.docTranslate.progress', {
+                      current: progress.current,
+                      total: progress.total,
+                    })}
+                    {' '}({progressPercent}%)
+                  </span>
+                  <span>
+                    {t('tools.docTranslate.elapsed', { time: formatTime(elapsedSeconds, locale) })}
+                  </span>
+                </div>
+                <div style={{
+                  height: 6,
+                  background: 'var(--bg3, #222)',
                   borderRadius: 3,
-                  transition: 'width 0.3s ease',
-                }} />
+                  overflow: 'hidden',
+                  marginBottom: 4,
+                }}>
+                  <div style={{
+                    height: '100%',
+                    width: `${progressPercent}%`,
+                    background: 'var(--accent, #10a37f)',
+                    borderRadius: 3,
+                    transition: 'width 0.3s ease',
+                  }} />
+                </div>
+                {remainingSeconds !== null ? (
+                  <div style={{
+                    fontSize: 11,
+                    color: 'var(--text2)',
+                    fontStyle: 'italic',
+                  }}>
+                    {t('tools.docTranslate.timeRemaining', { time: formatTime(remainingSeconds, locale) })}
+                  </div>
+                ) : (
+                  <div style={{
+                    fontSize: 11,
+                    color: 'var(--text2)',
+                    fontStyle: 'italic',
+                  }}>
+                    {t('tools.docTranslate.estimating')}
+                  </div>
+                )}
               </div>
-            </div>
-          )}
+            )
+          })()}
 
           {/* Download button */}
           {translationResult && (

@@ -31,6 +31,7 @@ export default function DocTemplateTool({
   const [progress, setProgress] = useState({ current: 0, total: 0 })
   const [suggesting, setSuggesting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const importFileInputRef = useRef<HTMLInputElement>(null)
   const originalFileRef = useRef<File | null>(null)
   const [activeTab, setActiveTab] = useState<'gallery' | 'upload'>('upload')
   const [savedTemplates, setSavedTemplates] = useState<SavedTemplate[]>([])
@@ -213,6 +214,37 @@ export default function DocTemplateTool({
     }
   }, [template, templateName, showToast, t, loadGallery])
 
+  const handleExportTemplates = useCallback(async () => {
+    if (savedTemplates.length === 0) {
+      showToast(t('tools.docTemplate.noTemplatesExport'))
+      return
+    }
+    try {
+      const json = await DocTemplateStore.exportTemplates()
+      const blob = new Blob([json], { type: 'application/json;charset=utf-8' })
+      downloadBlob(blob, `hchat-templates-${Date.now()}.json`)
+      showToast(t('tools.docTemplate.exportComplete', { count: savedTemplates.length }))
+    } catch (err) {
+      showToast('Error: ' + String(err))
+    }
+  }, [savedTemplates, showToast, t])
+
+  const handleImportTemplates = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    try {
+      const text = await file.text()
+      const result = await DocTemplateStore.importTemplates(text)
+      showToast(t('tools.docTemplate.importComplete', { imported: result.imported, skipped: result.skipped }))
+      loadGallery()
+    } catch {
+      showToast(t('tools.docTemplate.importError'))
+    } finally {
+      e.target.value = ''
+    }
+  }, [showToast, t, loadGallery])
+
   return (
     <div className="gap-2">
       <p style={{ fontSize: 12, color: 'var(--text2)' }}>
@@ -273,6 +305,32 @@ export default function DocTemplateTool({
 
           {activeTab === 'gallery' && (
             <>
+              {/* Export/Import buttons */}
+              <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+                <button
+                  className="btn btn-secondary btn-xs"
+                  onClick={handleExportTemplates}
+                  disabled={savedTemplates.length === 0}
+                  style={{ flex: 1 }}
+                >
+                  {t('tools.docTemplate.exportTemplates')}
+                </button>
+                <button
+                  className="btn btn-secondary btn-xs"
+                  onClick={() => importFileInputRef.current?.click()}
+                  style={{ flex: 1 }}
+                >
+                  {t('tools.docTemplate.importTemplates')}
+                </button>
+                <input
+                  ref={importFileInputRef}
+                  type="file"
+                  accept=".json"
+                  style={{ display: 'none' }}
+                  onChange={handleImportTemplates}
+                />
+              </div>
+
               {savedTemplates.length === 0 && (
                 <div style={{ textAlign: 'center', padding: 20, color: 'var(--text3)', fontSize: 12 }}>
                   {t('tools.docTemplate.noSavedTemplates')}

@@ -30,6 +30,8 @@ describe('DocTemplateStore.list', () => {
 
   it('최신순 정렬', async () => {
     await DocTemplateStore.save('Old', createMockFile('old.docx'), 1, 'memo')
+    // Ensure different createdAt timestamp
+    await new Promise((r) => setTimeout(r, 5))
     await DocTemplateStore.save('New', createMockFile('new.docx'), 2, 'report')
 
     const list = await DocTemplateStore.list()
@@ -189,5 +191,152 @@ describe('base64ToFile', () => {
     const base64 = btoa(content)
     const file = base64ToFile(base64, 'test.docx')
     expect(file.size).toBe(content.length)
+  })
+})
+
+// --- exportTemplates ---
+
+describe('DocTemplateStore.exportTemplates', () => {
+  it('모든 템플릿 내보내기', async () => {
+    await DocTemplateStore.save('Template 1', createMockFile('t1.docx'), 3, 'report')
+    await DocTemplateStore.save('Template 2', createMockFile('t2.docx'), 5, 'email')
+
+    const json = await DocTemplateStore.exportTemplates()
+    const parsed = JSON.parse(json)
+
+    expect(parsed.version).toBe(1)
+    expect(parsed.exportedAt).toBeTruthy()
+    expect(parsed.templates).toHaveLength(2)
+    expect(parsed.templates[0].name).toBeTruthy()
+    expect(parsed.templates[0].docxBase64).toBeTruthy()
+  })
+
+  it('빈 갤러리 내보내기', async () => {
+    const json = await DocTemplateStore.exportTemplates()
+    const parsed = JSON.parse(json)
+
+    expect(parsed.version).toBe(1)
+    expect(parsed.templates).toEqual([])
+  })
+
+  it('유효한 JSON 형식', async () => {
+    await DocTemplateStore.save('Test', createMockFile('test.docx'), 2, 'memo')
+
+    const json = await DocTemplateStore.exportTemplates()
+    expect(() => JSON.parse(json)).not.toThrow()
+  })
+})
+
+// --- importTemplates ---
+
+describe('DocTemplateStore.importTemplates', () => {
+  it('유효한 JSON 가져오기', async () => {
+    const t1 = await DocTemplateStore.save('Export1', createMockFile('e1.docx'), 2, 'report')
+    const t2 = await DocTemplateStore.save('Export2', createMockFile('e2.docx'), 3, 'email')
+
+    const json = await DocTemplateStore.exportTemplates()
+    await chrome.storage.local.clear()
+
+    const result = await DocTemplateStore.importTemplates(json)
+    expect(result.imported).toBe(2)
+    expect(result.skipped).toBe(0)
+
+    const list = await DocTemplateStore.list()
+    expect(list).toHaveLength(2)
+  })
+
+  it('중복 이름 건너뛰기', async () => {
+    await DocTemplateStore.save('Duplicate', createMockFile('d1.docx'), 1, 'memo')
+    const json = await DocTemplateStore.exportTemplates()
+
+    const result = await DocTemplateStore.importTemplates(json)
+    expect(result.imported).toBe(0)
+    expect(result.skipped).toBe(1)
+
+    const list = await DocTemplateStore.list()
+    expect(list).toHaveLength(1)
+  })
+
+  it('최대 개수 초과 시 일부만 가져오기', async () => {
+    // Fill to max
+    for (let i = 0; i < 10; i++) {
+      await DocTemplateStore.save(`Existing${i}`, createMockFile(`e${i}.docx`), 1, 'report')
+    }
+
+    // Export one more template from different storage
+    await chrome.storage.local.clear()
+    await DocTemplateStore.save('Extra', createMockFile('extra.docx'), 1, 'memo')
+    const json = await DocTemplateStore.exportTemplates()
+
+    // Restore original 10
+    await chrome.storage.local.clear()
+    for (let i = 0; i < 10; i++) {
+      await DocTemplateStore.save(`Existing${i}`, createMockFile(`e${i}.docx`), 1, 'report')
+    }
+
+    const result = await DocTemplateStore.importTemplates(json)
+    expect(result.imported).toBe(0)
+    expect(result.skipped).toBe(1)
+  })
+
+  it('잘못된 JSON 형식 에러', async () => {
+    await expect(
+      DocTemplateStore.importTemplates('invalid json'),
+    ).rejects.toThrow(TemplateStoreError)
+    await expect(
+      DocTemplateStore.importTemplates('invalid json'),
+    ).rejects.toThrow('Invalid JSON format')
+  })
+
+  it('잘못된 구조 에러', async () => {
+    const badJson = JSON.stringify({ foo: 'bar' })
+    await expect(
+      DocTemplateStore.importTemplates(badJson),
+    ).rejects.toThrow(TemplateStoreError)
+    await expect(
+      DocTemplateStore.importTemplates(badJson),
+    ).rejects.toThrow('Invalid template export format')
+  })
+
+  it('새 ID 생성', async () => {
+    const t1 = await DocTemplateStore.save('Original', createMockFile('o.docx'), 1, 'report')
+    const json = await DocTemplateStore.exportTemplates()
+    await chrome.storage.local.clear()
+
+    await DocTemplateStore.importTemplates(json)
+    const list = await DocTemplateStore.list()
+
+    expect(list[0].id).not.toBe(t1.id)
+    expect(list[0].id).toMatch(/^tmpl_/)
+  })
+
+  it('사용 횟수 초기화', async () => {
+    const t1 = await DocTemplateStore.save('Used', createMockFile('u.docx'), 1, 'report')
+    await DocTemplateStore.incrementUsage(t1.id)
+    await DocTemplateStore.incrementUsage(t1.id)
+
+    const json = await DocTemplateStore.exportTemplates()
+    await chrome.storage.local.clear()
+
+    await DocTemplateStore.importTemplates(json)
+    const list = await DocTemplateStore.list()
+
+    expect(list[0].usageCount).toBe(0)
+  })
+
+  it('라운드트립 일관성', async () => {
+    await DocTemplateStore.save('RT1', createMockFile('rt1.docx'), 2, 'report')
+    await DocTemplateStore.save('RT2', createMockFile('rt2.docx'), 3, 'email')
+
+    const json = await DocTemplateStore.exportTemplates()
+    await chrome.storage.local.clear()
+    await DocTemplateStore.importTemplates(json)
+
+    const list = await DocTemplateStore.list()
+    expect(list).toHaveLength(2)
+    expect(list.some((t) => t.name === 'RT1')).toBe(true)
+    expect(list.some((t) => t.name === 'RT2')).toBe(true)
+    expect(list[0].fieldCount).toBeGreaterThan(0)
+    expect(list[0].docxBase64).toBeTruthy()
   })
 })

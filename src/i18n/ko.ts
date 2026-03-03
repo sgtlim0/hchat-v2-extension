@@ -305,6 +305,9 @@ const ko = {
       cancelTranslation: '번역 중단',
       translationCancelled: '번역이 중단되었습니다. 부분 결과를 다운로드할 수 있습니다.',
       partialResult: '부분 결과',
+      timeRemaining: '예상 남은 시간: {time}',
+      elapsed: '경과: {time}',
+      estimating: '예상 시간 계산 중...',
     },
     docTemplate: {
       title: '템플릿 문서',
@@ -332,6 +335,12 @@ const ko = {
       noSavedTemplates: '저장된 템플릿이 없습니다',
       templateSaved: '템플릿이 저장되었습니다',
       templateName: '템플릿 이름',
+      exportTemplates: '내보내기',
+      importTemplates: '가져오기',
+      exportComplete: '템플릿 {count}개를 내보냈습니다',
+      importComplete: '가져오기 완료: {imported}개 추가, {skipped}개 건너뜀',
+      importError: '가져오기 실패: 올바른 JSON 파일이 아닙니다',
+      noTemplatesExport: '내보낼 템플릿이 없습니다',
     },
     dataAnalysis: {
       title: '데이터 분석',

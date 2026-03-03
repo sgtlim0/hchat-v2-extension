@@ -117,4 +117,73 @@ export const DocTemplateStore = {
     )
     await saveTemplates(updated)
   },
+
+  async exportTemplates(ids?: string[]): Promise<string> {
+    const templates = await getTemplates()
+    const toExport = ids
+      ? templates.filter((t) => ids.includes(t.id))
+      : templates
+
+    const exportData = {
+      version: 1,
+      exportedAt: Date.now(),
+      templates: toExport,
+    }
+
+    return JSON.stringify(exportData, null, 2)
+  },
+
+  async importTemplates(json: string): Promise<{ imported: number; skipped: number }> {
+    let parsed: unknown
+    try {
+      parsed = JSON.parse(json)
+    } catch {
+      throw new TemplateStoreError('Invalid JSON format')
+    }
+
+    // Validate structure
+    if (
+      typeof parsed !== 'object' ||
+      parsed === null ||
+      !('version' in parsed) ||
+      !('templates' in parsed) ||
+      !Array.isArray((parsed as { templates: unknown }).templates)
+    ) {
+      throw new TemplateStoreError('Invalid template export format')
+    }
+
+    const data = parsed as { version: number; templates: SavedTemplate[] }
+    const existingTemplates = await getTemplates()
+    const existingNames = new Set(existingTemplates.map((t) => t.name))
+
+    let imported = 0
+    let skipped = 0
+
+    for (const template of data.templates) {
+      // Skip duplicates by name
+      if (existingNames.has(template.name)) {
+        skipped++
+        continue
+      }
+
+      // Check max limit
+      if (existingTemplates.length + imported >= MAX_TEMPLATES) {
+        skipped += data.templates.length - imported - skipped
+        break
+      }
+
+      // Generate new ID and reset usage count
+      const newTemplate: SavedTemplate = {
+        ...template,
+        id: generateId(),
+        usageCount: 0,
+      }
+
+      existingTemplates.push(newTemplate)
+      imported++
+    }
+
+    await saveTemplates(existingTemplates)
+    return { imported, skipped }
+  },
 }

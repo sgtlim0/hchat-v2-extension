@@ -304,6 +304,9 @@ const ja = {
       cancelTranslation: '翻訳を中断',
       translationCancelled: '翻訳が中断されました。部分的な結果をダウンロードできます。',
       partialResult: '部分結果',
+      timeRemaining: '残り推定時間: {time}',
+      elapsed: '経過: {time}',
+      estimating: '推定中...',
     },
     docTemplate: {
       title: 'テンプレートドキュメント',
@@ -331,6 +334,12 @@ const ja = {
       noSavedTemplates: '保存されたテンプレートはありません',
       templateSaved: 'テンプレートが保存されました',
       templateName: 'テンプレート名',
+      exportTemplates: 'エクスポート',
+      importTemplates: 'インポート',
+      exportComplete: 'テンプレート{count}件をエクスポートしました',
+      importComplete: 'インポート完了: {imported}件追加、{skipped}件スキップ',
+      importError: 'インポート失敗: 無効なJSONファイルです',
+      noTemplatesExport: 'エクスポートするテンプレートがありません',
     },
     dataAnalysis: {
       title: 'データ分析',

@@ -1,10 +1,10 @@
 # H Chat v2 - 추가 기능 상세 기술 설계
 
 > 마지막 업데이트: 2026-03-03
-> 현재 버전: v4.2
+> 현재 버전: v4.4
 > 참고: 이 문서는 v2~v3 초기 설계안입니다. 대부분 기능이 v3.x~v4.x에서 구현 완료되었습니다.
 
-## 기존 아키텍처 요약 (v4.2 기준)
+## 기존 아키텍처 요약 (v4.4 기준)
 
 | 모듈 | 역할 |
 |------|------|
@@ -12,7 +12,7 @@
 | `ChatHistory` | `hchat:conv:*` 기반 대화 CRUD |
 | `useChat` hook | 대화 상태, 스트리밍, 중단 관리, 비서 통합 |
 | `pageReader` | 페이지/YouTube 컨텐츠 추출 (구조화 자막 포함) |
-| `ToolsView` | 15개 도구 (요약, 멀티탭, YouTube, OCR, 배치OCR, 번역, 글쓰기, 문서작성, 문법, 댓글분석, PDF, 인사이트, 데이터분석, 이미지생성, 문서번역) |
+| `ToolsView` | 16개 도구 (요약, 멀티탭, YouTube, OCR, 배치OCR, 번역, 글쓰기, 문서작성, 문법, 댓글분석, PDF, 인사이트, 데이터분석, 이미지생성, 문서번역, 템플릿문서) |
 | `App.tsx` | 8탭: chat, group, tools, debate, prompts, history, bookmarks, settings |
 
 ---

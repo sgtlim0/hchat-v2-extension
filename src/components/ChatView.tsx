@@ -39,7 +39,7 @@ interface Props {
 
 export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onToggleContext, initialPrompt, onConsumePrompt, onRegisterActions, onForkConv }: Props) {
   const { t, locale } = useLocale()
-  const { conv, messages, isLoading, isSearching, agentMode, setAgentMode, assistantId, setAssistantId, error, currentModel, setCurrentModel, sendMessage, startNew, loadConv, stop, editAndResend, regenerate } = useChat(config)
+  const { conv, messages, isLoading, isSearching, agentMode, setAgentMode, assistantId, setAssistantId, error, currentModel, setCurrentModel, sendMessage, startNew, loadConv, stop, editAndResend, regenerate, piiDetections, confirmSendWithPII } = useChat(config)
   const [, setTTSRefresh] = useState(0)
   const [, setSTTRefresh] = useState(0)
   const [voiceMode, setVoiceMode] = useState(false)
@@ -489,6 +489,8 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
         onApplyPrompt={applyPrompt}
         textareaRef={textareaRef}
         fileRef={fileRef}
+        piiDetections={piiDetections}
+        onConfirmPII={confirmSendWithPII}
       />
 
       <div className="input-meta">

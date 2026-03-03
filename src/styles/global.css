@@ -2433,3 +2433,81 @@ kbd {
 .image-gen-thumb { width: 60px; height: 60px; border-radius: 6px; object-fit: cover; cursor: pointer; border: 2px solid transparent; transition: border-color 0.15s; }
 .image-gen-thumb:hover { border-color: var(--border2); }
 .image-gen-thumb.active { border-color: var(--accent); }
+
+/* ═══ PII Warning Banner ═══ */
+.pii-warning-banner {
+  background: rgba(251, 146, 60, 0.1);
+  border: 1px solid rgba(251, 146, 60, 0.3);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 8px;
+  animation: slideIn 0.2s ease-out;
+}
+
+.pii-warning-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.pii-warning-icon {
+  font-size: 18px;
+}
+
+.pii-warning-title {
+  font-weight: 600;
+  color: rgba(251, 146, 60, 1);
+  font-size: 13px;
+}
+
+.pii-warning-detections {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.pii-detection-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: rgba(251, 146, 60, 0.15);
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.pii-type {
+  font-weight: 600;
+  color: rgba(251, 146, 60, 1);
+}
+
+.pii-value {
+  color: var(--text2);
+  font-family: var(--mono);
+}
+
+.pii-warning-message {
+  font-size: 12px;
+  color: var(--text2);
+  margin-bottom: 12px;
+}
+
+.pii-warning-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+

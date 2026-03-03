@@ -2,6 +2,7 @@ import { useLocale } from '../../i18n'
 import { STT } from '../../lib/stt'
 import { VoiceWaveform } from './VoiceWaveform'
 import type { Prompt } from '../../lib/promptLibrary'
+import type { PIIDetection } from '../../lib/guardrail'
 
 interface ChatInputAreaProps {
   input: string
@@ -24,6 +25,9 @@ interface ChatInputAreaProps {
   onApplyPrompt: (p: Prompt) => void
   textareaRef: React.RefObject<HTMLTextAreaElement | null>
   fileRef: React.RefObject<HTMLInputElement | null>
+  piiDetections?: PIIDetection[]
+  onConfirmPII?: (action: 'send' | 'mask' | 'cancel') => void
+  onToggleTemplates?: () => void
 }
 
 export function ChatInputArea({
@@ -47,13 +51,55 @@ export function ChatInputArea({
   onApplyPrompt,
   textareaRef,
   fileRef,
+  piiDetections = [],
+  onConfirmPII,
+  onToggleTemplates,
 }: ChatInputAreaProps) {
   const { t } = useLocale()
 
   const isListening = STT.getState() === 'listening'
 
+  const piiTypeLabels: Record<string, string> = {
+    email: t('guardrailEmail'),
+    phone: t('guardrailPhone'),
+    ssn: t('guardrailSsn'),
+    card: t('guardrailCard'),
+    bank: t('guardrailBank'),
+  }
+
   return (
     <div className={`input-area${voiceMode ? ' voice-mode-active' : ''}`}>
+      {piiDetections.length > 0 && onConfirmPII && (
+        <div className="pii-warning-banner">
+          <div className="pii-warning-header">
+            <span className="pii-warning-icon">⚠️</span>
+            <span className="pii-warning-title">{t('guardrailWarning')}</span>
+          </div>
+          <div className="pii-warning-detections">
+            {piiDetections.map((detection, idx) => (
+              <div key={idx} className="pii-detection-item">
+                <span className="pii-type">{piiTypeLabels[detection.type]}</span>
+                <span className="pii-value">{detection.masked}</span>
+              </div>
+            ))}
+          </div>
+          <div className="pii-warning-message">
+            {t('guardrailDetected', { count: piiDetections.length })}
+          </div>
+          <div className="pii-warning-actions">
+            <button className="btn btn-sm btn-warning" onClick={() => onConfirmPII('mask')}>
+              {t('guardrailSendMasked')}
+            </button>
+            <button className="btn btn-sm btn-secondary" onClick={() => onConfirmPII('send')}>
+              {t('guardrailSendAsIs')}
+            </button>
+            <button className="btn btn-sm btn-ghost" onClick={() => onConfirmPII('cancel')}>
+              {t('guardrailCancel')}
+            </button>
+          </div>
+        </div>
+      )}
+
       {voiceMode && (
         <div className="voice-mode-indicator">
           <div className="voice-mode-pulse">🎙️</div>
@@ -120,6 +166,13 @@ export function ChatInputArea({
                 title={voiceMode ? t('chat.voiceModeOff') : t('chat.voiceModeOn')}
                 onClick={onToggleVoiceMode}
               >🎙️</button>
+            )}
+            {onToggleTemplates && (
+              <button
+                className="icon-btn"
+                title={t('chatTemplate')}
+                onClick={onToggleTemplates}
+              >📋</button>
             )}
             <button className="icon-btn" title={t('chat.fileAttach')} onClick={() => fileRef.current?.click()}>📎</button>
             {isLoading ? (

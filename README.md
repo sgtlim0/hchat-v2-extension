@@ -1,12 +1,12 @@
-# H Chat v4 Extension
+# H Chat v5 Extension
 
 멀티 AI 프로바이더 Chrome 올인원 어시스턴트 확장 프로그램
 
 ## Overview
 
-H Chat은 Sider 스타일의 올인원 AI 브라우저 어시스턴트입니다. AWS Bedrock Claude, OpenAI GPT, Google Gemini를 통합 지원하며, 커스텀 비서 빌더, 문서 번역/작성, PPTX/PDF 번역, 템플릿 문서 작성, 이미지 생성, 크로스 모델 토론, YouTube 분석, PDF 채팅, 검색 엔진 AI 카드, 글쓰기 어시스턴트 등 풍부한 기능을 제공합니다.
+H Chat은 Sider 스타일의 올인원 AI 브라우저 어시스턴트입니다. AWS Bedrock Claude, OpenAI GPT, Google Gemini를 통합 지원하며, 20개 내장 비서 마켓플레이스, AI 가드레일(PII 감지/마스킹), PPT 기획, 비서 토론, 대화 템플릿, 문서 번역/작성, PPTX/PDF 번역, 템플릿 문서 작성, 이미지 생성, 크로스 모델 토론, YouTube 분석, PDF 채팅, 검색 엔진 AI 카드, 글쓰기 어시스턴트 등 풍부한 기능을 제공합니다.
 
-- **Version**: 4.5.0
+- **Version**: 5.0.0
 - **Platform**: Chrome Extension (Manifest V3)
 - **AI Providers**: AWS Bedrock (Claude), OpenAI (GPT), Google Gemini
 - **GitHub**: https://github.com/sgtlim0/hchat-v2-extension
@@ -43,6 +43,7 @@ H Chat은 Sider 스타일의 올인원 AI 브라우저 어시스턴트입니다.
 
 ### 4. 크로스 모델 토론 - 3라운드 토론 엔진: 초기 답변 → 상호 비평 → 종합
 - 서로 다른 AI 모델 간 토론 진행
+- **비서 vs 비서 토론**: 커스텀 비서의 관점(systemPrompt)으로 토론 참가 (v5.0)
 - 토론 기록 시각화
 - 최종 합의 도출
 
@@ -72,7 +73,7 @@ H Chat은 Sider 스타일의 올인원 AI 브라우저 어시스턴트입니다.
 - 7가지 변환: 개선, 축약, 확장, 전문적, 캐주얼, 교정, 번역
 - 실시간 AI 변환 결과 적용
 
-### 9. 도구 패널 (ToolsView) — 16개 AI 도구
+### 9. 도구 패널 (ToolsView) — 17개 AI 도구
 | 도구 | 기능 |
 |------|------|
 | 📄 페이지 요약 | 현재 탭 내용 추출 + AI 요약 |
@@ -90,6 +91,7 @@ H Chat은 Sider 스타일의 올인원 AI 브라우저 어시스턴트입니다.
 | 📋 문서 작성 | 5가지 문서 유형 AI 생성, 프로젝트 관리 (검색+필터), Markdown/DOCX 내보내기 |
 | 🎨 이미지 생성 | DALL-E 3 (3가지 크기, Standard/HD, Vivid/Natural) |
 | 📋 템플릿 문서 | DOCX 템플릿 업로드 → {{필드}} 추출 → AI 내용 생성, 갤러리 저장/재사용, 템플릿 내보내기/가져오기 (JSON) |
+| 📊 PPT 기획 | 주제 입력 → AI 슬라이드 목차/콘텐츠 생성 → PPTX 다운로드 (v5.0) |
 | 🔎 페이지 검색 | 현재 페이지 내용 검색 |
 
 ### 10. 웹 검색 + RAG
@@ -213,24 +215,39 @@ H Chat은 Sider 스타일의 올인원 AI 브라우저 어시스턴트입니다.
 
 ### 23. 다국어 지원 (i18n)
 - 한국어/영어/일본어 3개 언어 지원
-- 경량 자체 구현 (외부 라이브러리 미사용, 600+ 키/언어)
+- 경량 자체 구현 (외부 라이브러리 미사용, 730+ 키/언어)
 - `t()` 함수 + `useLocale()` React 훅
 - Content Script용 `tSync()` + `getLocale()` 비동기 패턴
 - 설정 탭에서 언어 선택 (즉시 반영)
 
-### 24. 커스텀 비서 시스템 (v4.0 신규)
+### 24. 비서 마켓플레이스 (v5.0 확장)
 - **비서 빌더**: 모델 + 시스템 프롬프트 + 도구 + 파라미터를 패키지로 묶어 관리
-- **8개 내장 비서**: 문서 검토관, 번역 전문가, 데이터 분석가, 이메일 작성, 코드 리뷰어, 보고서 작성, 회의록 정리, 리서치 비서
+- **20개 내장 비서**: 6개 카테고리 (번역/문서/분석/코드/작문/기타)
+  - 기존: 문서 검토관, 번역 전문가, 데이터 분석가, 이메일 작성, 코드 리뷰어, 보고서 작성, 회의록 정리, 리서치 비서
+  - 신규: 기술 문서, 마케팅 카피, 법률 검토, API 문서, SQL 도우미, 프론트엔드, 시장 분석, 재무 분석, 일본어 번역, 중국어 번역, 학술 논문, 프레젠테이션 기획
+- **카테고리 필터** + **검색** + **인기순 정렬**
+- **내보내기/가져오기**: JSON 형식, 중복 이름 자동 스킵
 - 사용자 커스텀 비서 생성/편집/삭제
 - 비서별 사용 횟수 추적
-- AssistantSelector 컴포넌트로 빠른 전환
 
-### 25. 콘텐츠 스크립트 플로팅 툴바
+### 25. AI 가드레일 (v5.0 신규)
+- 사용자 입력에서 개인정보(PII) 자동 감지
+- 5가지 PII 타입: 이메일, 전화번호, 주민등록번호, 카드번호, 계좌번호
+- 감지 시 경고 배너 + 3가지 선택: 마스킹 후 전송 / 그대로 전송 / 취소
+- 설정에서 감지 유형별 on/off 가능
+
+### 26. 대화 템플릿 (v5.0 신규)
+- 자주 쓰는 다단계 대화 흐름을 템플릿으로 저장/재사용
+- `{{변수}}` 플레이스홀더 지원 → 실행 시 변수 입력
+- 단계별 role (user/system) + AI 응답 대기 옵션
+- 내보내기/가져오기 (JSON), 최대 20개, 사용 횟수 추적
+
+### 27. 콘텐츠 스크립트 플로팅 툴바
 
 텍스트 선택 시 7가지 동작:
 - 💡 설명 | 🌐 번역 | 📄 요약 | ✏️ 재작성 | 🎩 격식체 | ✅ 문법 | 🖍️ 하이라이트
 
-### 26. 대화 관리 (HistoryView)
+### 28. 대화 관리 (HistoryView)
 - 검색, 태그 필터
 - 대화 고정 (핀)
 - 대화 폴더 분류
@@ -238,11 +255,11 @@ H Chat은 Sider 스타일의 올인원 AI 브라우저 어시스턴트입니다.
 - 태그 관리
 - 포크 인디케이터
 
-### 27. 멀티 탭 요약
+### 29. 멀티 탭 요약
 - 현재 창의 모든 탭 (최대 10개) 동시 요약
 - 탭별 핵심 내용 + 전체 공통 주제 분석
 
-### 28. 음성 대화 모드
+### 30. 음성 대화 모드
 
 - STT → AI → TTS 연속 루프
 - Web Speech API 활용
@@ -250,7 +267,7 @@ H Chat은 Sider 스타일의 올인원 AI 브라우저 어시스턴트입니다.
 - 음성 모드 중 입력 비활성화 + 펄스 마이크 인디케이터
 - 음성 모드 배지 표시
 
-### 29. 대화 가져오기/내보내기
+### 31. 대화 가져오기/내보내기
 
 - **ChatGPT JSON 가져오기**: mapping 구조 자동 파싱
 - **Claude JSON 가져오기**: chat_messages 배열 파싱
@@ -259,7 +276,7 @@ H Chat은 Sider 스타일의 올인원 AI 브라우저 어시스턴트입니다.
 - **배치 가져오기**: Storage.setMultiple()로 대량 성능 최적화
 - 5가지 내보내기: Markdown, HTML, JSON, TXT, PDF
 
-### 30. 오프라인 지원 (v3.6 신규)
+### 32. 오프라인 지원 (v3.6 신규)
 - 네트워크 상태 감지 (`useNetworkStatus` 훅)
 - 오프라인 시 메시지 큐 (`messageQueue.ts`, FIFO)
 - 재연결 시 큐 자동 처리 (`processQueue`)
@@ -351,14 +368,15 @@ hchat-v2-extension/
     │   └── main.tsx               # React 마운트
     ├── i18n/
     │   ├── index.ts               # t(), useLocale(), tSync(), getLocale()
-    │   ├── ko.ts                  # 한국어 번역 (600+ 키)
-    │   ├── en.ts                  # 영어 번역 (600+ 키)
-    │   └── ja.ts                  # 일본어 번역 (600+ 키)
-    ├── components/                 # 20+ 파일
+    │   ├── ko.ts                  # 한국어 번역 (730+ 키)
+    │   ├── en.ts                  # 영어 번역 (730+ 키)
+    │   └── ja.ts                  # 일본어 번역 (730+ 키)
+    ├── components/                 # 26+ 파일
     │   ├── ChatView.tsx            # 메인 채팅 (460줄)
     │   ├── GroupChatView.tsx       # 크로스 모델 비교
     │   ├── DebateView.tsx          # 크로스 모델 토론
-    │   ├── ToolsView.tsx           # 도구 패널 (16개 도구, 230줄)
+    │   ├── ToolsView.tsx           # 도구 패널 (17개 도구, 230줄)
+    │   ├── ChatTemplatePanel.tsx  # 대화 템플릿 패널 (v5.0)
     │   ├── PromptLibraryView.tsx   # 프롬프트 라이브러리
     │   ├── HistoryView.tsx         # 대화 기록
     │   ├── BookmarksView.tsx       # 하이라이트 관리
@@ -387,13 +405,14 @@ hchat-v2-extension/
     │       ├── DocProjectList.tsx  # 문서 프로젝트 목록
     │       ├── DocProjectDetail.tsx # 문서 프로젝트 상세 + 버전 관리
     │       ├── DocTemplateTool.tsx # 템플릿 문서 작성 (DOCX 업로드 → AI 생성)
-    │       └── ImageGenTool.tsx    # 이미지 생성 (DALL-E 3)
+    │       ├── ImageGenTool.tsx    # 이미지 생성 (DALL-E 3)
+    │       └── PptxPlanTool.tsx   # PPT 기획 (v5.0)
     ├── hooks/
     │   ├── useChat.ts              # 채팅 상태 + 스트리밍 (256줄)
     │   ├── useConfig.ts            # 설정 관리 (62줄)
     │   ├── useProvider.ts          # 프로바이더 인스턴스, 모델 리스트
     │   └── useShortcuts.ts         # 키보드 단축키 (40줄)
-    ├── lib/                        # 40+ 파일
+    ├── lib/                        # 49+ 파일
     │   ├── providers/
     │   │   ├── types.ts            # AIProvider 인터페이스, ModelDef
     │   │   ├── bedrock-provider.ts # AWS Bedrock Claude 프로바이더
@@ -444,7 +463,10 @@ hchat-v2-extension/
     │   ├── timeFormat.ts           # 시간 포맷팅 (ko/en/ja), ETA 계산
     │   ├── pptxParser.ts           # PPTX 파싱/재조립 (JSZip)
     │   ├── imageGenerator.ts       # DALL-E 3 이미지 생성
-    │   └── chartDataExtractor.ts   # 차트 데이터 자동 추출
+    │   ├── chartDataExtractor.ts   # 차트 데이터 자동 추출
+    │   ├── pptxGenerator.ts       # PPTX 생성 (JSZip, v5.0)
+    │   ├── guardrail.ts           # PII 감지/마스킹 (v5.0)
+    │   └── chatTemplates.ts       # 대화 템플릿 CRUD (v5.0)
     └── styles/
         └── global.css              # 디자인 시스템 (~40KB)
 ```
@@ -545,6 +567,8 @@ hchat-v2-extension/
 | `hchat:doc-projects` | DocProjectIndex[] | 문서 프로젝트 인덱스 |
 | `hchat:doc-project:{id}` | DocProject | 개별 문서 프로젝트 + 버전 |
 | `hchat:doc-templates` | DocTemplate[] | 템플릿 갤러리 (Base64 DOCX 파일) |
+| `hchat:chat-templates` | ChatTemplate[] | 대화 템플릿 (v5.0) |
+| `hchat:guardrail-config` | GuardrailConfig | PII 가드레일 설정 (v5.0) |
 
 ## Manifest Permissions
 
@@ -593,6 +617,17 @@ npm run build      # 프로덕션 빌드 → dist/
 4. (선택) Google 검색 API 키 설정 (웹 검색 강화)
 
 ## 버전 히스토리
+
+### v5.0.0 (2026-03) — UX 고도화
+
+| 기능 | 설명 |
+|------|------|
+| 비서 마켓플레이스 | 내장 비서 8→20개 확장, 6개 카테고리 필터, 검색, 인기순 정렬, JSON 내보내기/가져오기 |
+| PPT 기획 도구 | 주제 입력 → AI 목차 생성 → 슬라이드별 콘텐츠 → PPTX 다운로드 (17번째 도구) |
+| AI 가드레일 | PII 자동 감지 (이메일/전화/주민번호/카드/계좌), 마스킹 후 전송, 경고 배너 |
+| 비서 vs 비서 토론 | 토론 참가자에 커스텀 비서 연동, 비서 systemPrompt 주입 |
+| 대화 템플릿 | 다단계 대화 흐름 저장/재사용, {{변수}} 치환, JSON 내보내기/가져오기 |
+| 도구 | 17개 도구, 741 tests (40 files), 730+ i18n 키 (ko/en/ja) |
 
 ### v4.5.0 (2026-03) — 추가 UX 개선
 
@@ -736,17 +771,18 @@ npm run build      # 프로덕션 빌드 → dist/
 | YouTube 요약 | 자막 추출 (3단계 fallback) + AI 요약 |
 
 ### 규모 비교
-| 항목 | v1 | v2 | v3 | v3.6 | v4.2 | v4.3 | v4.4 | v4.5 |
+| 항목 | v1 | v2 | v3 | v3.6 | v4.2 | v4.3 | v4.5 | v5.0 |
 |------|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
-| 소스 파일 | ~22개 | ~40개 | ~50개 | ~80개 | ~90개 | ~100개 | ~105개 | ~107개 |
-| 코드 라인 | ~4,000 | ~8,000 | ~10,000+ | ~15,000+ | ~18,000+ | ~20,000+ | ~21,000+ | ~21,500+ |
+| 소스 파일 | ~22개 | ~40개 | ~50개 | ~80개 | ~90개 | ~100개 | ~107개 | ~115개 |
+| 코드 라인 | ~4,000 | ~8,000 | ~10,000+ | ~15,000+ | ~18,000+ | ~20,000+ | ~21,500+ | ~25,000+ |
 | 탭 수 | 5개 | 7개 | 8개 | 8개 | 8개 | 8개 | 8개 | 8개 |
-| lib 파일 | 6개 | 20개 | 30개 | 45개 | 50개 | 55개 | 56개 | 57개 |
+| lib 파일 | 6개 | 20개 | 30개 | 45개 | 50개 | 55개 | 57개 | 60개 |
 | AI 프로바이더 | 1개 | 1개 | 3개 | 3개 | 3개 | 3개 | 3개 | 3개 |
 | 지원 모델 | 3개 | 3개 | 9개 | 9개 | 9개 | 9개 | 9개 | 9개 |
-| 도구 | 4개 | 8개 | 8개 | 12개 | 15개 | 16개 | 16개 | 16개 |
-| 테스트 | 0개 | 0개 | 0개 | 365개 | 498개 (30 파일) | 589개 (34 파일) | 620개 (35 파일) | 649개 (36 파일) |
-| i18n 키 | 0개 | 0개 | 0개 | 420+ (ko/en) | 600+ (ko/en/ja) | 650+ (ko/en/ja) | 660+ (ko/en/ja) | 670+ (ko/en/ja) |
+| 도구 | 4개 | 8개 | 8개 | 12개 | 15개 | 16개 | 16개 | 17개 |
+| 내장 비서 | 0개 | 0개 | 0개 | 0개 | 0개 | 0개 | 8개 | 20개 |
+| 테스트 | 0개 | 0개 | 0개 | 365개 | 498개 (30 파일) | 589개 (34 파일) | 649개 (36 파일) | 741개 (40 파일) |
+| i18n 키 | 0개 | 0개 | 0개 | 420+ (ko/en) | 600+ (ko/en/ja) | 650+ (ko/en/ja) | 670+ (ko/en/ja) | 730+ (ko/en/ja) |
 
 ## Design System
 

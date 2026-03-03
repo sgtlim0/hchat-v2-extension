@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "H Chat - AI 올인원 어시스턴트",
-  "version": "4.5.0",
+  "version": "5.0.0",
   "description": "Claude, GPT, Gemini를 사이드바에서. 페이지 요약·번역·글쓰기·그룹채팅·프롬프트 라이브러리.",
 
   "icons": {

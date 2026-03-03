@@ -36,13 +36,13 @@
 - **DALL-E 3**: 3가지 크기, Standard/HD 품질, Vivid/Natural 스타일, 비용 추정, 세션 히스토리
 - 498 tests, 30 files
 
-### v4.5 — 추가 UX 개선 ✅
+### v4.5 — 추가 UX 개선 ✅ (2026-03-03 완료)
 
 | 기능 | 설명 |
 |------|------|
 | 번역 진행 상황 표시 | timeFormat.ts 유틸리티 (ko/en/ja 시간 포맷, ETA 계산), DocTranslateTool 경과 시간 + 예상 남은 시간 표시, performance.now() 기반 청크 타이밍 |
 | 템플릿 갤러리 공유 | docTemplateStore.ts exportTemplates/importTemplates 메서드, 갤러리 탭 내보내기/가져오기 버튼, JSON 포맷 (version 1), 중복 건너뛰기, 최대 10개 제한 |
-| 도구 | 16개 도구, 649 tests (36 files), 670+ i18n 키 (ko/en/ja) |
+| 품질 | 16개 도구, 649 tests (36 files), 710+ i18n 키 (ko/en/ja), ESLint 0 errors |
 
 ### v4.4 — UX 개선 ✅
 
@@ -51,7 +51,7 @@
 | 문서 번역 중단 | AbortSignal 기반 청크별 번역 중단, 부분 결과 보존 |
 | 프로젝트 검색 + 필터 | DocProjectList 검색 입력 + 타입별 필터 칩 (보고서/이메일/제안서/회의록/메모) |
 | 템플릿 갤러리 | docTemplateStore.ts — DOCX 템플릿 CRUD, Base64 인코딩, chrome.storage 저장, 갤러리 탭 |
-| 도구 | 16개 도구, 620 tests (35 files), 660+ i18n 키 (ko/en/ja) |
+| 도구 | 16개 도구, 620 tests (35 files), 700+ i18n 키 (ko/en/ja) |
 
 ### v4.3 — 문서 도구 확장 ✅
 
@@ -69,7 +69,7 @@
 |------|------|
 | 테스트 | 649 tests, 36 files |
 | 도구 | 16개 (요약, 멀티탭, 번역, 글쓰기, 문서작성, YouTube, OCR, 배치OCR, 문법, 댓글분석, PDF, 인사이트, 데이터분석, 이미지생성, 문서번역, 템플릿문서) |
-| 언어 | 3개 (ko/en/ja), 670+ i18n keys |
+| 언어 | 3개 (ko/en/ja), 710+ i18n keys |
 | AI 프로바이더 | 3개 (Bedrock/OpenAI/Gemini) |
 | 모델 | 9개 (Claude Sonnet 4.6/Opus 4.6/Haiku 4.5, GPT-4o/4o-mini/o1-mini, Gemini 2.0 Flash/1.5 Pro/1.5 Flash) |
 | 비서 | 8개 내장 + 커스텀 빌더 |

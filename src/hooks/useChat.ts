@@ -16,6 +16,8 @@ import { AssistantRegistry } from '../lib/assistantBuilder'
 import { Usage } from '../lib/usage'
 import { MessageQueue } from '../lib/messageQueue'
 import type { Config } from './useConfig'
+import { detectPII, getGuardrailConfig, type PIIDetection } from '../lib/guardrail'
+import { ChatTemplateStore, replaceVariables } from '../lib/chatTemplates'
 
 function formatAgentContent(steps: AgentStep[]): string {
   const isEn = getGlobalLocale() === 'en'
@@ -66,6 +68,8 @@ export function useChat(config: Config) {
   const [currentModel, setCurrentModel] = useState(config.defaultModel)
   const [personaId, setPersonaId] = useState('default')
   const [assistantId, setAssistantId] = useState('ast-default')
+  const [piiDetections, setPiiDetections] = useState<PIIDetection[]>([])
+  const [pendingMessage, setPendingMessage] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
 
   const startNew = useCallback(async (model?: string) => {
@@ -90,6 +94,17 @@ export function useChat(config: Config) {
     opts?: { imageBase64?: string; systemPrompt?: string; forcedModel?: string; thinkingDepth?: ThinkingDepth }
   ) => {
     if (!text.trim() || isLoading) return
+
+    const guardrailConfig = await getGuardrailConfig()
+    if (guardrailConfig.enabled) {
+      const detections = detectPII(text, guardrailConfig)
+      if (detections.length > 0) {
+        setPiiDetections(detections)
+        setPendingMessage(text)
+        return
+      }
+    }
+
     setError('')
     setIsLoading(true)
 
@@ -381,6 +396,27 @@ export function useChat(config: Config) {
     await sendMessage(userText)
   }, [conv, isLoading, messages, sendMessage])
 
+  const confirmSendWithPII = useCallback(async (action: 'send' | 'mask' | 'cancel') => {
+    if (!pendingMessage) return
+
+    if (action === 'cancel') {
+      setPendingMessage(null)
+      setPiiDetections([])
+      return
+    }
+
+    const finalText = action === 'mask'
+      ? piiDetections.reduce((text, detection) => {
+          return text.slice(0, detection.start) + detection.masked + text.slice(detection.end)
+        }, pendingMessage)
+      : pendingMessage
+
+    setPendingMessage(null)
+    setPiiDetections([])
+
+    await sendMessage(finalText)
+  }, [pendingMessage, piiDetections, sendMessage])
+
   // Process queued messages when back online
   useEffect(() => {
     const handleOnline = () => {
@@ -392,5 +428,24 @@ export function useChat(config: Config) {
     return () => window.removeEventListener('online', handleOnline)
   }, [sendMessage])
 
-  return { conv, messages, isLoading, isSearching, agentMode, setAgentMode, personaId, setPersonaId, assistantId, setAssistantId, error, currentModel, setCurrentModel, sendMessage, startNew, loadConv, stop, editAndResend, regenerate }
+  const runTemplate = useCallback(async (templateId: string, variables: Record<string, string>) => {
+    const template = await ChatTemplateStore.get(templateId)
+    if (!template) return
+
+    const steps = replaceVariables(template.steps, variables)
+    await ChatTemplateStore.incrementUsage(templateId)
+
+    for (const step of steps) {
+      if (step.role === 'user') {
+        await sendMessage(step.content)
+        if (step.waitForResponse) {
+          while (isLoading) {
+            await new Promise((resolve) => setTimeout(resolve, 100))
+          }
+        }
+      }
+    }
+  }, [sendMessage, isLoading])
+
+  return { conv, messages, isLoading, isSearching, agentMode, setAgentMode, personaId, setPersonaId, assistantId, setAssistantId, error, currentModel, setCurrentModel, sendMessage, startNew, loadConv, stop, editAndResend, regenerate, piiDetections, pendingMessage, confirmSendWithPII, runTemplate }
 }

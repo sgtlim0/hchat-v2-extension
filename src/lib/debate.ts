@@ -2,6 +2,12 @@
 
 import type { AIProvider } from './providers/types'
 import { Usage } from './usage'
+import { AssistantRegistry } from './assistantBuilder'
+
+export interface DebateParticipant {
+  modelId: string
+  assistantId?: string
+}
 
 export interface DebateRound {
   round: number
@@ -15,6 +21,7 @@ export interface DebateRound {
 export interface DebateConfig {
   topic: string
   modelIds: string[]
+  participants?: DebateParticipant[]
   providers: AIProvider[]
   getProviderForModel: (id: string) => AIProvider | undefined
   onRound: (round: DebateRound) => void
@@ -29,11 +36,20 @@ export interface DebateConfig {
  * Round 3: Synthesis from first model
  */
 export async function runDebate(config: DebateConfig): Promise<DebateRound[]> {
-  const { topic, modelIds, getProviderForModel, onRound, onChunk, signal } = config
+  const { topic, modelIds, participants, getProviderForModel, onRound, onChunk, signal } = config
   const rounds: DebateRound[] = []
 
   if (modelIds.length < 2) {
     throw new Error('토론에는 최소 2개의 모델이 필요합니다')
+  }
+
+  // Helper to get assistant system prompt
+  const getAssistantPrompt = async (modelId: string): Promise<string> => {
+    if (!participants) return ''
+    const participant = participants.find((p) => p.modelId === modelId)
+    if (!participant?.assistantId) return ''
+    const assistant = await AssistantRegistry.getById(participant.assistantId)
+    return assistant?.systemPrompt ?? ''
   }
 
   // ── Round 1: Parallel initial answers ──
@@ -53,11 +69,15 @@ export async function runDebate(config: DebateConfig): Promise<DebateRound[]> {
         return
       }
 
+      const assistantPrompt = await getAssistantPrompt(modelId)
+      const debatePrompt = '당신은 토론 참가자입니다. 주어진 주제에 대해 자신의 견해를 명확하고 논리적으로 제시해주세요. 한국어로 답변하세요.'
+      const systemPrompt = assistantPrompt ? `${assistantPrompt}\n\n${debatePrompt}` : debatePrompt
+
       let content = ''
       const gen = provider.stream({
         model: modelId,
         messages: [{ role: 'user', content: topic }],
-        systemPrompt: '당신은 토론 참가자입니다. 주어진 주제에 대해 자신의 견해를 명확하고 논리적으로 제시해주세요. 한국어로 답변하세요.',
+        systemPrompt,
         signal,
       })
 
@@ -95,11 +115,15 @@ export async function runDebate(config: DebateConfig): Promise<DebateRound[]> {
 
     const critiquePrompt = `주제: ${topic}\n\n다른 참가자들의 답변:\n${otherAnswers(modelId)}\n\n위 답변들의 장단점을 분석하고, 자신의 입장에서 비평해주세요. 동의하는 부분과 반박할 부분을 명확히 구분해주세요.`
 
+    const assistantPrompt = await getAssistantPrompt(modelId)
+    const debateCritiquePrompt = '당신은 토론 비평가입니다. 다른 참가자의 답변을 분석하고, 논리적으로 비평해주세요. 한국어로 답변하세요.'
+    const systemPrompt = assistantPrompt ? `${assistantPrompt}\n\n${debateCritiquePrompt}` : debateCritiquePrompt
+
     let content = ''
     const gen = provider.stream({
       model: modelId,
       messages: [{ role: 'user', content: critiquePrompt }],
-      systemPrompt: '당신은 토론 비평가입니다. 다른 참가자의 답변을 분석하고, 논리적으로 비평해주세요. 한국어로 답변하세요.',
+      systemPrompt,
       signal,
     })
 
@@ -131,11 +155,15 @@ export async function runDebate(config: DebateConfig): Promise<DebateRound[]> {
 
     const synthPrompt = `주제: ${topic}\n\n지금까지의 토론 내용:\n${allRounds}\n\n모든 참가자의 의견과 비평을 종합하여, 핵심 합의점, 주요 쟁점, 그리고 최종 결론을 정리해주세요.`
 
+    const assistantPrompt = await getAssistantPrompt(synthModelId)
+    const debateSynthPrompt = '당신은 토론 사회자입니다. 모든 참가자의 의견을 공정하게 종합하여 결론을 도출해주세요. 한국어로 답변하세요.'
+    const systemPrompt = assistantPrompt ? `${assistantPrompt}\n\n${debateSynthPrompt}` : debateSynthPrompt
+
     let content = ''
     const gen = synthProvider.stream({
       model: synthModelId,
       messages: [{ role: 'user', content: synthPrompt }],
-      systemPrompt: '당신은 토론 사회자입니다. 모든 참가자의 의견을 공정하게 종합하여 결론을 도출해주세요. 한국어로 답변하세요.',
+      systemPrompt,
       signal,
     })
 

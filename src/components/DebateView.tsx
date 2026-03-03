@@ -1,7 +1,8 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useProvider } from '../hooks/useProvider'
 import { useLocale } from '../i18n'
-import { runDebate, type DebateRound } from '../lib/debate'
+import { runDebate, type DebateRound, type DebateParticipant } from '../lib/debate'
+import { AssistantRegistry, type CustomAssistant } from '../lib/assistantBuilder'
 import type { Config } from '../hooks/useConfig'
 import type { ProviderType } from '../lib/providers/types'
 
@@ -17,11 +18,17 @@ export default function DebateView({ config }: Props) {
   const { t } = useLocale()
   const { configuredModels, getProvider, getModel } = useProvider(config)
   const [selectedModels, setSelectedModels] = useState<string[]>([])
+  const [modelAssistants, setModelAssistants] = useState<Record<string, string>>({})
+  const [availableAssistants, setAvailableAssistants] = useState<CustomAssistant[]>([])
   const [topic, setTopic] = useState('')
   const [rounds, setRounds] = useState<DebateRound[]>([])
   const [isRunning, setIsRunning] = useState(false)
   const [currentChunks, setCurrentChunks] = useState<Record<string, string>>({})
   const abortRef = useRef<AbortController | null>(null)
+
+  useEffect(() => {
+    AssistantRegistry.list().then(setAvailableAssistants).catch(() => {})
+  }, [])
 
   const toggleModel = (id: string) => {
     setSelectedModels((prev) =>
@@ -36,10 +43,16 @@ export default function DebateView({ config }: Props) {
     setIsRunning(true)
     abortRef.current = new AbortController()
 
+    const participants: DebateParticipant[] = selectedModels.map((modelId) => ({
+      modelId,
+      assistantId: modelAssistants[modelId] || undefined,
+    }))
+
     try {
       await runDebate({
         topic: topic.trim(),
         modelIds: selectedModels,
+        participants,
         providers: [],
         getProviderForModel: (id) => getProvider(id),
         onRound: (round) => {
@@ -74,20 +87,45 @@ export default function DebateView({ config }: Props) {
           {configuredModels.map((m) => {
             const selected = selectedModels.includes(m.id)
             const color = PROVIDER_COLORS[m.provider]
+            const assistant = modelAssistants[m.id] ? availableAssistants.find((a) => a.id === modelAssistants[m.id]) : undefined
             return (
-              <button
-                key={m.id}
-                className={`model-toggle ${selected ? 'on' : ''}`}
-                onClick={() => toggleModel(m.id)}
-                disabled={isRunning}
-                style={{
-                  borderColor: selected ? color : undefined,
-                  opacity: isRunning ? 0.5 : 1,
-                }}
-              >
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, display: 'inline-block' }} />
-                <span>{m.shortLabel}</span>
-              </button>
+              <div key={m.id} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <button
+                  className={`model-toggle ${selected ? 'on' : ''}`}
+                  onClick={() => toggleModel(m.id)}
+                  disabled={isRunning}
+                  style={{
+                    borderColor: selected ? color : undefined,
+                    opacity: isRunning ? 0.5 : 1,
+                  }}
+                >
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, display: 'inline-block' }} />
+                  <span>{m.shortLabel}</span>
+                  {assistant && <span style={{ fontSize: 9, opacity: 0.7 }}>{assistant.icon}</span>}
+                </button>
+                {selected && (
+                  <select
+                    value={modelAssistants[m.id] ?? ''}
+                    onChange={(e) => setModelAssistants((prev) => ({ ...prev, [m.id]: e.target.value }))}
+                    disabled={isRunning}
+                    style={{
+                      fontSize: 10,
+                      padding: '2px 4px',
+                      borderRadius: 4,
+                      border: '1px solid var(--border2)',
+                      background: 'var(--bg1)',
+                      color: 'var(--text2)',
+                    }}
+                  >
+                    <option value="">{t('debate.noAssistant')}</option>
+                    {availableAssistants.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.icon} {a.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
             )
           })}
         </div>

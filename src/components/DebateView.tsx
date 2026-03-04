@@ -5,12 +5,7 @@ import { runDebate, type DebateRound, type DebateParticipant } from '../lib/deba
 import { AssistantRegistry, type CustomAssistant } from '../lib/assistantBuilder'
 import type { Config } from '../hooks/useConfig'
 import type { ProviderType } from '../lib/providers/types'
-
-const PROVIDER_COLORS: Record<ProviderType, string> = {
-  bedrock: '#ff9900',
-  openai: '#10a37f',
-  gemini: '#4285f4',
-}
+import { PROVIDER_COLORS } from '../lib/providers/types'
 
 interface Props { config: Config }
 

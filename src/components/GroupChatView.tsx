@@ -3,6 +3,7 @@ import { useProvider } from '../hooks/useProvider'
 import { useLocale } from '../i18n'
 import type { Config } from '../hooks/useConfig'
 import type { Message, ProviderType } from '../lib/providers/types'
+import { PROVIDER_COLORS } from '../lib/providers/types'
 import { Usage } from '../lib/usage'
 
 interface ModelResponse {
@@ -11,12 +12,6 @@ interface ModelResponse {
   loading: boolean
   error?: string
   ms?: number
-}
-
-const PROVIDER_COLORS: Record<ProviderType, string> = {
-  bedrock: '#ff9900',
-  openai: '#10a37f',
-  gemini: '#4285f4',
 }
 
 interface Props { config: Config }

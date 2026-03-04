@@ -3,12 +3,11 @@ import { Usage, formatCost, formatTokens, exportUsageAsCSV, type UsageSummary, t
 import { UsageChart } from './UsageChart'
 import { downloadBlob } from '../lib/exportChat'
 import { useLocale } from '../i18n'
+import { PROVIDER_COLORS } from '../lib/providers/types'
 
-const PROVIDER_COLORS: Record<string, string> = {
-  bedrock: '#ff9900',
+const LEGACY_PROVIDER_COLORS: Record<string, string> = {
+  ...PROVIDER_COLORS,
   claude: '#9f7aea',
-  openai: '#10a37f',
-  gemini: '#4285f4',
 }
 
 const FEATURE_COLORS: Record<UsageFeature, string> = {
@@ -88,7 +87,7 @@ export function UsageView() {
         <div className="usage-section-title">{t('usage.byProvider')}</div>
         {Object.entries(summary.byProvider).map(([provider, data]) => (
           <div key={provider} className="usage-provider-row">
-            <div className="usage-provider-dot" style={{ background: PROVIDER_COLORS[provider] ?? 'var(--text3)' }} />
+            <div className="usage-provider-dot" style={{ background: LEGACY_PROVIDER_COLORS[provider] ?? 'var(--text3)' }} />
             <span className="usage-provider-name">{provider}</span>
             <span className="usage-provider-stat">{t('usage.count', { n: data.requests })}</span>
             <span className="usage-provider-stat">{formatTokens(data.tokens)}</span>

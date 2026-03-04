@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import '../styles/global.css'
 import { useLocale } from '../i18n'
+import { PROVIDER_COLORS } from '../lib/providers/types'
 
 export function PopupApp() {
   const { t } = useLocale()
@@ -53,9 +54,9 @@ export function PopupApp() {
 
       {/* AWS Status */}
       <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
-        <div style={{ width: 8, height: 8, borderRadius: '50%', background: hasCredentials ? '#ff9900' : 'var(--bg5)', flexShrink: 0 }} />
+        <div style={{ width: 8, height: 8, borderRadius: '50%', background: hasCredentials ? PROVIDER_COLORS.bedrock : 'var(--bg5)', flexShrink: 0 }} />
         <span style={{ fontSize: 12, flex: 1 }}>AWS Bedrock</span>
-        <span style={{ fontSize: 10, fontFamily: 'IBM Plex Mono, monospace', color: hasCredentials ? '#ff9900' : 'var(--text3)' }}>
+        <span style={{ fontSize: 10, fontFamily: 'IBM Plex Mono, monospace', color: hasCredentials ? PROVIDER_COLORS.bedrock : 'var(--text3)' }}>
           {hasCredentials ? `✓ ${t('common.connected')}` : t('common.noKey')}
         </span>
       </div>

@@ -335,7 +335,7 @@ export default function DocTranslateTool({
                   <div style={{
                     height: '100%',
                     width: `${progressPercent}%`,
-                    background: 'var(--accent, #10a37f)',
+                    background: 'var(--accent)',
                     borderRadius: 3,
                     transition: 'width 0.3s ease',
                   }} />

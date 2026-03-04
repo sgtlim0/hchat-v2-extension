@@ -2,6 +2,12 @@
 
 export type ProviderType = 'bedrock' | 'openai' | 'gemini'
 
+export const PROVIDER_COLORS: Record<ProviderType, string> = {
+  bedrock: '#ff9900',
+  openai: '#10a37f',
+  gemini: '#4285f4',
+}
+
 export type ModelCapability = 'chat' | 'code' | 'vision' | 'reasoning' | 'fast'
 
 export interface ModelDef {

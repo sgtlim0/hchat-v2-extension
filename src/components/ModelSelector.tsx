@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useProvider } from '../hooks/useProvider'
 import type { Config } from '../hooks/useConfig'
 import type { ProviderType } from '../lib/providers/types'
+import { PROVIDER_COLORS } from '../lib/providers/types'
 import { useLocale } from '../i18n'
 
 interface Props {
@@ -11,9 +12,9 @@ interface Props {
 }
 
 const PROVIDER_INFO: Record<ProviderType, { label: string; color: string }> = {
-  bedrock: { label: 'AWS Bedrock', color: '#ff9900' },
-  openai: { label: 'OpenAI', color: '#10a37f' },
-  gemini: { label: 'Google Gemini', color: '#4285f4' },
+  bedrock: { label: 'AWS Bedrock', color: PROVIDER_COLORS.bedrock },
+  openai: { label: 'OpenAI', color: PROVIDER_COLORS.openai },
+  gemini: { label: 'Google Gemini', color: PROVIDER_COLORS.gemini },
 }
 
 export function ModelSelector({ value, onChange, config }: Props) {

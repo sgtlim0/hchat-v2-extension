@@ -6,6 +6,7 @@ import { DEFAULT_SHORTCUTS, loadShortcuts, type Shortcut } from '../lib/shortcut
 import { UsageView } from './UsageView'
 import { StorageManagement } from './StorageManagement'
 import type { ProviderType } from '../lib/providers/types'
+import { PROVIDER_COLORS } from '../lib/providers/types'
 import { useLocale } from '../i18n'
 
 const PluginManagerView = lazy(() => import('./PluginManagerView'))
@@ -105,7 +106,7 @@ export default function SettingsView() {
         {/* AWS Bedrock */}
         <div className="provider-card">
           <div className="provider-header">
-            <div className="provider-dot" style={{ background: '#ff9900' }} />
+            <div className="provider-dot" style={{ background: PROVIDER_COLORS.bedrock }} />
             <span className="provider-label">AWS Bedrock</span>
             <span className={`badge ${hasBedrockKey ? 'badge-green' : 'badge-red'}`}>
               {hasBedrockKey ? t('common.configured') : t('common.notConfigured')}
@@ -150,7 +151,7 @@ export default function SettingsView() {
         {/* OpenAI */}
         <div className="provider-card">
           <div className="provider-header">
-            <div className="provider-dot" style={{ background: '#10a37f' }} />
+            <div className="provider-dot" style={{ background: PROVIDER_COLORS.openai }} />
             <span className="provider-label">OpenAI</span>
             <span className={`badge ${hasOpenaiKey ? 'badge-green' : 'badge-red'}`}>
               {hasOpenaiKey ? t('common.configured') : t('common.notConfigured')}
@@ -185,7 +186,7 @@ export default function SettingsView() {
         {/* Gemini */}
         <div className="provider-card">
           <div className="provider-header">
-            <div className="provider-dot" style={{ background: '#4285f4' }} />
+            <div className="provider-dot" style={{ background: PROVIDER_COLORS.gemini }} />
             <span className="provider-label">Google Gemini</span>
             <span className={`badge ${hasGeminiKey ? 'badge-green' : 'badge-red'}`}>
               {hasGeminiKey ? t('common.configured') : t('common.notConfigured')}

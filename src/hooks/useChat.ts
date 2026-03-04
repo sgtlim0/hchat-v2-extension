@@ -18,6 +18,8 @@ import { MessageQueue } from '../lib/messageQueue'
 import type { Config } from './useConfig'
 import { detectPII, getGuardrailConfig, type PIIDetection } from '../lib/guardrail'
 import { ChatTemplateStore, replaceVariables } from '../lib/chatTemplates'
+import { trackUsage } from '../lib/userPreferences'
+import { shouldSummarize, buildSummaryPrompt, saveSummaryEntry, loadLatestSummary, buildSystemPromptInjection, getDefaultConfig as getSummaryConfig } from '../lib/conversationSummarizer'
 
 function formatAgentContent(steps: AgentStep[]): string {
   const isEn = getGlobalLocale() === 'en'
@@ -260,6 +262,11 @@ export function useChat(config: Config) {
         })
 
         Usage.track(model, providerType, text, finalText, 'agent').catch(() => {})
+        // Track usage preferences
+        trackUsage('model', model).catch(() => {})
+        if (assistantId !== 'ast-default') {
+          trackUsage('assistant', assistantId).catch(() => {})
+        }
         // Increment assistant usage on successful agent response
         if (assistant && !assistant.isBuiltIn) {
           AssistantRegistry.incrementUsage(assistant.id).catch(() => {})
@@ -270,6 +277,12 @@ export function useChat(config: Config) {
         // Assistant system prompt takes priority over persona
         let systemPrompt = opts?.systemPrompt ?? assistant?.systemPrompt ?? persona?.systemPrompt ?? '당신은 도움이 되는 AI 어시스턴트입니다. 한국어로 답변해주세요.'
         let searchSources: { title: string; url: string }[] | undefined
+
+        // Inject previous conversation summary if available
+        const prevSummary = await loadLatestSummary(activeConv!.id)
+        if (prevSummary && prevSummary.summary) {
+          systemPrompt = buildSystemPromptInjection(prevSummary.summary) + '\n\n' + systemPrompt
+        }
 
         if (config.enableWebSearch && needsWebSearch(text)) {
           setIsSearching(true)
@@ -334,9 +347,32 @@ export function useChat(config: Config) {
           return prev.map((m) => m.id === placeholderId ? { ...m, streaming: false, searchSources } : m)
         })
 
+        // Track usage preferences
+        trackUsage('model', model).catch(() => {})
+        if (assistantId !== 'ast-default') {
+          trackUsage('assistant', assistantId).catch(() => {})
+        }
         // Increment assistant usage on successful chat response
         if (assistant && !assistant.isBuiltIn) {
           AssistantRegistry.incrementUsage(assistant.id).catch(() => {})
+        }
+
+        // Auto-summarize when conversation exceeds threshold
+        const summaryConfig = getSummaryConfig()
+        const updatedConv = await ChatHistory.get(activeConv!.id)
+        if (updatedConv && shouldSummarize(updatedConv.messages.length, summaryConfig)) {
+          const existingSummary = await loadLatestSummary(activeConv!.id)
+          if (!existingSummary || updatedConv.messages.length - existingSummary.messageCount >= 10) {
+            const summaryPrompt = buildSummaryPrompt(
+              updatedConv.messages.slice(-30).map((m) => ({ role: m.role, content: m.content }))
+            )
+            saveSummaryEntry({
+              convId: activeConv!.id,
+              summary: summaryPrompt,
+              messageCount: updatedConv.messages.length,
+              createdAt: Date.now(),
+            }).catch(() => {})
+          }
         }
       }
     } catch (err) {

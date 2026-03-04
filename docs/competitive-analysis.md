@@ -1,9 +1,9 @@
 # 경쟁 분석 & H Chat 구현 방안
 
-> 분석 일시: 2026-03-03
+> 분석 일시: 2026-03-04
 > 대상: 경쟁사 (기업용 AI 업무 도구 플랫폼)
-> 목적: H Chat v4 기능 로드맵 수립
-> 현재 버전: v4.5
+> 목적: H Chat v5+ 기능 로드맵 수립
+> 현재 버전: v5.0
 
 ---
 
@@ -59,39 +59,41 @@
 
 ---
 
-## 2. 기능 갭 분석 (v4.5 기준)
+## 2. 기능 갭 분석 (v5.0 기준)
 
-| 기능 | 경쟁사 | H Chat v4.5 | 갭 |
+| 기능 | 경쟁사 | H Chat v5.0 | 갭 |
 |------|---------|-------------|-----|
 | AI 채팅 | ✅ GPT-4o, GPT-4.1 nano | ✅ Claude, GPT, Gemini (9모델) | **H Chat 우위** (모델 다양성) |
 | 실시간 검색 | ✅ | ✅ DuckDuckGo + Google CSE | 동등 |
 | 사진 이해 | ✅ | ✅ Vision (Claude, GPT) | 동등 |
 | 데이터 분석 | ✅ | ✅ CSV/Excel + SVG 차트 | 동등 |
-| 커스텀 비서 | ✅ 빌더 + 마켓플레이스 | ✅ 8개 내장 + 커스텀 빌더 | ⚠️ 마켓플레이스 없음 |
+| 커스텀 비서 | ✅ 빌더 + 마켓플레이스 | ✅ 20개 내장 (6카테고리) + 커스텀 빌더 + 검색/필터 + export/import | **H Chat 우위** (더 많은 내장 비서) |
 | 문서 번역 | ✅ 포맷 유지, DeepL 연동 | ✅ TXT/CSV/XLSX/PPTX/PDF (포맷 유지), 중단 기능, 진행 상황 표시 (ETA) | **H Chat 우위** (진행 상황) |
 | 문서 작성 | ✅ HWP/DOCX 생성, 프로젝트 관리 | ✅ DOCX 생성 (5가지 유형), 프로젝트 관리 (검색+필터) | 동등 |
 | 템플릿 문서 | ⚠️ 미확인 | ✅ DOCX 템플릿 갤러리 (저장/재사용/공유, JSON 내보내기/가져오기) | **H Chat 우위** |
 | 배치 OCR | ✅ 20장 동시, 파일 다운로드 | ✅ 10장 동시, 구조화 OCR | 동등 |
 | 차트/그림 생성 | ✅ DALL-E3 | ✅ DALL-E3 (3가지 크기, HD 지원) | 동등 |
-| PPT 기획 | ✅ | ❌ 없음 | **갭** |
+| PPT 기획 | ✅ | ✅ topic → outline → content → PPTX (JSZip) | 동등 |
+| AI 가드레일 | ⚠️ 미확인 | ✅ PII 5종 감지/마스킹 (이메일/전화/주민번호/카드/계좌) | **H Chat 우위** |
+| 대화 템플릿 | ❌ | ✅ {{변수}} 치환, 순차 실행, JSON 공유 (최대 20개) | **H Chat 우위** |
 | 오프라인 지원 | ❌ | ✅ 메시지 큐 + 자동 재전송 | **H Chat 우위** |
 | 브라우저 통합 | ❌ 웹앱 | ✅ 사이드패널 + 콘텐츠 스크립트 | **H Chat 우위** |
 | 딥 리서치 | ❌ | ✅ 3단계 자동 리서치 | **H Chat 우위** |
-| AI 토론 | ❌ | ✅ 크로스 모델 3라운드 | **H Chat 우위** |
+| AI 토론 | ❌ | ✅ 크로스 모델 3라운드 + 비서 vs 비서 | **H Chat 우위** |
 | 플러그인 | ❌ | ✅ webhook/JS/prompt 커스텀 | **H Chat 우위** |
 
 ---
 
 ## 3. 구현 우선순위
 
-### 🟢 Priority 1: 커스텀 비서 빌더 ✅ 완료 (v4.0)
+### 🟢 Priority 1: 커스텀 비서 빌더 + 마켓플레이스 ✅ 완료 (v4.0, v5.0 확장)
 
 #### 구현 범위
 
 ```
-src/lib/assistantBuilder.ts     — 비서 CRUD (Storage 백업)
-src/components/AssistantBuilder.tsx — 비서 생성/편집 UI
-src/components/AssistantMarket.tsx  — 비서 목록 + 검색
+src/lib/assistantBuilder.ts          — 비서 CRUD (Storage 백업)
+src/components/AssistantBuilder.tsx  — 비서 생성/편집 UI
+src/components/AssistantMarketplace.tsx — 비서 목록 + 검색/필터/정렬
 ```
 
 #### 데이터 모델
@@ -145,13 +147,16 @@ interface CustomAssistant {
 
 #### 구현 상태
 
-- ✅ `src/lib/assistantBuilder.ts` — 커스텀 비서 CRUD
+- ✅ `src/lib/assistantBuilder.ts` — 커스텀 비서 CRUD, 20개 내장 (v5.0)
 - ✅ `AssistantBuilder.tsx` — 비서 생성/편집 UI
+- ✅ `AssistantMarketplace.tsx` — 비서 목록 + 검색/필터/정렬 (v5.0)
 - ✅ `AssistantSelector.tsx` — 비서 선택 드롭다운
-- ✅ 8개 내장 비서: 문서 검토관, 번역 전문가, 데이터 분석가, 이메일 작성, 코드 리뷰어, 보고서 작성, 회의록 정리, 리서치 비서
+- ✅ 20개 내장 비서 (6카테고리): 문서작업(5), 번역통역(3), 분석기획(4), 코딩개발(2), 크리에이티브(3), 일반업무(3)
 - ✅ 사용 횟수 추적
+- ✅ 검색/카테고리 필터/인기순 정렬
+- ✅ JSON export/import (v5.0)
 - ✅ useChat 통합 (비서별 모델/systemPrompt/tools 자동 설정)
-- ✅ 테스트: `assistantBuilder.test.ts`, `AssistantSelector.test.tsx`
+- ✅ 테스트: `assistantBuilder.test.ts`, `AssistantMarketplace.test.tsx`
 
 ---
 
@@ -319,35 +324,42 @@ src/components/tools/ImageGenTool.tsx — 프롬프트 입력 + 결과 갤러리
 
 ---
 
-## 4. 기술 아키텍처 변경 (v4.0~v4.2 완료)
+## 4. 기술 아키텍처 변경 (v4.0~v5.0 완료)
 
 ### 신규 파일 맵
 
 ```
 src/
 ├── lib/
-│   ├── assistantBuilder.ts      # ✅ 커스텀 비서 CRUD
+│   ├── assistantBuilder.ts      # ✅ 커스텀 비서 CRUD (20개 내장, v5.0)
 │   ├── docTranslator.ts         # ✅ 문서 번역 파이프라인
 │   ├── docGenerator.ts          # ✅ AI 문서 생성
 │   ├── batchOcr.ts              # ✅ 배치 OCR 오케스트레이터
-│   └── imageGenerator.ts        # ✅ DALL-E 3 이미지 생성
+│   ├── imageGenerator.ts        # ✅ DALL-E 3 이미지 생성
+│   ├── pptxGenerator.ts         # ✅ PPT 기획 (v5.0)
+│   ├── guardrail.ts             # ✅ PII 감지/마스킹 (v5.0)
+│   └── chatTemplates.ts         # ✅ 대화 템플릿 (v5.0)
 ├── components/
 │   ├── AssistantBuilder.tsx      # ✅ 비서 생성/편집 UI
+│   ├── AssistantMarketplace.tsx  # ✅ 비서 마켓플레이스 (v5.0)
 │   ├── AssistantSelector.tsx     # ✅ 비서 선택 드롭다운
 │   └── tools/
 │       ├── DocTranslateTool.tsx  # ✅ 문서 번역 UI
 │       ├── BatchOcrTool.tsx      # ✅ 배치 OCR UI
 │       ├── DocWriteTool.tsx      # ✅ 문서 작성 UI
-│       └── ImageGenTool.tsx      # ✅ 이미지 생성 UI
-└── i18n/                        # ✅ ko/en/ja 650+ 키
+│       ├── ImageGenTool.tsx      # ✅ 이미지 생성 UI
+│       └── PptPlannerTool.tsx    # ✅ PPT 기획 UI (v5.0)
+└── i18n/                        # ✅ ko/en/ja 730+ 키 (v5.0)
 ```
 
 ### Storage 키 추가
 
 ```
-hchat:assistants       — ✅ 커스텀 비서 목록
-hchat:ocr-results      — ✅ OCR 결과 캐시
-hchat:image-gen-history — ✅ 이미지 생성 히스토리
+hchat:assistants         — ✅ 커스텀 비서 목록 (20개 내장, v5.0)
+hchat:ocr-results        — ✅ OCR 결과 캐시
+hchat:image-gen-history  — ✅ 이미지 생성 히스토리
+hchat:chat-templates     — ✅ 대화 템플릿 (v5.0)
+hchat:guardrail-config   — ✅ PII 가드레일 설정 (v5.0)
 ```
 
 ### 의존성 추가 현황
@@ -356,16 +368,10 @@ hchat:image-gen-history — ✅ 이미지 생성 히스토리
 |--------|------|------|------|------|
 | `docx` | ~50KB | DOCX 생성 | 동적 임포트 | ✅ 사용 중 |
 | `xlsx` | ~430KB | Excel 파싱 | 동적 임포트 | ✅ 사용 중 (lazy chunk) |
+| `jszip` | ~30KB (gzip) | PPTX 파싱/생성 | 동적 임포트 | ✅ 사용 중 (v5.0) |
+| `mammoth` | ~16KB | DOCX → HTML 변환 | 동적 임포트 | ✅ 사용 중 (v4.3) |
 
 모두 **동적 임포트**로 번들 사이즈 영향 최소화.
-
-### 미구현 (v4.3 예정)
-
-| 패키지 | 크기 | 용도 | 예정 버전 |
-|--------|------|------|----------|
-| `mammoth` | ~16KB | DOCX → HTML 변환 | v4.3 (PDF/PPTX 번역) |
-| `pptxgenjs` | ~50KB | PPTX 파싱/생성 | v4.3 |
-| `file-saver` | ~3KB | Blob 다운로드 | 불필요 (네이티브 `<a>` 사용) |
 
 ---
 
@@ -390,6 +396,7 @@ hchat:image-gen-history — ✅ 이미지 생성 히스토리
 ├── ✅ PPTX/PDF 번역 지원
 ├── ✅ 문서 프로젝트 관리
 └── ✅ 템플릿 문서 작성 (양식 기반)
+└── ✅ 589 tests, 34 files
 
 ✅ v4.4 (완료)
 ├── ✅ 문서 번역 중단 기능
@@ -401,6 +408,14 @@ hchat:image-gen-history — ✅ 이미지 생성 히스토리
 ├── ✅ 번역 진행 상황 표시 (경과 시간 + 예상 남은 시간)
 ├── ✅ 템플릿 갤러리 공유 (JSON 내보내기/가져오기)
 └── ✅ 649 tests, 36 files
+
+✅ v5.0 (완료, 2026-03-03)
+├── ✅ 비서 마켓플레이스 (20개 내장, 6카테고리, 검색/필터/정렬, export/import)
+├── ✅ PPT 기획 도구 (topic → outline → content → PPTX, JSZip)
+├── ✅ AI 가드레일 (PII 5종 감지/마스킹)
+├── ✅ 비서 vs 비서 토론
+├── ✅ 대화 템플릿 ({{변수}} 치환, 최대 20개)
+└── ✅ 741 tests, 40 files
 ```
 
 ---

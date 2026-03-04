@@ -1,10 +1,10 @@
 # H Chat v2 - 추가 기능 상세 기술 설계
 
-> 마지막 업데이트: 2026-03-03
-> 현재 버전: v4.5
-> 참고: 이 문서는 v2~v3 초기 설계안입니다. 대부분 기능이 v3.x~v4.x에서 구현 완료되었습니다.
+> 마지막 업데이트: 2026-03-04
+> 현재 버전: v5.0
+> 참고: 이 문서는 v2~v3 초기 설계안입니다. 대부분 기능이 v3.x~v5.0에서 구현 완료되었습니다.
 
-## 기존 아키텍처 요약 (v4.5 기준)
+## 기존 아키텍처 요약 (v5.0 기준)
 
 | 모듈 | 역할 |
 |------|------|
@@ -12,8 +12,11 @@
 | `ChatHistory` | `hchat:conv:*` 기반 대화 CRUD |
 | `useChat` hook | 대화 상태, 스트리밍, 중단 관리, 비서 통합 |
 | `pageReader` | 페이지/YouTube 컨텐츠 추출 (구조화 자막 포함) |
-| `ToolsView` | 16개 도구 (요약, 멀티탭, YouTube, OCR, 배치OCR, 번역, 글쓰기, 문서작성, 문법, 댓글분석, PDF, 인사이트, 데이터분석, 이미지생성, 문서번역, 템플릿문서) |
+| `ToolsView` | 17개 도구 (요약, 멀티탭, YouTube, OCR, 배치OCR, 번역, 글쓰기, 문서작성, 문법, 댓글분석, PDF, 인사이트, 데이터분석, 이미지생성, 문서번역, 템플릿문서, PPT기획) |
 | `App.tsx` | 8탭: chat, group, tools, debate, prompts, history, bookmarks, settings |
+| `assistantBuilder.ts` | 20개 내장 비서 (6카테고리) + 커스텀 빌더, export/import |
+| `guardrail.ts` | PII 5종 감지/마스킹 (이메일/전화/주민번호/카드/계좌) |
+| `chatTemplates.ts` | 대화 템플릿 CRUD, {{변수}} 치환, 최대 20개 |
 
 ---
 
@@ -1114,9 +1117,18 @@ export async function copyToClipboard(conv: Conversation): Promise<void> {
 
 ---
 
-## 향후 작업 (v5.0 예정)
+## v5.0 완료 기능
+
+- ✅ 비서 마켓플레이스 (20개 내장, 6카테고리, 검색/필터/인기순, JSON export/import)
+- ✅ PPT 기획 도구 (topic → outline → content → PPTX, JSZip OOXML)
+- ✅ AI 가드레일 (PII 5종 감지/마스킹: 이메일/전화/주민번호/카드/계좌)
+- ✅ 비서 vs 비서 토론 (DebateParticipant.assistantId 지원)
+- ✅ 대화 템플릿 (ChatTemplateStore CRUD, {{변수}} 치환, 순차 실행, 최대 20개)
+
+## 향후 작업 (v5.1+ 예정)
 
 - [ ] 키보드 단축키 완전 구현 (커스터마이징 + Chrome commands)
-- [ ] 비서 마켓플레이스 (공유/검색/추천)
-- [ ] PPT 기획 도구
-- [ ] AI 가드레일 (개인정보 마스킹)
+- [ ] 테스트 커버리지 80% 달성 (현재 40% 추정)
+- [ ] E2E 테스트 도입 (Playwright, 10+ 시나리오)
+- [ ] 대용량 대화 최적화 (가상 스크롤, 메모리 관리)
+- [ ] Firefox/Edge 지원 (WebExtension 호환 레이어)

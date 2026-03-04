@@ -371,7 +371,7 @@ hchat-v2-extension/
     │   ├── ko.ts                  # 한국어 번역 (730+ 키)
     │   ├── en.ts                  # 영어 번역 (730+ 키)
     │   └── ja.ts                  # 일본어 번역 (730+ 키)
-    ├── components/                 # 26+ 파일
+    ├── components/                 # 24+ 파일
     │   ├── ChatView.tsx            # 메인 채팅 (460줄)
     │   ├── GroupChatView.tsx       # 크로스 모델 비교
     │   ├── DebateView.tsx          # 크로스 모델 토론
@@ -388,31 +388,53 @@ hchat-v2-extension/
     │   ├── PersonaSelector.tsx     # 페르소나 선택 (레거시)
     │   ├── OfflineBanner.tsx       # 오프라인 상태 배너
     │   ├── PluginManagerView.tsx   # 플러그인 관리 UI
-    │   ├── chat/                   # ChatView 서브 컴포넌트
+    │   ├── StorageManagement.tsx   # 스토리지 관리 UI
+    │   ├── DataChart.tsx           # 데이터 차트 시각화
+    │   ├── ErrorBoundary.tsx       # React 에러 경계
+    │   ├── UsageChart.tsx          # 사용량 차트
+    │   ├── chat/                   # ChatView 서브 컴포넌트 (15개 파일)
     │   │   ├── MsgBubble.tsx       # 메시지 버블
     │   │   ├── ChatToolbar.tsx     # 상단 툴바
     │   │   ├── ChatInputArea.tsx   # 입력 영역
+    │   │   ├── CodeBlock.tsx       # 코드 블록 렌더링
+    │   │   ├── MarkdownRenderer.tsx # 마크다운 렌더링
+    │   │   ├── SearchSources.tsx   # 웹 검색 소스 표시
+    │   │   ├── AgentStepsView.tsx  # 에이전트 스텝 시각화
     │   │   ├── SummaryPanel.tsx    # 대화 요약 패널
     │   │   ├── PinnedPanel.tsx     # 고정 메시지 패널
     │   │   ├── ThinkingDepthSelector.tsx  # 사고 깊이 선택
     │   │   ├── DeepResearchToggle.tsx     # 딥 리서치 토글
     │   │   ├── UsageAlertBanner.tsx       # 사용량 알림 배너
-    │   │   └── VoiceWaveform.tsx          # 음성 파형 SVG
-    │   └── tools/                  # 도구 서브 컴포넌트
+    │   │   ├── VoiceWaveform.tsx          # 음성 파형 SVG
+    │   │   └── index.ts            # 서브 컴포넌트 export
+    │   └── tools/                  # 도구 서브 컴포넌트 (20개 파일)
+    │       ├── SummarizeTool.tsx   # 페이지 요약
+    │       ├── MultiTabTool.tsx    # 멀티 탭 요약
+    │       ├── YouTubeTool.tsx     # YouTube 자막/댓글 분석
+    │       ├── CommentsTool.tsx    # 댓글 분석
+    │       ├── InsightTool.tsx     # 통합 리포트
+    │       ├── TranslateTool.tsx   # 번역
+    │       ├── WriteTool.tsx       # 글쓰기 도구
+    │       ├── GrammarTool.tsx     # 문법 교정
+    │       ├── OcrTool.tsx         # OCR
     │       ├── BatchOcrTool.tsx    # 배치 OCR (10장, 4모드)
+    │       ├── PdfTool.tsx         # PDF 채팅
+    │       ├── DataAnalysisTool.tsx # 데이터 분석
     │       ├── DocTranslateTool.tsx # 문서 번역 (TXT/CSV/XLSX/PPTX/PDF)
     │       ├── DocWriteTool.tsx    # 문서 작성 (5유형, 프로젝트 관리, DOCX)
     │       ├── DocProjectList.tsx  # 문서 프로젝트 목록
     │       ├── DocProjectDetail.tsx # 문서 프로젝트 상세 + 버전 관리
     │       ├── DocTemplateTool.tsx # 템플릿 문서 작성 (DOCX 업로드 → AI 생성)
     │       ├── ImageGenTool.tsx    # 이미지 생성 (DALL-E 3)
-    │       └── PptxPlanTool.tsx   # PPT 기획 (v5.0)
+    │       ├── PptxPlanTool.tsx    # PPT 기획 (v5.0)
+    │       └── types.ts            # 도구 타입 정의
     ├── hooks/
     │   ├── useChat.ts              # 채팅 상태 + 스트리밍 (256줄)
     │   ├── useConfig.ts            # 설정 관리 (62줄)
+    │   ├── useNetworkStatus.ts     # 네트워크 상태 감지
     │   ├── useProvider.ts          # 프로바이더 인스턴스, 모델 리스트
     │   └── useShortcuts.ts         # 키보드 단축키 (40줄)
-    ├── lib/                        # 49+ 파일
+    ├── lib/                        # 52+ 파일
     │   ├── providers/
     │   │   ├── types.ts            # AIProvider 인터페이스, ModelDef
     │   │   ├── bedrock-provider.ts # AWS Bedrock Claude 프로바이더
@@ -452,6 +474,8 @@ hchat-v2-extension/
     │   ├── folders.ts              # 대화 폴더 관리
     │   ├── pluginRegistry.ts       # 커스텀 플러그인 레지스트리
     │   ├── messageQueue.ts         # 오프라인 메시지 큐
+    │   ├── storageManager.ts       # 스토리지 관리 + 정리
+    │   ├── detectLanguage.ts       # 언어 자동 감지
     │   ├── assistantBuilder.ts     # 커스텀 비서 CRUD
     │   ├── batchOcr.ts             # 배치 OCR 오케스트레이터
     │   ├── docTranslator.ts        # 문서 번역 파이프라인 (TXT/CSV/XLSX/PPTX/PDF)
@@ -464,9 +488,10 @@ hchat-v2-extension/
     │   ├── pptxParser.ts           # PPTX 파싱/재조립 (JSZip)
     │   ├── imageGenerator.ts       # DALL-E 3 이미지 생성
     │   ├── chartDataExtractor.ts   # 차트 데이터 자동 추출
-    │   ├── pptxGenerator.ts       # PPTX 생성 (JSZip, v5.0)
-    │   ├── guardrail.ts           # PII 감지/마스킹 (v5.0)
-    │   └── chatTemplates.ts       # 대화 템플릿 CRUD (v5.0)
+    │   ├── pptxGenerator.ts        # PPTX 생성 (JSZip, v5.0)
+    │   ├── guardrail.ts            # PII 감지/마스킹 (v5.0)
+    │   ├── chatTemplates.ts        # 대화 템플릿 CRUD (v5.0)
+    │   └── README.md               # lib 문서
     └── styles/
         └── global.css              # 디자인 시스템 (~40KB)
 ```
@@ -753,7 +778,7 @@ npm run build      # 프로덕션 빌드 → dist/
 | 프로바이더별 사용량 | AWS/OpenAI/Google 개별 비용 추적, 기능별 분류 |
 | 프로바이더 팩토리 | createAllProviders, getProviderForModel, getAllModels |
 | useProvider 훅 | 메모이제이션된 프로바이더 인스턴스, 모델 리스트 |
-| 다국어 지원 (i18n) | 한국어/영어 UI 전환, 경량 자체 구현 (t() + useLocale()) |
+| 다국어 지원 (i18n) | 한국어/영어/일본어 3개 언어 전환, 경량 자체 구현 (t() + useLocale()) |
 
 ### v2.0.0 (2025-12) — 웹 검색 + 에이전트 시스템
 
@@ -776,7 +801,7 @@ npm run build      # 프로덕션 빌드 → dist/
 | 소스 파일 | ~22개 | ~40개 | ~50개 | ~80개 | ~90개 | ~100개 | ~107개 | ~115개 |
 | 코드 라인 | ~4,000 | ~8,000 | ~10,000+ | ~15,000+ | ~18,000+ | ~20,000+ | ~21,500+ | ~25,000+ |
 | 탭 수 | 5개 | 7개 | 8개 | 8개 | 8개 | 8개 | 8개 | 8개 |
-| lib 파일 | 6개 | 20개 | 30개 | 45개 | 50개 | 55개 | 57개 | 60개 |
+| lib 파일 | 6개 | 20개 | 30개 | 45개 | 50개 | 55개 | 57개 | 52개 |
 | AI 프로바이더 | 1개 | 1개 | 3개 | 3개 | 3개 | 3개 | 3개 | 3개 |
 | 지원 모델 | 3개 | 3개 | 9개 | 9개 | 9개 | 9개 | 9개 | 9개 |
 | 도구 | 4개 | 8개 | 8개 | 12개 | 15개 | 16개 | 16개 | 17개 |

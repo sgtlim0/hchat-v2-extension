@@ -12,7 +12,7 @@ H Chat is a Chrome Extension (Manifest V3) that provides a multi-AI sidebar assi
 npm run build    # Production build to dist/
 npm run dev      # Watch mode (vite build --watch)
 npm run clean    # Remove dist/
-npm test         # Run all tests (Vitest, 993 tests, 50 files)
+npm test         # Run all tests (Vitest, 1148 tests, 54 files)
 npm run lint     # ESLint (flat config)
 ```
 
@@ -58,6 +58,13 @@ All AI providers implement the `AIProvider` interface (`types.ts`), which uses `
 
 XML-based tool calling (`<tool_call>`) supporting 8 built-in tools + user-defined custom tools via `pluginRegistry.ts`. Plugin types: webhook, javascript, prompt template. Custom tools merge with built-ins in agent mode. Custom assistants (`assistantBuilder.ts`) can bind specific tools + model + system prompt as a package.
 
+### Smart Recommendation System (v5.3, `src/lib/`)
+
+- `intentRouter.ts` — `detectIntent()` classifies user input into 9 intent categories, `recommendAssistant()` and `recommendTool()` suggest best matches
+- `userPreferences.ts` — Weighted frequency tracking with time decay, persists to `hchat:user-prefs`, returns top 3 recommendations
+- `conversationSummarizer.ts` — Auto-summarizes conversations with 20+ messages, FIFO cache (`hchat:conv-summaries`), injects summary into system prompt
+- `bm25.ts` — BM25 scoring with IDF, `combinedScore()` blends BM25 (70%) + recency (30%) for improved search ranking
+
 ### Storage Pattern
 
 All persistence uses `chrome.storage.local` via `src/lib/storage.ts` wrapper. Key prefixes:
@@ -74,6 +81,8 @@ All persistence uses `chrome.storage.local` via `src/lib/storage.ts` wrapper. Ke
 - `hchat:doc-templates` — Template gallery storage
 - `hchat:chat-templates` — Chat conversation templates
 - `hchat:guardrail-config` — PII guardrail settings
+- `hchat:user-prefs` — User usage pattern preferences (weighted frequency, time decay)
+- `hchat:conv-summaries` — Conversation summary cache (FIFO)
 
 ### Styling
 
@@ -100,4 +109,4 @@ Haiku 4.5:  us.anthropic.claude-haiku-4-5-20251001-v1:0  (-v1:0)
 - Files should stay under 800 lines; extract into separate files if approaching limit
 - Korean is the primary UI language, with English and Japanese translations
 - Immutable patterns throughout (never mutate objects)
-- Tests: Vitest with chrome.storage.local mock, 993 tests across 50 files
+- Tests: Vitest with chrome.storage.local mock, 1148 tests across 54 files

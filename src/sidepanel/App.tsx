@@ -33,7 +33,7 @@ const TABS_BASE: { id: Tab; icon: string }[] = [
 const TAB_ORDER: Tab[] = TABS_BASE.map((t) => t.id)
 
 export function App() {
-  const { t } = useLocale()
+  const { t, locale } = useLocale()
   const { config, loaded } = useConfig()
   const [tab, setTab] = useState<Tab>('chat')
   const [loadConvId, setLoadConvId] = useState<string | undefined>()
@@ -45,7 +45,7 @@ export function App() {
   const chatInputRef = useRef<() => void>()
   const hasAnyKey = !!(config.aws.accessKeyId && config.aws.secretAccessKey) || !!config.openai.apiKey || !!config.gemini.apiKey
 
-  // Apply theme to <html> element
+  // Apply theme and lang to <html> element
   useEffect(() => {
     const apply = (theme: string) => {
       const root = document.documentElement
@@ -66,6 +66,11 @@ export function App() {
     if (theme === 'system') mq.addEventListener('change', handler)
     return () => mq.removeEventListener('change', handler)
   }, [config.theme])
+
+  // Set lang attribute
+  useEffect(() => {
+    document.documentElement.lang = locale
+  }, [locale])
 
   const cycleTab = useCallback((dir: 1 | -1) => {
     setTab((current) => {

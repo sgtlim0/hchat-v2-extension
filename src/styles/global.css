@@ -18,8 +18,8 @@
   --border2: rgba(255,255,255,0.1);
   --text0: #eef1f5;
   --text1: #adb8c8;
-  --text2: #6b7c93;
-  --text3: #3d4f65;
+  --text2: #8b9cb8;
+  --text3: #5d7090;
   --accent: #34d399;
   --accent2: #10b981;
   --accent-dim: rgba(52,211,153,0.1);
@@ -74,6 +74,21 @@ button { cursor: pointer; font-family: inherit; }
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 input, textarea, select { font-family: inherit; }
+
+/* ── Focus Styles ────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
 
 /* ── Scrollbar ───────────────────────────────── */
 ::-webkit-scrollbar { width: 4px; height: 4px; }

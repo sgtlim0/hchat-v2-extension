@@ -145,6 +145,7 @@ export function ChatInputArea({
             placeholder={agentMode ? t('chat.agentPlaceholder') : t('chat.placeholder')}
             rows={1}
             disabled={voiceMode}
+            aria-label={t('aria.chatInput')}
           />
           <div className="input-actions">
             <input ref={fileRef} type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={onFileSelect} />
@@ -157,6 +158,7 @@ export function ChatInputArea({
               <button
                 className={`icon-btn stt-btn${STT.getState() === 'listening' ? ' listening' : ''}`}
                 title={STT.getState() === 'listening' ? t('chat.voiceInputStop') : t('chat.voiceInput')}
+                aria-label={t('aria.voiceButton')}
                 onClick={onSTT}
               >🎤</button>
             )}
@@ -178,7 +180,7 @@ export function ChatInputArea({
             {isLoading ? (
               <button className="send-btn stop" onClick={onStop} title={t('chat.stopBtn')}>⏹</button>
             ) : (
-              <button className="send-btn" onClick={onSend} disabled={!input.trim()}>
+              <button className="send-btn" onClick={onSend} disabled={!input.trim()} aria-label={t('aria.sendButton')}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
                 </svg>

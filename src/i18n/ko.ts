@@ -859,6 +859,14 @@ const ko = {
   chatTemplateEmpty: '저장된 템플릿이 없습니다',
   chatTemplateImportSuccess: '{{imported}}개 가져오기 완료 ({{skipped}}개 건너뜀)',
   chatTemplateWaitResponse: 'AI 응답 대기',
+
+  aria: {
+    chatInput: '메시지 입력',
+    sendButton: '메시지 전송',
+    modelSelect: 'AI 모델 선택',
+    messageFrom: '{{role}} 메시지',
+    voiceButton: '음성 입력',
+  },
 } as const
 
 export default ko

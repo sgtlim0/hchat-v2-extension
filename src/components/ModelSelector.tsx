@@ -35,7 +35,13 @@ export function ModelSelector({ value, onChange, config }: Props) {
 
   return (
     <div style={{ position: 'relative' }}>
-      <button className="model-selector-btn" onClick={() => setOpen(!open)}>
+      <button
+        className="model-selector-btn"
+        onClick={() => setOpen(!open)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label={t('aria.modelSelect')}
+      >
         {autoRouting ? (
           <>
             <span>🔄</span>
@@ -53,12 +59,15 @@ export function ModelSelector({ value, onChange, config }: Props) {
       {open && (
         <>
           <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setOpen(false)} />
-          <div style={{
-            position: 'absolute', bottom: '100%', left: 0, marginBottom: 4,
-            background: 'var(--bg2)', border: '1px solid var(--border2)',
-            borderRadius: 'var(--radius)', boxShadow: 'var(--shadow)',
-            zIndex: 100, minWidth: 220, overflow: 'hidden',
-          }}>
+          <div
+            role="listbox"
+            style={{
+              position: 'absolute', bottom: '100%', left: 0, marginBottom: 4,
+              background: 'var(--bg2)', border: '1px solid var(--border2)',
+              borderRadius: 'var(--radius)', boxShadow: 'var(--shadow)',
+              zIndex: 100, minWidth: 220, overflow: 'hidden',
+            }}
+          >
             {autoRouting && (
               <div style={{
                 padding: '6px 12px', background: 'var(--accent-dim)',
@@ -80,6 +89,8 @@ export function ModelSelector({ value, onChange, config }: Props) {
                 {g.models.map((m) => (
                   <button
                     key={m.id}
+                    role="option"
+                    aria-selected={value === m.id && !autoRouting}
                     onClick={() => { onChange(m.id); setOpen(false) }}
                     disabled={!g.configured}
                     style={{

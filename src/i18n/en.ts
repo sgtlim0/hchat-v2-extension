@@ -859,6 +859,14 @@ const en = {
   chatTemplateEmpty: 'No saved templates',
   chatTemplateImportSuccess: '{{imported}} imported ({{skipped}} skipped)',
   chatTemplateWaitResponse: 'Wait for AI response',
+
+  aria: {
+    chatInput: 'Type a message',
+    sendButton: 'Send message',
+    modelSelect: 'Select AI model',
+    messageFrom: 'Message from {{role}}',
+    voiceButton: 'Voice input',
+  },
 } as const
 
 export default en

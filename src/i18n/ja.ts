@@ -858,6 +858,14 @@ const ja = {
   chatTemplateEmpty: '保存されたテンプレートはありません',
   chatTemplateImportSuccess: '{{imported}}件インポート完了（{{skipped}}件スキップ）',
   chatTemplateWaitResponse: 'AI応答を待つ',
+
+  aria: {
+    chatInput: 'メッセージを入力',
+    sendButton: 'メッセージ送信',
+    modelSelect: 'AIモデル選択',
+    messageFrom: '{{role}}のメッセージ',
+    voiceButton: '音声入力',
+  },
 } as const
 
 export default ja

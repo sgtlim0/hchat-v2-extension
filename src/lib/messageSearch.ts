@@ -2,6 +2,7 @@
 
 import { ChatHistory, type ChatMessage } from './chatHistory'
 import { Storage } from './storage'
+import { scoreBM25, buildBM25Index, combinedScore, type BM25Document, type BM25Index } from './bm25'
 
 export interface SearchResult {
   convId: string
@@ -35,6 +36,7 @@ const INDEX_VERSION_KEY = 'hchat:search-index-version'
 const CURRENT_VERSION = 1
 
 let memoryIndex: InvertedIndex | null = null
+let bm25Cache: BM25Index | null = null
 
 /** Build trigrams for Korean/CJK fuzzy matching */
 function buildTrigrams(text: string): string[] {
@@ -116,6 +118,16 @@ async function buildIndex(): Promise<InvertedIndex> {
   return index
 }
 
+/** Build BM25 index from inverted index documents */
+function buildBM25FromInverted(index: InvertedIndex): BM25Index {
+  const docs: BM25Document[] = Object.entries(index.docs).map(([docId, doc]) => ({
+    id: docId,
+    tokens: tokenize(doc.content),
+    length: tokenize(doc.content).length,
+  }))
+  return buildBM25Index(docs)
+}
+
 /** Load or build search index */
 async function loadIndex(): Promise<InvertedIndex> {
   if (memoryIndex) return memoryIndex
@@ -177,6 +189,7 @@ export async function updateIndexForMessage(convId: string, convTitle: string, m
 
   // Persist to storage
   await Storage.set(INDEX_KEY, index)
+  bm25Cache = null // Invalidate BM25 cache for next search
 }
 
 /** Remove conversation from index */
@@ -201,6 +214,7 @@ export async function removeFromIndex(convId: string): Promise<void> {
 
   // Persist to storage
   await Storage.set(INDEX_KEY, index)
+  bm25Cache = null
 }
 
 /** Rebuild entire index (useful after bulk operations) */
@@ -209,13 +223,18 @@ export async function rebuildIndex(): Promise<void> {
   await Storage.set(INDEX_KEY, index)
   await Storage.set(INDEX_VERSION_KEY, CURRENT_VERSION)
   memoryIndex = index
+  bm25Cache = null
 }
 
-/** Calculate relevance score based on term frequency and recency */
-function calculateScore(doc: IndexedDocument, queryTokens: string[], matchCount: number): number {
-  const tfScore = matchCount / Math.max(1, tokenize(doc.content).length)
-  const recencyScore = Math.min(1, doc.ts / Date.now()) // normalize to 0-1
-  return tfScore * 0.7 + recencyScore * 0.3
+/** Calculate relevance score using BM25 + recency */
+function calculateScore(doc: IndexedDocument, queryTokens: string[], _matchCount: number, bm25Index: BM25Index): number {
+  const bm25Doc: BM25Document = {
+    id: `${doc.convId}:${doc.msgId}`,
+    tokens: tokenize(doc.content),
+    length: tokenize(doc.content).length,
+  }
+  const bm25Score = scoreBM25(bm25Doc, queryTokens, bm25Index)
+  return combinedScore(bm25Score, doc.ts)
 }
 
 /** Search across all conversations for messages containing the query */
@@ -224,6 +243,12 @@ export async function searchMessages(query: string, maxResults = 50): Promise<Se
 
   const startTime = Date.now()
   const index = await loadIndex()
+
+  // Build or reuse BM25 index
+  if (!bm25Cache || bm25Cache.totalDocs !== Object.keys(index.docs).length) {
+    bm25Cache = buildBM25FromInverted(index)
+  }
+
   const queryTokens = tokenize(query)
 
   if (queryTokens.length === 0) return []
@@ -255,7 +280,7 @@ export async function searchMessages(query: string, maxResults = 50): Promise<Se
 
   // Convert to results and calculate scores
   const results: SearchResult[] = Array.from(docScores.entries()).map(([_docId, { doc, matchCount, firstMatchPos }]) => {
-    const score = calculateScore(doc, queryTokens, matchCount)
+    const score = calculateScore(doc, queryTokens, matchCount, bm25Cache!)
     const message: ChatMessage = {
       id: doc.msgId,
       role: doc.role,

@@ -5,6 +5,11 @@ import { runDebate, type DebateConfig, type DebateParticipant } from '../debate'
 import type { AIProvider } from '../providers/types'
 import { AssistantRegistry } from '../assistantBuilder'
 
+// Mock Usage to prevent storage calls that cause timeouts
+vi.mock('../usage', () => ({
+  Usage: { track: vi.fn(() => Promise.resolve()) },
+}))
+
 const createMockProvider = (type: 'bedrock' | 'openai' | 'gemini'): AIProvider => ({
   type,
   isConfigured: () => true,

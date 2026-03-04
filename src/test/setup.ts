@@ -130,7 +130,7 @@ const chromeMock = {
     },
   },
   runtime: {
-    sendMessage: vi.fn(),
+    sendMessage: vi.fn(() => Promise.resolve()),
     onMessage: {
       addListener: vi.fn(),
       removeListener: vi.fn(),

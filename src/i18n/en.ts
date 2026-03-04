@@ -674,6 +674,12 @@ const en = {
     continueChat: '💬 Continue in chat',
     noCredentials: '❌ Please set AWS credentials. Extension icon → Settings',
     disconnected: 'Disconnected',
+    promptExplain: 'Explain the following in simple terms:\n\n',
+    promptTranslate: 'Translate the following to English:\n\n',
+    promptSummarize: 'Summarize the following in 3 sentences:\n\n',
+    promptRewrite: 'Rewrite the following to be clearer and more concise:\n\n',
+    promptFormal: 'Rewrite the following in a formal tone:\n\n',
+    promptGrammar: 'Check and correct the grammar and spelling of the following:\n\n',
   },
 
   searchInjector: {

@@ -673,6 +673,12 @@ const ja = {
     continueChat: '💬 チャットで続ける',
     noCredentials: '❌ AWS認証情報を設定してください。拡張機能アイコン → 設定',
     disconnected: '接続切断',
+    promptExplain: '次の内容を簡単に説明してください:\n\n',
+    promptTranslate: '次の内容を日本語に翻訳してください:\n\n',
+    promptSummarize: '次の内容を3文で要約してください:\n\n',
+    promptRewrite: '次の文章をより明確に書き直してください:\n\n',
+    promptFormal: '次の内容を敬語で書き直してください:\n\n',
+    promptGrammar: '次の文法とスペルをチェックして修正してください:\n\n',
   },
 
   searchInjector: {

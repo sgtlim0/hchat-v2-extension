@@ -9,23 +9,6 @@ let toolbar: HTMLElement | null = null
 let resultPanel: HTMLElement | null = null
 let hideTimer: ReturnType<typeof setTimeout> | null = null
 
-const PROMPTS_KO: Record<string, (t: string) => string> = {
-  explain: (t) => `다음을 쉽게 설명해줘:\n\n${t}`,
-  translate: (t) => `다음을 한국어로 번역해줘:\n\n${t}`,
-  summarize: (t) => `다음을 3줄로 요약해줘:\n\n${t}`,
-  rewrite: (t) => `다음 문장을 더 명확하게 다듬어줘:\n\n${t}`,
-  formal: (t) => `다음을 격식 있는 문체로 바꿔줘:\n\n${t}`,
-  grammar: (t) => `다음의 문법과 맞춤법을 교정해줘:\n\n${t}`,
-}
-
-const PROMPTS_EN: Record<string, (t: string) => string> = {
-  explain: (t) => `Explain the following in simple terms:\n\n${t}`,
-  translate: (t) => `Translate the following to English:\n\n${t}`,
-  summarize: (t) => `Summarize the following in 3 sentences:\n\n${t}`,
-  rewrite: (t) => `Rewrite the following to be clearer and more concise:\n\n${t}`,
-  formal: (t) => `Rewrite the following in a formal tone:\n\n${t}`,
-  grammar: (t) => `Check and correct the grammar and spelling of the following:\n\n${t}`,
-}
 
 const ACTION_IDS = ['explain', 'translate', 'summarize', 'rewrite', 'formal', 'grammar', 'highlight'] as const
 const ACTION_ICONS: Record<string, string> = {
@@ -327,10 +310,12 @@ async function runAction(actionId: string, selectedText: string, x: number, y: n
     return
   }
 
-  const prompts = locale === 'en' ? PROMPTS_EN : PROMPTS_KO
-  const promptFn = prompts[actionId]
-  if (!promptFn) return
-  const prompt = promptFn(selectedText)
+  // Construct prompt using i18n key
+  const promptKey = `toolbar.prompt${actionId.charAt(0).toUpperCase()}${actionId.slice(1)}` as
+    'toolbar.promptExplain' | 'toolbar.promptTranslate' | 'toolbar.promptSummarize' |
+    'toolbar.promptRewrite' | 'toolbar.promptFormal' | 'toolbar.promptGrammar'
+  const promptPrefix = tSync(locale, promptKey)
+  const prompt = promptPrefix + selectedText
   let text = ''
 
   try {

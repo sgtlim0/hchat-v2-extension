@@ -674,6 +674,12 @@ const ko = {
     continueChat: '💬 채팅에서 계속',
     noCredentials: '❌ AWS 자격증명을 설정해주세요. 확장 아이콘 → 설정',
     disconnected: '연결 끊김',
+    promptExplain: '다음을 쉽게 설명해줘:\n\n',
+    promptTranslate: '다음을 한국어로 번역해줘:\n\n',
+    promptSummarize: '다음을 3줄로 요약해줘:\n\n',
+    promptRewrite: '다음 문장을 더 명확하게 다듬어줘:\n\n',
+    promptFormal: '다음을 격식 있는 문체로 바꿔줘:\n\n',
+    promptGrammar: '다음의 문법과 맞춤법을 교정해줘:\n\n',
   },
 
   searchInjector: {

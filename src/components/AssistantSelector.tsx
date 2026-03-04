@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { AssistantRegistry, type CustomAssistant, type AssistantCategory } from '../lib/assistantBuilder'
+import { getTopUsed } from '../lib/userPreferences'
 import { useLocale } from '../i18n'
 
 interface Props {
@@ -30,13 +31,20 @@ export function AssistantSelector({ value, onChange, onCreateNew: _onCreateNew }
   const [newDesc, setNewDesc] = useState('')
   const [newModel, setNewModel] = useState('')
   const [newCategory, setNewCategory] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState<AssistantCategory | 'all'>('all')
+  const [selectedCategory, setSelectedCategory] = useState<AssistantCategory | 'all' | 'recommended'>('all')
+  const [recommendedIds, setRecommendedIds] = useState<Set<string>>(new Set())
   const [searchQuery, setSearchQuery] = useState('')
   const [sortByPopular, setSortByPopular] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const load = () => AssistantRegistry.list().then(setAssistants)
   useEffect(() => { load() }, [])
+
+  useEffect(() => {
+    getTopUsed('assistant', 3).then((top) => {
+      setRecommendedIds(new Set(top.map((e) => e.id)))
+    }).catch(() => {})
+  }, [])
 
   const active = assistants.find((a) => a.id === value)
 
@@ -108,7 +116,9 @@ export function AssistantSelector({ value, onChange, onCreateNew: _onCreateNew }
 
   // Filter and sort assistants
   let filtered = assistants
-  if (selectedCategory !== 'all') {
+  if (selectedCategory === 'recommended') {
+    filtered = filtered.filter((a) => recommendedIds.has(a.id))
+  } else if (selectedCategory !== 'all') {
     filtered = filtered.filter((a) => a.category === selectedCategory)
   }
   if (searchQuery.trim()) {
@@ -140,7 +150,7 @@ export function AssistantSelector({ value, onChange, onCreateNew: _onCreateNew }
         <div className="persona-dropdown">
           {/* Category tabs */}
           <div style={{ display: 'flex', gap: 4, marginBottom: 8, flexWrap: 'wrap' }}>
-            {(['all', 'translate', 'document', 'analysis', 'code', 'writing', 'other'] as const).map((cat) => (
+            {(['all', 'recommended', 'translate', 'document', 'analysis', 'code', 'writing', 'other'] as const).map((cat) => (
               <button
                 key={cat}
                 className={`btn btn-xs ${selectedCategory === cat ? 'btn-primary' : 'btn-ghost'}`}
@@ -207,6 +217,9 @@ export function AssistantSelector({ value, onChange, onCreateNew: _onCreateNew }
                     <div className="persona-item-name">
                       {a.name}
                       {a.model && <span className="assistant-model-badge">{modelBadge(a.model)}</span>}
+                      {recommendedIds.has(a.id) && (
+                        <span className="assistant-recommended-badge">⭐</span>
+                      )}
                     </div>
                     <div className="persona-item-desc">{a.description}</div>
                   </div>
@@ -230,6 +243,9 @@ export function AssistantSelector({ value, onChange, onCreateNew: _onCreateNew }
                     <div className="persona-item-name">
                       {a.name}
                       {a.model && <span className="assistant-model-badge">{modelBadge(a.model)}</span>}
+                      {recommendedIds.has(a.id) && (
+                        <span className="assistant-recommended-badge">⭐</span>
+                      )}
                     </div>
                     <div className="persona-item-desc">
                       {a.description}

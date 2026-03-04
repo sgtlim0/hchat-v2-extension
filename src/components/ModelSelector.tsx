@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useProvider } from '../hooks/useProvider'
 import type { Config } from '../hooks/useConfig'
 import type { ProviderType } from '../lib/providers/types'
 import { PROVIDER_COLORS } from '../lib/providers/types'
+import { getTopUsed } from '../lib/userPreferences'
 import { useLocale } from '../i18n'
 
 interface Props {
@@ -20,7 +21,14 @@ const PROVIDER_INFO: Record<ProviderType, { label: string; color: string }> = {
 export function ModelSelector({ value, onChange, config }: Props) {
   const { t } = useLocale()
   const [open, setOpen] = useState(false)
+  const [recommendedModels, setRecommendedModels] = useState<Set<string>>(new Set())
   const { allModels, getProvider } = useProvider(config)
+
+  useEffect(() => {
+    getTopUsed('model', 3).then((top) => {
+      setRecommendedModels(new Set(top.map((e) => e.id)))
+    }).catch(() => {})
+  }, [])
 
   const current = allModels.find((m) => m.id === value) ?? allModels[0]
   const autoRouting = config.autoRouting
@@ -105,6 +113,9 @@ export function ModelSelector({ value, onChange, config }: Props) {
                   >
                     <span>{m.emoji}</span>
                     <span style={{ fontSize: 12, color: 'var(--text0)' }}>{m.labelKey ? `${m.label} (${t('modelLabels.' + m.labelKey)})` : m.label}</span>
+                    {recommendedModels.has(m.id) && (
+                      <span style={{ fontSize: 10, marginLeft: 4 }} title={t('modelRecommended')}>⭐</span>
+                    )}
                     {value === m.id && !autoRouting && <span style={{ marginLeft: 'auto', color: 'var(--accent)', fontSize: 12 }}>✓</span>}
                   </button>
                 ))}

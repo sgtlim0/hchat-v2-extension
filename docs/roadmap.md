@@ -1,7 +1,7 @@
 # H Chat 로드맵
 
 > 마지막 업데이트: 2026-03-05
-> 현재 버전: v5.0
+> 현재 버전: v5.1
 
 ---
 
@@ -63,18 +63,19 @@
 
 ---
 
-## 현재 수치 (v5.0)
+## 현재 수치 (v5.1)
 
 | 항목 | 수치 |
 |------|------|
 | 테스트 | 741 tests, 40 files |
 | 컴포넌트 | 57 .tsx 파일 |
 | 도구 | 17개 (요약, 멀티탭, 번역, 글쓰기, 문서작성, YouTube, OCR, 배치OCR, 문법, 댓글분석, PDF, 인사이트, 데이터분석, 이미지생성, 문서번역, 템플릿문서, PPT기획) |
-| 언어 | 3개 (ko/en/ja), 730+ i18n keys |
+| 언어 | 3개 (ko/en/ja), 730+ i18n keys (v5.1에서 toolbar.ts 통합) |
 | AI 프로바이더 | 3개 (Bedrock/OpenAI/Gemini) |
 | 모델 | 9개 (Claude Sonnet 4.6/Opus 4.6/Haiku 4.5, GPT-4o/4o-mini/o1-mini, Gemini 2.0 Flash/1.5 Pro/1.5 Flash) |
 | 비서 | 20개 내장 (6카테고리) + 커스텀 빌더 |
-| 번들 | sidepanel ~120KB (42KB gzip), 7 lazy chunks + xlsx/docx/jszip 동적 임포트 |
+| 번들 | sidepanel ~95KB (36KB gzip, -130KB from v5.0), 7 lazy chunks + xlsx/docx/jszip 동적 임포트 |
+| npm 패키지 | -96 packages (react-markdown/remark-gfm/rehype-highlight 제거) |
 
 ---
 
@@ -91,7 +92,18 @@
 
 ---
 
-### v5.1 — 성능 & 안정성 (예정)
+### v5.1 — 성능 & 코드 품질 정리 ✅ (2026-03-05 완료)
+
+번들 크기 최적화와 코드 일관성 개선에 집중한 정리 작업.
+
+| 항목 | 설명 | 결과 |
+|------|------|------|
+| 번들 최적화 | react-markdown/remark-gfm/rehype-highlight 제거, 커스텀 MD 렌더러 유지 | ~130KB 절감 (96 packages 제거) |
+| 코드 일관성 | PROVIDER_COLORS 상수를 types.ts로 중앙화 (7개 컴포넌트 업데이트) | 중복 제거 |
+| i18n 확대 | toolbar.ts i18n 통합 (tSync 패턴, ja locale 추가, 6 keys) | 3개 언어 완전 지원 |
+| 기술 부채 정리 | PersonaSelector 레거시 제거, CSS 변수 정리 (7개 제거), i18n 키 정리 (10개 제거) | 유지보수성 개선 |
+
+### v5.2 — 테스트 & 안정성 (예정)
 
 테스트 커버리지 확대와 실사용 안정성 확보에 집중한다.
 
@@ -101,11 +113,10 @@
 | E2E 테스트 | Playwright로 핵심 사용자 흐름 (채팅, 도구, 설정) 검증 | 10+ E2E 시나리오 |
 | 대용량 대화 최적화 | 1000+ 메시지 대화에서 가상 스크롤, 메모리 관리 | 60fps 유지 |
 | 접근성 강화 | WCAG AA 준수, 스크린리더 호환, 고대비 모드 | AA 등급 |
-| 번들 최적화 | tree-shaking 개선, 불필요한 polyfill 제거 | gzip -10% |
 
 ---
 
-### v5.2 — 확장성 (장기)
+### v5.3 — 확장성 (장기)
 
 | 항목 | 설명 |
 |------|------|
@@ -122,7 +133,9 @@
 |------|------|----------|
 | PersonaSelector 레거시 | ✅ 완료 (2026-03-05) — AssistantSelector로 교체, PersonaSelector.tsx 제거됨 | 해결 |
 | CSS 변수 정리 | ✅ 완료 (2026-03-05) — 미사용 변수 7개 제거 (dark 24→17, light 22→15) | 해결 |
-| i18n 키 동기화 | ✅ 부분 완료 (2026-03-05) — 미사용 키 10개 제거 (model 2개 + promptDefaults 8개), 자동 검증 도구 없음 | 낮음 |
+| i18n 키 동기화 | ✅ 완료 (2026-03-05) — toolbar.ts i18n 통합 (ja 추가, 6 keys), 미사용 키 10개 제거 | 해결 |
+| react-markdown 의존성 | ✅ 완료 (2026-03-05) — react-markdown/remark-gfm/rehype-highlight 제거 (~130KB 절감, 96 packages) | 해결 |
+| PROVIDER_COLORS 중복 | ✅ 완료 (2026-03-05) — types.ts 중앙화, 7개 컴포넌트 업데이트 | 해결 |
 | HWP 미지원 | 서버 없이 HWP 파싱 불가, DOCX만 지원 중 | 수용 (안내 문구 제공) |
 | PDF 포맷 유지 한계 | pdfjs-dist로 텍스트 추출은 가능하나 원본 레이아웃 재생성 불완전 | 중간 |
 | 대용량 파일 메모리 | 브라우저 메모리 한계로 50MB 제한 필요 | 중간 |

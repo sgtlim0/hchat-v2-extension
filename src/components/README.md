@@ -4,6 +4,8 @@
 
 사이드패널의 각 탭과 공용 UI 요소를 구성하는 57개 React 컴포넌트 (.tsx 파일). 채팅 인터페이스, 크로스 모델 그룹 채팅, 크로스 모델 토론, 도구 뷰, 설정, 히스토리, 북마크, 프롬프트 라이브러리, 사용량 통계, 비서 마켓플레이스 등 모든 사용자 인터페이스를 포함한다.
 
+**v5.1 정리 (2026-03-05)**: react-markdown 제거 (~130KB 절감), PROVIDER_COLORS 상수 중앙화 (types.ts), 커스텀 MD 렌더러 유지.
+
 ## 파일 목록
 
 | 파일 | 줄 수 | 설명 |
@@ -18,7 +20,7 @@
 | `SettingsView.tsx` | 300+ | 설정 — 다중 프로바이더 자격증명, 기능 토글, 웹 검색 설정, 단축키 [v3 강화] |
 | `UsageView.tsx` | 150+ | 사용량 통계 — 프로바이더별/기능별 분류, 일별 비용 차트 [v3 강화] |
 | `MessageSearchModal.tsx` | 111 | 전체 대화 검색 모달 — 디바운스, 키보드 네비게이션, 하이라이팅 |
-| `ModelSelector.tsx` | 120+ | 모델 선택 드롭다운 — 9개 모델 (AWS, OpenAI, Google) [v3 강화] |
+| `ModelSelector.tsx` | 120+ | 모델 선택 드롭다운 — 9개 모델 (AWS, OpenAI, Google), PROVIDER_COLORS 사용 [v5.1] |
 | `AssistantSelector.tsx` | 130+ | 커스텀 비서 선택 드롭다운 — 20개 내장 비서 + 커스텀 비서 [v5.0] |
 
 ## 상세 설명
@@ -49,7 +51,7 @@ interface Props {
 | 이름 | 설명 |
 |------|------|
 | `CodeBlock` | 코드 블록 렌더링 + 복사 (JS, Python, HTML, JSON, SQL, C, Go, CSS 지원) |
-| `MD` | 마크다운 렌더링 (코드 블록, 헤더, 리스트, 강조, XSS 방지) |
+| `MD` | 커스텀 마크다운 렌더러 (코드 블록, 헤더, 리스트, 강조, XSS 방지, v5.1에서 react-markdown 제거) |
 | `SearchSources` | 웹 검색 출처 칩 표시 |
 | `AgentStepsView` | 에이전트 도구 사용 내역 (확장/축소) |
 | `MsgBubble` | 메시지 버블 (편집, 재생성, 복사, TTS, 핀, 분기) |
@@ -87,7 +89,7 @@ interface ModelResponse {
 #### 특징
 - 모든 프로바이더 모델 선택 가능 (최대 9개)
 - 병렬 스트리밍 호출 (각 프로바이더의 stream 메서드)
-- 프로바이더별 색상 구분
+- 프로바이더별 색상 구분 (PROVIDER_COLORS 사용, v5.1)
 - 각 모델별 응답 시간 측정 및 표시
 - 그리드 레이아웃으로 나란히 비교
 
@@ -310,5 +312,7 @@ App.tsx (sidepanel)
 - **React 18**: useState, useEffect, useCallback, useRef, useMemo
 - **hooks/**: useChat, useConfig
 - **lib/**: 모든 비즈니스 로직 모듈
+- **lib/types.ts**: PROVIDER_COLORS 상수 중앙 관리 (v5.1)
 - **Chrome APIs**: chrome.storage, chrome.tabs
 - **styles/global.css**: 공용 CSS 디자인 시스템
+- **i18n/**: 3개 언어 (ko/en/ja, 730+ keys, v5.1에서 toolbar.ts 통합)

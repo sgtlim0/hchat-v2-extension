@@ -10,7 +10,7 @@
 
 | 파일 | 줄 수 | 설명 |
 |------|-------|------|
-| `providers/types.ts` | 100+ | AIProvider 인터페이스, ModelDef, ProviderType, StreamOptions |
+| `providers/types.ts` | 100+ | AIProvider 인터페이스, ModelDef, ProviderType, StreamOptions, PROVIDER_COLORS 상수 (v5.1) |
 | `providers/bedrock-provider.ts` | 200+ | AWS Bedrock Claude 프로바이더 (SigV4 서명, Event Stream 파싱) |
 | `providers/openai-provider.ts` | 150+ | OpenAI GPT 프로바이더 (SSE 스트리밍) |
 | `providers/gemini-provider.ts` | 150+ | Google Gemini 프로바이더 (SSE 스트리밍) |

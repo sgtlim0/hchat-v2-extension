@@ -6,11 +6,12 @@
 
 H Chat은 Sider 스타일의 올인원 AI 브라우저 어시스턴트입니다. AWS Bedrock Claude, OpenAI GPT, Google Gemini를 통합 지원하며, 20개 내장 비서 마켓플레이스, AI 가드레일(PII 감지/마스킹), PPT 기획, 비서 토론, 대화 템플릿, 문서 번역/작성, PPTX/PDF 번역, 템플릿 문서 작성, 이미지 생성, 크로스 모델 토론, YouTube 분석, PDF 채팅, 검색 엔진 AI 카드, 글쓰기 어시스턴트 등 풍부한 기능을 제공합니다.
 
-- **Version**: 5.0.0
+- **Version**: 5.0 (v5.1 cleanup complete)
 - **Platform**: Chrome Extension (Manifest V3)
 - **AI Providers**: AWS Bedrock (Claude), OpenAI (GPT), Google Gemini
 - **GitHub**: https://github.com/sgtlim0/hchat-v2-extension
 - **Vercel**: https://hchat-v2-extension.vercel.app/sidepanel.html
+- **Latest**: v5.1 optimization — Bundle reduction (~130KB), PROVIDER_COLORS centralization, toolbar i18n
 
 ## Features
 
@@ -215,9 +216,9 @@ H Chat은 Sider 스타일의 올인원 AI 브라우저 어시스턴트입니다.
 
 ### 23. 다국어 지원 (i18n)
 - 한국어/영어/일본어 3개 언어 지원
-- 경량 자체 구현 (외부 라이브러리 미사용, 720+ 키/언어)
+- 경량 자체 구현 (외부 라이브러리 미사용, 730+ 키/언어)
 - `t()` 함수 + `useLocale()` React 훅
-- Content Script용 `tSync()` + `getLocale()` 비동기 패턴
+- Content Script용 `tSync()` + `getLocale()` 비동기 패턴 (toolbar.ts 전면 통합, v5.1)
 - 설정 탭에서 언어 선택 (즉시 반영)
 
 ### 24. 비서 마켓플레이스 (v5.0 확장)
@@ -292,10 +293,10 @@ H Chat은 Sider 스타일의 올인원 AI 브라우저 어시스턴트입니다.
 | 빌드 | Vite | 5.4.2 |
 | 확장 API | Chrome Manifest V3 | 3 |
 | AI | Multi-Provider | AWS Bedrock, OpenAI, Google |
-| Markdown | react-markdown + remark-gfm | 9.0.1 + 4.0.0 |
-| 코드 하이라이트 | react-syntax-highlighter | - |
+| Markdown | 커스텀 렌더러 (v5.1에서 react-markdown 제거) | - |
+| 코드 하이라이트 | 커스텀 구현 (v5.1에서 rehype-highlight 제거) | - |
 | PDF | pdfjs-dist | 4.x |
-| i18n | 자체 구현 (t, useLocale, tSync) | - |
+| i18n | 자체 구현 (t, useLocale, tSync) | 730+ keys |
 | 폰트 | IBM Plex Sans KR + IBM Plex Mono | - |
 | 스타일 | CSS Variables (Dark) | - |
 
@@ -368,9 +369,9 @@ hchat-v2-extension/
     │   └── main.tsx               # React 마운트
     ├── i18n/
     │   ├── index.ts               # t(), useLocale(), tSync(), getLocale()
-    │   ├── ko.ts                  # 한국어 번역 (720+ 키)
-    │   ├── en.ts                  # 영어 번역 (720+ 키)
-    │   └── ja.ts                  # 일본어 번역 (720+ 키)
+    │   ├── ko.ts                  # 한국어 번역 (726+ 키)
+    │   ├── en.ts                  # 영어 번역 (726+ 키)
+    │   └── ja.ts                  # 일본어 번역 (726+ 키)
     ├── components/                 # 57개 컴포넌트 (테스트 포함)
     │   ├── ChatView.tsx            # 메인 채팅 (460줄)
     │   ├── GroupChatView.tsx       # 크로스 모델 비교
@@ -490,6 +491,7 @@ hchat-v2-extension/
     │   ├── pptxGenerator.ts        # PPTX 생성 (JSZip, v5.0)
     │   ├── guardrail.ts            # PII 감지/마스킹 (v5.0)
     │   ├── chatTemplates.ts        # 대화 템플릿 CRUD (v5.0)
+    │   ├── types.ts                # 공통 타입 정의 (PROVIDER_COLORS 등)
     │   └── README.md               # lib 문서
     └── styles/
         └── global.css              # 디자인 시스템 (~40KB)
@@ -642,6 +644,16 @@ npm run build      # 프로덕션 빌드 → dist/
 
 ## 버전 히스토리
 
+### v5.1.0 (2026-03-05) — 추가 최적화 및 기술 부채 해소
+
+| 항목 | 내용 |
+|------|------|
+| react-markdown 제거 | react-markdown, remark-gfm, rehype-highlight 의존성 제거 (96 패키지, ~130KB 절약) |
+| PROVIDER_COLORS 통합 | 7개 컴포넌트 하드코딩 색상 → types.ts 중앙 관리 (Bedrock/OpenAI/Gemini) |
+| toolbar.ts i18n 통합 | 하드코딩 프롬프트 → tSync() 함수, 일본어 지원 추가 (6개 키) |
+| 통계 업데이트 | 726+ i18n 키 (ko/en/ja), 57개 컴포넌트, 56개 lib 파일 |
+| 품질 | 741 tests (40 files), ESLint 0 errors |
+
 ### v5.0.0 (2026-03-05) — UX 고도화 + 기술 부채 정리
 
 | 기능 | 설명 |
@@ -772,6 +784,14 @@ npm run build      # 프로덕션 빌드 → dist/
 | i18n 키 정리 | model 블록(2개) + promptDefaults 블록(8개) = 10개 제거, 730+ → 720+ 키 |
 | 코드베이스 | 57개 컴포넌트, 56개 lib 파일 (테스트 제외), 741 tests (40 files) |
 
+#### v5.1 추가 최적화 (2026-03-05)
+| 항목 | 내용 |
+|------|------|
+| 의존성 최적화 | react-markdown, remark-gfm, rehype-highlight 제거 → 96 패키지 절약, ~130KB 번들 감소 |
+| 프로바이더 색상 통합 | 7개 컴포넌트 하드코딩 → PROVIDER_COLORS 상수 중앙 관리 (types.ts) |
+| toolbar.ts i18n | 하드코딩 프롬프트 → tSync() 국제화, 일본어 지원 추가 (6개 키) |
+| 최종 통계 | 726+ i18n 키 (ko/en/ja), 57개 컴포넌트, 56개 lib 파일 |
+
 ### v3.0.0 (2026-03) — 멀티 AI 프로바이더 시스템
 
 #### v3에서 추가 (10개 주요 기능)
@@ -805,19 +825,20 @@ npm run build      # 프로덕션 빌드 → dist/
 | YouTube 요약 | 자막 추출 (3단계 fallback) + AI 요약 |
 
 ### 규모 비교
-| 항목 | v1 | v2 | v3 | v3.6 | v4.2 | v4.3 | v4.5 | v5.0 |
-|------|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
-| 소스 파일 | ~22개 | ~40개 | ~50개 | ~80개 | ~90개 | ~100개 | ~107개 | ~115개 |
-| 코드 라인 | ~4,000 | ~8,000 | ~10,000+ | ~15,000+ | ~18,000+ | ~20,000+ | ~21,500+ | ~25,000+ |
-| 탭 수 | 5개 | 7개 | 8개 | 8개 | 8개 | 8개 | 8개 | 8개 |
-| 컴포넌트 (.tsx) | 12개 | 18개 | 24개 | 40개 | 48개 | 54개 | 58개 | 57개 |
-| lib 파일 | 6개 | 20개 | 30개 | 45개 | 50개 | 55개 | 57개 | 56개 |
-| AI 프로바이더 | 1개 | 1개 | 3개 | 3개 | 3개 | 3개 | 3개 | 3개 |
-| 지원 모델 | 3개 | 3개 | 9개 | 9개 | 9개 | 9개 | 9개 | 9개 |
-| 도구 | 4개 | 8개 | 8개 | 12개 | 15개 | 16개 | 16개 | 17개 |
-| 내장 비서 | 0개 | 0개 | 0개 | 0개 | 0개 | 0개 | 8개 | 20개 |
-| 테스트 | 0개 | 0개 | 0개 | 365개 | 498개 (30 파일) | 589개 (34 파일) | 649개 (36 파일) | 741개 (40 파일) |
-| i18n 키 | 0개 | 0개 | 0개 | 420+ (ko/en) | 600+ (ko/en/ja) | 650+ (ko/en/ja) | 670+ (ko/en/ja) | 720+ (ko/en/ja) |
+| 항목 | v1 | v2 | v3 | v3.6 | v4.2 | v4.3 | v4.5 | v5.0 | v5.1 |
+|------|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
+| 소스 파일 | ~22개 | ~40개 | ~50개 | ~80개 | ~90개 | ~100개 | ~107개 | ~115개 | ~115개 |
+| 코드 라인 | ~4,000 | ~8,000 | ~10,000+ | ~15,000+ | ~18,000+ | ~20,000+ | ~21,500+ | ~25,000+ | ~25,000+ |
+| 탭 수 | 5개 | 7개 | 8개 | 8개 | 8개 | 8개 | 8개 | 8개 | 8개 |
+| 컴포넌트 (.tsx) | 12개 | 18개 | 24개 | 40개 | 48개 | 54개 | 58개 | 57개 | 57개 |
+| lib 파일 | 6개 | 20개 | 30개 | 45개 | 50개 | 55개 | 57개 | 56개 | 56개 |
+| AI 프로바이더 | 1개 | 1개 | 3개 | 3개 | 3개 | 3개 | 3개 | 3개 | 3개 |
+| 지원 모델 | 3개 | 3개 | 9개 | 9개 | 9개 | 9개 | 9개 | 9개 | 9개 |
+| 도구 | 4개 | 8개 | 8개 | 12개 | 15개 | 16개 | 16개 | 17개 | 17개 |
+| 내장 비서 | 0개 | 0개 | 0개 | 0개 | 0개 | 0개 | 8개 | 20개 | 20개 |
+| 테스트 | 0개 | 0개 | 0개 | 365개 | 498개 (30 파일) | 589개 (34 파일) | 649개 (36 파일) | 741개 (40 파일) | 741개 (40 파일) |
+| i18n 키 | 0개 | 0개 | 0개 | 420+ (ko/en) | 600+ (ko/en/ja) | 650+ (ko/en/ja) | 670+ (ko/en/ja) | 720+ (ko/en/ja) | 726+ (ko/en/ja) |
+| npm 패키지 | - | - | - | - | - | - | - | - | -96 (react-markdown 제거) |
 
 ## Design System
 

@@ -33,7 +33,7 @@ After building, load `dist/` as an unpacked Chrome extension.
 
 ### Provider System (`src/lib/providers/`)
 
-All AI providers implement the `AIProvider` interface (`types.ts`), which uses `AsyncGenerator<string, string>` for streaming (yield chunks, return full text).
+All AI providers implement the `AIProvider` interface (`types.ts`), which uses `AsyncGenerator<string, string>` for streaming (yield chunks, return full text). `types.ts` also exports `PROVIDER_COLORS` constant (v5.1 centralization).
 
 - `bedrock-provider.ts` — AWS Bedrock Claude (SigV4 signing via `aws-sigv4.ts`, binary event stream parsing)
 - `openai-provider.ts` — OpenAI GPT (SSE streaming, `data:` line parsing)
@@ -77,7 +77,7 @@ All persistence uses `chrome.storage.local` via `src/lib/storage.ts` wrapper. Ke
 
 ### Styling
 
-Pure CSS with CSS variables in `src/styles/global.css`. No Tailwind. Dark theme by default with light theme support. Provider brand colors: Bedrock `#ff9900`, OpenAI `#10a37f`, Gemini `#4285f4`.
+Pure CSS with CSS variables in `src/styles/global.css`. No Tailwind. Dark theme by default with light theme support. Provider brand colors centralized in `PROVIDER_COLORS` (v5.1): Bedrock `#ff9900`, OpenAI `#10a37f`, Gemini `#4285f4`.
 
 ## AWS Bedrock Model IDs
 
@@ -90,11 +90,12 @@ Haiku 4.5:  us.anthropic.claude-haiku-4-5-20251001-v1:0  (-v1:0)
 
 ### Internationalization (`src/i18n/`)
 
-3 locales: Korean (primary), English, Japanese. Lightweight custom implementation — `t()` function + `useLocale()` hook. 730+ keys per locale. Content scripts use `tSync()` + `getLocale()`.
+3 locales: Korean (primary), English, Japanese. Lightweight custom implementation — `t()` function + `useLocale()` hook. 730+ keys per locale. Content scripts use `tSync()` + `getLocale()`. v5.1: toolbar.ts fully integrated with i18n (6 keys added, Japanese support).
 
 ## Key Constraints
 
 - No external AI SDKs — all provider communication uses `fetch()` directly
+- No external markdown/syntax highlighting libs — custom renderers only (v5.1: react-markdown/remark-gfm/rehype-highlight removed, ~130KB savings)
 - Files should stay under 800 lines; extract into separate files if approaching limit
 - Korean is the primary UI language, with English and Japanese translations
 - Immutable patterns throughout (never mutate objects)

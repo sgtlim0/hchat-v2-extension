@@ -371,7 +371,7 @@ hchat-v2-extension/
     │   ├── ko.ts                  # 한국어 번역 (730+ 키)
     │   ├── en.ts                  # 영어 번역 (730+ 키)
     │   └── ja.ts                  # 일본어 번역 (730+ 키)
-    ├── components/                 # 24+ 파일
+    ├── components/                 # 57개 파일
     │   ├── ChatView.tsx            # 메인 채팅 (460줄)
     │   ├── GroupChatView.tsx       # 크로스 모델 비교
     │   ├── DebateView.tsx          # 크로스 모델 토론
@@ -385,7 +385,6 @@ hchat-v2-extension/
     │   ├── MessageSearchModal.tsx  # 메시지 검색
     │   ├── ModelSelector.tsx       # 모델 드롭다운
     │   ├── AssistantSelector.tsx   # 커스텀 비서 선택
-    │   ├── PersonaSelector.tsx     # 페르소나 선택 (레거시)
     │   ├── OfflineBanner.tsx       # 오프라인 상태 배너
     │   ├── PluginManagerView.tsx   # 플러그인 관리 UI
     │   ├── StorageManagement.tsx   # 스토리지 관리 UI
@@ -434,7 +433,7 @@ hchat-v2-extension/
     │   ├── useNetworkStatus.ts     # 네트워크 상태 감지
     │   ├── useProvider.ts          # 프로바이더 인스턴스, 모델 리스트
     │   └── useShortcuts.ts         # 키보드 단축키 (40줄)
-    ├── lib/                        # 52+ 파일
+    ├── lib/                        # 56개 파일
     │   ├── providers/
     │   │   ├── types.ts            # AIProvider 인터페이스, ModelDef
     │   │   ├── bedrock-provider.ts # AWS Bedrock Claude 프로바이더
@@ -643,7 +642,7 @@ npm run build      # 프로덕션 빌드 → dist/
 
 ## 버전 히스토리
 
-### v5.0.0 (2026-03) — UX 고도화
+### v5.0.0 (2026-03-05) — UX 고도화
 
 | 기능 | 설명 |
 |------|------|
@@ -652,7 +651,8 @@ npm run build      # 프로덕션 빌드 → dist/
 | AI 가드레일 | PII 자동 감지 (이메일/전화/주민번호/카드/계좌), 마스킹 후 전송, 경고 배너 |
 | 비서 vs 비서 토론 | 토론 참가자에 커스텀 비서 연동, 비서 systemPrompt 주입 |
 | 대화 템플릿 | 다단계 대화 흐름 저장/재사용, {{변수}} 치환, JSON 내보내기/가져오기 |
-| 도구 | 17개 도구, 741 tests (40 files), 730+ i18n 키 (ko/en/ja) |
+| 통계 | 17개 AI 도구, 20개 내장 비서, 57개 컴포넌트, 56개 lib 파일 |
+| 품질 | 741 tests (40 files), 730+ i18n 키 (ko/en/ja), ESLint 0 errors |
 
 ### v4.5.0 (2026-03) — 추가 UX 개선
 
@@ -801,7 +801,8 @@ npm run build      # 프로덕션 빌드 → dist/
 | 소스 파일 | ~22개 | ~40개 | ~50개 | ~80개 | ~90개 | ~100개 | ~107개 | ~115개 |
 | 코드 라인 | ~4,000 | ~8,000 | ~10,000+ | ~15,000+ | ~18,000+ | ~20,000+ | ~21,500+ | ~25,000+ |
 | 탭 수 | 5개 | 7개 | 8개 | 8개 | 8개 | 8개 | 8개 | 8개 |
-| lib 파일 | 6개 | 20개 | 30개 | 45개 | 50개 | 55개 | 57개 | 52개 |
+| 컴포넌트 (.tsx) | 12개 | 18개 | 24개 | 40개 | 48개 | 54개 | 58개 | 57개 |
+| lib 파일 | 6개 | 20개 | 30개 | 45개 | 50개 | 55개 | 57개 | 56개 |
 | AI 프로바이더 | 1개 | 1개 | 3개 | 3개 | 3개 | 3개 | 3개 | 3개 |
 | 지원 모델 | 3개 | 3개 | 9개 | 9개 | 9개 | 9개 | 9개 | 9개 |
 | 도구 | 4개 | 8개 | 8개 | 12개 | 15개 | 16개 | 16개 | 17개 |

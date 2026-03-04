@@ -1,6 +1,6 @@
 # 경쟁 분석 & H Chat 구현 방안
 
-> 분석 일시: 2026-03-04
+> 분석 일시: 2026-03-05
 > 대상: 경쟁사 (기업용 AI 업무 도구 플랫폼)
 > 목적: H Chat v5+ 기능 로드맵 수립
 > 현재 버전: v5.0
@@ -150,7 +150,7 @@ interface CustomAssistant {
 - ✅ `src/lib/assistantBuilder.ts` — 커스텀 비서 CRUD, 20개 내장 (v5.0)
 - ✅ `AssistantBuilder.tsx` — 비서 생성/편집 UI
 - ✅ `AssistantMarketplace.tsx` — 비서 목록 + 검색/필터/정렬 (v5.0)
-- ✅ `AssistantSelector.tsx` — 비서 선택 드롭다운
+- ✅ `AssistantSelector.tsx` — 비서 선택 드롭다운 (PersonaSelector 레거시 제거 완료, 2026-03-05)
 - ✅ 20개 내장 비서 (6카테고리): 문서작업(5), 번역통역(3), 분석기획(4), 코딩개발(2), 크리에이티브(3), 일반업무(3)
 - ✅ 사용 횟수 추적
 - ✅ 검색/카테고리 필터/인기순 정렬
@@ -342,7 +342,7 @@ src/
 ├── components/
 │   ├── AssistantBuilder.tsx      # ✅ 비서 생성/편집 UI
 │   ├── AssistantMarketplace.tsx  # ✅ 비서 마켓플레이스 (v5.0)
-│   ├── AssistantSelector.tsx     # ✅ 비서 선택 드롭다운
+│   ├── AssistantSelector.tsx     # ✅ 비서 선택 드롭다운 (PersonaSelector 제거됨)
 │   └── tools/
 │       ├── DocTranslateTool.tsx  # ✅ 문서 번역 UI
 │       ├── BatchOcrTool.tsx      # ✅ 배치 OCR UI

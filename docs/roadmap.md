@@ -1,6 +1,6 @@
 # H Chat 로드맵
 
-> 마지막 업데이트: 2026-03-04
+> 마지막 업데이트: 2026-03-05
 > 현재 버전: v5.0
 
 ---
@@ -68,6 +68,7 @@
 | 항목 | 수치 |
 |------|------|
 | 테스트 | 741 tests, 40 files |
+| 컴포넌트 | 57 .tsx 파일 |
 | 도구 | 17개 (요약, 멀티탭, 번역, 글쓰기, 문서작성, YouTube, OCR, 배치OCR, 문법, 댓글분석, PDF, 인사이트, 데이터분석, 이미지생성, 문서번역, 템플릿문서, PPT기획) |
 | 언어 | 3개 (ko/en/ja), 730+ i18n keys |
 | AI 프로바이더 | 3개 (Bedrock/OpenAI/Gemini) |
@@ -119,7 +120,7 @@
 
 | 항목 | 현황 | 우선순위 |
 |------|------|----------|
-| PersonaSelector 레거시 | AssistantSelector로 교체되었으나 PersonaSelector.tsx (129줄) 파일 잔존 | 낮음 |
+| PersonaSelector 레거시 | ✅ 완료 (2026-03-05) — AssistantSelector로 교체, PersonaSelector.tsx 제거됨 | 해결 |
 | HWP 미지원 | 서버 없이 HWP 파싱 불가, DOCX만 지원 중 | 수용 (안내 문구 제공) |
 | PDF 포맷 유지 한계 | pdfjs-dist로 텍스트 추출은 가능하나 원본 레이아웃 재생성 불완전 | 중간 |
 | 대용량 파일 메모리 | 브라우저 메모리 한계로 50MB 제한 필요 | 중간 |

@@ -1,8 +1,15 @@
+import { useState, useEffect } from 'react'
 import { useLocale } from '../../i18n'
 import { STT } from '../../lib/stt'
 import { VoiceWaveform } from './VoiceWaveform'
+import { detectIntent, type DetectedIntent } from '../../lib/intentRouter'
 import type { Prompt } from '../../lib/promptLibrary'
 import type { PIIDetection } from '../../lib/guardrail'
+
+const INTENT_ICONS: Record<string, string> = {
+  translate: '🌐', analyze: '📊', write: '✍️', ocr: '📷',
+  search: '🔍', code: '💻', debate: '⚔️', generate: '🎨',
+}
 
 interface ChatInputAreaProps {
   input: string
@@ -28,6 +35,7 @@ interface ChatInputAreaProps {
   piiDetections?: PIIDetection[]
   onConfirmPII?: (action: 'send' | 'mask' | 'cancel') => void
   onToggleTemplates?: () => void
+  onApplyIntent?: (intent: DetectedIntent) => void
 }
 
 export function ChatInputArea({
@@ -54,8 +62,23 @@ export function ChatInputArea({
   piiDetections = [],
   onConfirmPII,
   onToggleTemplates,
+  onApplyIntent,
 }: ChatInputAreaProps) {
   const { t } = useLocale()
+
+  const [detectedIntent, setDetectedIntent] = useState<DetectedIntent | null>(null)
+
+  useEffect(() => {
+    if (!input || input.length < 5 || input.startsWith('/')) {
+      setDetectedIntent(null)
+      return
+    }
+    const timer = setTimeout(() => {
+      const intent = detectIntent(input)
+      setDetectedIntent(intent.type !== 'general' ? intent : null)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [input])
 
   const isListening = STT.getState() === 'listening'
 
@@ -131,6 +154,18 @@ export function ChatInputArea({
               <span className="pcat">{p.category}</span>
             </div>
           ))}
+        </div>
+      )}
+
+      {detectedIntent && (
+        <div className="intent-chip-bar" role="status" aria-label={t('intentSuggestion')}>
+          <span className="intent-chip" onClick={() => onApplyIntent?.(detectedIntent)}>
+            <span className="intent-chip-icon">{INTENT_ICONS[detectedIntent.type]}</span>
+            <span className="intent-chip-label">{t(`intent.${detectedIntent.type}` as never)}</span>
+            {detectedIntent.suggestedTool && (
+              <span className="intent-chip-tool">→ {detectedIntent.suggestedTool}</span>
+            )}
+          </span>
         </div>
       )}
 

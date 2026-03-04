@@ -547,11 +547,6 @@ const ja = {
     openPanel: 'サイドパネルを開く →',
   },
 
-  model: {
-    autoRouting: '自動ルーティング有効',
-    auto: '自動',
-  },
-
   persona: {
     selectTitle: 'ペルソナを選択',
     defaultName: 'デフォルト',
@@ -700,17 +695,6 @@ const ja = {
     copy: 'コピー',
     close: '閉じる',
     copied: '✓ コピーしました',
-  },
-
-  promptDefaults: {
-    pageSummary: '現在のページを要約',
-    translateKo: '翻訳 (韓国語)',
-    polish: '文章を洗練',
-    codeReview: 'コードレビュー',
-    emailDraft: 'メール作成',
-    ytSummary: 'YouTube要約',
-    argAnalysis: '論拠分析',
-    eli5: '説明 (小学生向け)',
   },
 
   defaultPrompts: {

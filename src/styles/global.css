@@ -16,7 +16,6 @@
   --bg5: #2a3a52;
   --border: rgba(255,255,255,0.06);
   --border2: rgba(255,255,255,0.1);
-  --border3: rgba(255,255,255,0.16);
   --text0: #eef1f5;
   --text1: #adb8c8;
   --text2: #6b7c93;
@@ -24,21 +23,15 @@
   --accent: #34d399;
   --accent2: #10b981;
   --accent-dim: rgba(52,211,153,0.1);
-  --accent-glow: rgba(52,211,153,0.25);
   --purple: #a78bfa;
   --blue: #60a5fa;
   --amber: #fbbf24;
   --red: #f87171;
   --red-dim: rgba(248,113,113,0.1);
-  --green: #34d399;
-  --color-bedrock: #ff9900;
-  --color-openai: #10a37f;
-  --color-gemini: #4285f4;
   --mono: 'IBM Plex Mono', monospace;
   --sans: 'IBM Plex Sans KR', 'Noto Sans KR', sans-serif;
   --radius: 10px;
   --radius-sm: 6px;
-  --radius-lg: 14px;
   --shadow: 0 4px 24px rgba(0,0,0,0.4);
   --shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
 }
@@ -52,7 +45,6 @@
   --bg5: #c0c5cd;
   --border: rgba(0,0,0,0.08);
   --border2: rgba(0,0,0,0.12);
-  --border3: rgba(0,0,0,0.18);
   --text0: #1a1a2e;
   --text1: #4a5568;
   --text2: #718096;
@@ -60,10 +52,8 @@
   --accent: #059669;
   --accent2: #047857;
   --accent-dim: rgba(5,150,105,0.08);
-  --accent-glow: rgba(5,150,105,0.15);
   --red: #dc2626;
   --red-dim: rgba(220,38,38,0.08);
-  --green: #059669;
   --shadow: 0 4px 24px rgba(0,0,0,0.08);
   --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
 }
@@ -328,7 +318,7 @@ input, textarea, select { font-family: inherit; }
   font-weight: 700;
   font-size: 24px;
   color: #061210;
-  box-shadow: 0 0 32px var(--accent-glow);
+  box-shadow: 0 0 32px rgba(52,211,153,0.25);
 }
 
 .chat-empty h2 { font-size: 15px; font-weight: 600; }
@@ -564,7 +554,7 @@ input, textarea, select { font-family: inherit; }
   transition: all 0.12s;
   flex-shrink: 0;
 }
-.send-btn:hover:not(:disabled) { background: var(--accent2); box-shadow: 0 0 16px var(--accent-glow); }
+.send-btn:hover:not(:disabled) { background: var(--accent2); box-shadow: 0 0 16px rgba(52,211,153,0.25); }
 .send-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 .send-btn.stop { background: var(--red); }
 
@@ -931,7 +921,7 @@ input, textarea, select { font-family: inherit; }
   cursor: pointer;
   transition: all 0.12s;
 }
-.prompt-card:hover { border-color: var(--border3); }
+.prompt-card:hover { border-color: var(--border2); }
 .prompt-card .pc-main { flex: 1; min-width: 0; }
 .prompt-card .pc-title { font-size: 12px; font-weight: 500; }
 .prompt-card .pc-preview { font-size: 10px; color: var(--text2); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -1749,7 +1739,7 @@ kbd {
   width: 320px;
   background: var(--bg1);
   border: 1px solid var(--border2);
-  border-radius: var(--radius-lg);
+  border-radius: 14px;
   padding: 20px;
   box-shadow: var(--shadow);
 }
@@ -2010,7 +2000,7 @@ kbd {
   max-height: 420px;
   background: var(--bg1);
   border: 1px solid var(--border2);
-  border-radius: var(--radius-lg);
+  border-radius: 14px;
   box-shadow: var(--shadow);
   display: flex;
   flex-direction: column;

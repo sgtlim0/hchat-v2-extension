@@ -548,11 +548,6 @@ const ko = {
     openPanel: '사이드패널 열기 →',
   },
 
-  model: {
-    autoRouting: '자동 라우팅 활성화됨',
-    auto: '자동',
-  },
-
   persona: {
     selectTitle: '페르소나 선택',
     defaultName: '기본',
@@ -701,17 +696,6 @@ const ko = {
     copy: '복사',
     close: '닫기',
     copied: '✓ 복사됨',
-  },
-
-  promptDefaults: {
-    pageSummary: '현재 페이지 요약',
-    translateKo: '번역 (한국어)',
-    polish: '문장 다듬기',
-    codeReview: '코드 리뷰',
-    emailDraft: '이메일 작성',
-    ytSummary: '유튜브 요약',
-    argAnalysis: '논거 분석',
-    eli5: '설명 (초등학생)',
   },
 
   defaultPrompts: {

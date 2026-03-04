@@ -548,11 +548,6 @@ const en = {
     openPanel: 'Open Side Panel →',
   },
 
-  model: {
-    autoRouting: 'Auto routing enabled',
-    auto: 'Auto',
-  },
-
   persona: {
     selectTitle: 'Select persona',
     defaultName: 'Default',
@@ -701,17 +696,6 @@ const en = {
     copy: 'Copy',
     close: 'Close',
     copied: '✓ Copied',
-  },
-
-  promptDefaults: {
-    pageSummary: 'Summarize page',
-    translateKo: 'Translate (Korean)',
-    polish: 'Polish text',
-    codeReview: 'Code review',
-    emailDraft: 'Draft email',
-    ytSummary: 'YouTube summary',
-    argAnalysis: 'Argument analysis',
-    eli5: 'Explain (simple)',
   },
 
   defaultPrompts: {

@@ -6,12 +6,12 @@
 
 H Chat은 Sider 스타일의 올인원 AI 브라우저 어시스턴트입니다. AWS Bedrock Claude, OpenAI GPT, Google Gemini를 통합 지원하며, 20개 내장 비서 마켓플레이스, AI 가드레일(PII 감지/마스킹), PPT 기획, 비서 토론, 대화 템플릿, 문서 번역/작성, PPTX/PDF 번역, 템플릿 문서 작성, 이미지 생성, 크로스 모델 토론, YouTube 분석, PDF 채팅, 검색 엔진 AI 카드, 글쓰기 어시스턴트 등 풍부한 기능을 제공합니다.
 
-- **Version**: 5.2
+- **Version**: 5.3
 - **Platform**: Chrome Extension (Manifest V3)
 - **AI Providers**: AWS Bedrock (Claude), OpenAI (GPT), Google Gemini
 - **GitHub**: https://github.com/sgtlim0/hchat-v2-extension
 - **Vercel**: https://hchat-v2-extension.vercel.app/sidepanel.html
-- **Latest**: v5.2 optimization — Virtual scrolling (50+ messages), WCAG AA accessibility, 993 tests (50 files)
+- **Latest**: v5.3 — AI 자동 추천, 사용 패턴 학습, 컨텍스트 자동 요약, BM25 검색 개선, 1148 tests (54 files)
 
 ## Features
 
@@ -163,7 +163,7 @@ H Chat은 Sider 스타일의 올인원 AI 브라우저 어시스턴트입니다.
 - `Ctrl+Shift+F` 모달
 - 1000 대화 검색 < 100ms
 - 증분 인덱스 업데이트 (메시지 추가/삭제 시 자동)
-- 관련도 랭킹: TF × 0.7 + 최신성 × 0.3
+- 관련도 랭킹: BM25 × 0.7 + 최신성 × 0.3 (v5.3 BM25 스코어링 + IDF 도입)
 
 ### 17. Thinking Depth 제어
 
@@ -284,6 +284,14 @@ H Chat은 Sider 스타일의 올인원 AI 브라우저 어시스턴트입니다.
 - 상태 배너: 오프라인(주황) / 재연결(초록, 3초 자동 숨김)
 - 큐 카운트 표시 ("N개 메시지 대기 중")
 
+### 33. AI 자동 추천 시스템 (v5.3 신규)
+- **의도 감지**: 사용자 입력에서 9가지 의도 자동 분류 (코드, 번역, 요약, 분석, 문서, 이미지, 검색, 대화, 기타)
+- **비서 추천**: 감지된 의도에 최적화된 내장/커스텀 비서 자동 추천
+- **도구 추천**: 의도에 맞는 AI 도구 자동 추천
+- **사용 패턴 학습**: 가중 빈도 추적 + 시간 감쇠로 사용자 선호도 학습, top 3 추천
+- **컨텍스트 자동 요약**: 20+ 메시지 대화 자동 요약, FIFO 캐시, 시스템 프롬프트 주입
+- **BM25 검색 개선**: BM25 스코어링 + IDF 도입, 검색 정확도 향상 (BM25 70% + 최신성 30%)
+
 ## Tech Stack
 
 | 항목 | 기술 | 버전 |
@@ -337,7 +345,7 @@ hchat-v2-extension/
 │   ├── competitive-analysis.md        # 경쟁사 분석 & 기능 갭
 │   ├── feature-design-inspired.md     # 경쟁사 영감 기능 설계서
 │   ├── implementation-plan-features.md # 기능 구현 계획서
-│   └── roadmap.md                     # 향후 로드맵 (v4.3~v5.0)
+│   └── roadmap.md                     # 향후 로드맵 (v4.3~v5.3)
 ├── public/
 │   ├── icons/                     # 확장 아이콘 (16, 48, 128px)
 │   └── content.css                # 하이라이트 스타일
@@ -434,7 +442,7 @@ hchat-v2-extension/
     │   ├── useNetworkStatus.ts     # 네트워크 상태 감지
     │   ├── useProvider.ts          # 프로바이더 인스턴스, 모델 리스트
     │   └── useShortcuts.ts         # 키보드 단축키 (40줄)
-    ├── lib/                        # 56개 모듈 (테스트 제외 92개 파일)
+    ├── lib/                        # 50개 모듈 (테스트 제외)
     │   ├── providers/
     │   │   ├── types.ts            # AIProvider 인터페이스, ModelDef
     │   │   ├── bedrock-provider.ts # AWS Bedrock Claude 프로바이더
@@ -491,6 +499,10 @@ hchat-v2-extension/
     │   ├── pptxGenerator.ts        # PPTX 생성 (JSZip, v5.0)
     │   ├── guardrail.ts            # PII 감지/마스킹 (v5.0)
     │   ├── chatTemplates.ts        # 대화 템플릿 CRUD (v5.0)
+    │   ├── intentRouter.ts        # AI 자동 추천 — 9가지 의도 감지, 비서/도구 추천 (v5.3)
+    │   ├── userPreferences.ts     # 사용 패턴 학습 — 가중 빈도 추적, 시간 감쇠, top 3 (v5.3)
+    │   ├── conversationSummarizer.ts # 컨텍스트 자동 요약 — 20+ 메시지, FIFO 캐시 (v5.3)
+    │   ├── bm25.ts                # BM25 검색 — IDF, combinedScore (70%+30%) (v5.3)
     │   ├── types.ts                # 공통 타입 정의 (PROVIDER_COLORS 등)
     │   └── README.md               # lib 문서
     └── styles/
@@ -595,6 +607,8 @@ hchat-v2-extension/
 | `hchat:doc-templates` | DocTemplate[] | 템플릿 갤러리 (Base64 DOCX 파일) |
 | `hchat:chat-templates` | ChatTemplate[] | 대화 템플릿 (v5.0) |
 | `hchat:guardrail-config` | GuardrailConfig | PII 가드레일 설정 (v5.0) |
+| `hchat:user-prefs` | UserPreferences | 사용 패턴 학습 데이터 (v5.3) |
+| `hchat:conv-summaries` | ConvSummaryCache | 대화 요약 캐시 (v5.3) |
 
 ## Manifest Permissions
 
@@ -643,6 +657,16 @@ npm run build      # 프로덕션 빌드 → dist/
 4. (선택) Google 검색 API 키 설정 (웹 검색 강화)
 
 ## 버전 히스토리
+
+### v5.3.0 (2026-03-05) — AI 자동 추천 & 검색 고도화
+
+| 기능 | 설명 |
+|------|------|
+| AI 자동 추천 시스템 | intentRouter.ts — 9가지 의도 감지 (코드/번역/요약/분석/문서/이미지/검색/대화/기타), 비서/도구 자동 추천 |
+| 사용 패턴 학습 | userPreferences.ts — 가중 빈도 추적 + 시간 감쇠, top 3 추천, `hchat:user-prefs` 저장 |
+| 컨텍스트 자동 요약 | conversationSummarizer.ts — 20+ 메시지 대화 자동 요약, FIFO 캐시 (`hchat:conv-summaries`), 시스템 프롬프트 주입 |
+| BM25 검색 개선 | bm25.ts — BM25 스코어링 + IDF 도입, combinedScore (BM25 70% + 최신성 30%) |
+| 통계 | 50개 lib 파일, 1148 tests (54 files), 730+ i18n 키 (ko/en/ja) |
 
 ### v5.2.0 (2026-03-05) — 성능 & 접근성 강화
 
@@ -834,20 +858,20 @@ npm run build      # 프로덕션 빌드 → dist/
 | YouTube 요약 | 자막 추출 (3단계 fallback) + AI 요약 |
 
 ### 규모 비교
-| 항목 | v1 | v2 | v3 | v3.6 | v4.2 | v4.3 | v4.5 | v5.0 | v5.1 | v5.2 |
-|------|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
-| 소스 파일 | ~22개 | ~40개 | ~50개 | ~80개 | ~90개 | ~100개 | ~107개 | ~115개 | ~115개 | ~125개 |
-| 코드 라인 | ~4,000 | ~8,000 | ~10,000+ | ~15,000+ | ~18,000+ | ~20,000+ | ~21,500+ | ~25,000+ | ~25,000+ | ~26,000+ |
-| 탭 수 | 5개 | 7개 | 8개 | 8개 | 8개 | 8개 | 8개 | 8개 | 8개 | 8개 |
-| 컴포넌트 (.tsx) | 12개 | 18개 | 24개 | 40개 | 48개 | 54개 | 58개 | 57개 | 57개 | 57개 |
-| lib 파일 | 6개 | 20개 | 30개 | 45개 | 50개 | 55개 | 57개 | 56개 | 56개 | 56개 |
-| AI 프로바이더 | 1개 | 1개 | 3개 | 3개 | 3개 | 3개 | 3개 | 3개 | 3개 | 3개 |
-| 지원 모델 | 3개 | 3개 | 9개 | 9개 | 9개 | 9개 | 9개 | 9개 | 9개 | 9개 |
-| 도구 | 4개 | 8개 | 8개 | 12개 | 15개 | 16개 | 16개 | 17개 | 17개 | 17개 |
-| 내장 비서 | 0개 | 0개 | 0개 | 0개 | 0개 | 0개 | 8개 | 20개 | 20개 | 20개 |
-| 테스트 | 0개 | 0개 | 0개 | 365개 | 498개 (30 파일) | 589개 (34 파일) | 649개 (36 파일) | 741개 (40 파일) | 741개 (40 파일) | 993개 (50 파일) |
-| i18n 키 | 0개 | 0개 | 0개 | 420+ (ko/en) | 600+ (ko/en/ja) | 650+ (ko/en/ja) | 670+ (ko/en/ja) | 720+ (ko/en/ja) | 726+ (ko/en/ja) | 726+ (ko/en/ja) |
-| npm 패키지 | - | - | - | - | - | - | - | - | -96 (react-markdown 제거) | +1 (react-window) |
+| 항목 | v1 | v2 | v3 | v3.6 | v4.2 | v4.3 | v4.5 | v5.0 | v5.1 | v5.2 | v5.3 |
+|------|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
+| 소스 파일 | ~22개 | ~40개 | ~50개 | ~80개 | ~90개 | ~100개 | ~107개 | ~115개 | ~115개 | ~125개 | ~133개 |
+| 코드 라인 | ~4,000 | ~8,000 | ~10,000+ | ~15,000+ | ~18,000+ | ~20,000+ | ~21,500+ | ~25,000+ | ~25,000+ | ~26,000+ | ~27,000+ |
+| 탭 수 | 5개 | 7개 | 8개 | 8개 | 8개 | 8개 | 8개 | 8개 | 8개 | 8개 | 8개 |
+| 컴포넌트 (.tsx) | 12개 | 18개 | 24개 | 40개 | 48개 | 54개 | 58개 | 57개 | 57개 | 57개 | 57개 |
+| lib 파일 | 6개 | 20개 | 30개 | 45개 | 50개 | 55개 | 57개 | 56개 | 56개 | 56개 | 50개 |
+| AI 프로바이더 | 1개 | 1개 | 3개 | 3개 | 3개 | 3개 | 3개 | 3개 | 3개 | 3개 | 3개 |
+| 지원 모델 | 3개 | 3개 | 9개 | 9개 | 9개 | 9개 | 9개 | 9개 | 9개 | 9개 | 9개 |
+| 도구 | 4개 | 8개 | 8개 | 12개 | 15개 | 16개 | 16개 | 17개 | 17개 | 17개 | 17개 |
+| 내장 비서 | 0개 | 0개 | 0개 | 0개 | 0개 | 0개 | 8개 | 20개 | 20개 | 20개 | 20개 |
+| 테스트 | 0개 | 0개 | 0개 | 365개 | 498개 (30 파일) | 589개 (34 파일) | 649개 (36 파일) | 741개 (40 파일) | 741개 (40 파일) | 993개 (50 파일) | 1148개 (54 파일) |
+| i18n 키 | 0개 | 0개 | 0개 | 420+ (ko/en) | 600+ (ko/en/ja) | 650+ (ko/en/ja) | 670+ (ko/en/ja) | 720+ (ko/en/ja) | 726+ (ko/en/ja) | 726+ (ko/en/ja) | 730+ (ko/en/ja) |
+| npm 패키지 | - | - | - | - | - | - | - | - | -96 (react-markdown 제거) | +1 (react-window) | - |
 
 ## Design System
 

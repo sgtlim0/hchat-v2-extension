@@ -12,7 +12,7 @@ H Chat is a Chrome Extension (Manifest V3) that provides a multi-AI sidebar assi
 npm run build    # Production build to dist/
 npm run dev      # Watch mode (vite build --watch)
 npm run clean    # Remove dist/
-npm test         # Run all tests (Vitest, 741 tests, 40 files)
+npm test         # Run all tests (Vitest, 993 tests, 50 files)
 npm run lint     # ESLint (flat config)
 ```
 
@@ -96,7 +96,8 @@ Haiku 4.5:  us.anthropic.claude-haiku-4-5-20251001-v1:0  (-v1:0)
 
 - No external AI SDKs — all provider communication uses `fetch()` directly
 - No external markdown/syntax highlighting libs — custom renderers only (v5.1: react-markdown/remark-gfm/rehype-highlight removed, ~130KB savings)
+- Virtual scrolling: react-window for 50+ messages (v5.2)
 - Files should stay under 800 lines; extract into separate files if approaching limit
 - Korean is the primary UI language, with English and Japanese translations
 - Immutable patterns throughout (never mutate objects)
-- Tests: Vitest with chrome.storage.local mock, 741 tests across 40 files
+- Tests: Vitest with chrome.storage.local mock, 993 tests across 50 files

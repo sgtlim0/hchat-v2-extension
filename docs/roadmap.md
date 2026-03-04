@@ -1,7 +1,7 @@
 # H Chat 로드맵
 
 > 마지막 업데이트: 2026-03-05
-> 현재 버전: v5.3
+> 현재 버전: v5.4
 
 ---
 
@@ -63,19 +63,19 @@
 
 ---
 
-## 현재 수치 (v5.2)
+## 현재 수치 (v5.4)
 
 | 항목 | 수치 |
 |------|------|
-| 테스트 | 993 tests, 50 files (인프라 146 + 에이전트/훅 106 신규) |
-| 컴포넌트 | 57 .tsx 파일 |
+| 테스트 | 1210 tests, 59 files |
+| 컴포넌트 | 57 .tsx 파일 (ChatInputArea, AssistantSelector, ModelSelector 수정) |
+| lib 모듈 | 50개 (messageSearch.ts BM25 통합) |
 | 도구 | 17개 (요약, 멀티탭, 번역, 글쓰기, 문서작성, YouTube, OCR, 배치OCR, 문법, 댓글분석, PDF, 인사이트, 데이터분석, 이미지생성, 문서번역, 템플릿문서, PPT기획) |
 | 언어 | 3개 (ko/en/ja), 730+ i18n keys |
 | AI 프로바이더 | 3개 (Bedrock/OpenAI/Gemini) |
 | 모델 | 9개 (Claude Sonnet 4.6/Opus 4.6/Haiku 4.5, GPT-4o/4o-mini/o1-mini, Gemini 2.0 Flash/1.5 Pro/1.5 Flash) |
 | 비서 | 20개 내장 (6카테고리) + 커스텀 빌더 |
 | 번들 | sidepanel ~132KB (46KB gzip), 가상 스크롤 (react-window) |
-| npm 패키지 | +1 (react-window) |
 
 ---
 
@@ -114,7 +114,31 @@
 | i18n 확대 | toolbar.ts i18n 통합 (tSync 패턴, ja locale 추가, 6 keys) | 3개 언어 완전 지원 |
 | 기술 부채 정리 | PersonaSelector 레거시 제거, CSS 변수 정리 (7개 제거), i18n 키 정리 (10개 제거) | 유지보수성 개선 |
 
-### v5.3 — 확장성 (예정)
+### v5.3 — AI 자동 추천 & 검색 고도화 ✅ (2026-03-05 완료)
+
+AI 자동 추천 시스템과 검색 품질 개선에 집중.
+
+| 항목 | 설명 | 결과 |
+|------|------|------|
+| AI 자동 추천 | intentRouter.ts — 9가지 의도 감지, 비서/도구 자동 추천 (281줄) | 완료 |
+| 사용 패턴 학습 | userPreferences.ts — 가중 빈도 추적 + 시간 감쇠, top 3 추천 (143줄) | 완료 |
+| 컨텍스트 자동 요약 | conversationSummarizer.ts — 20+ 메시지 요약, FIFO 캐시, 시스템 프롬프트 주입 (162줄) | 완료 |
+| BM25 검색 개선 | bm25.ts — BM25 스코어링 + IDF, combinedScore (70%+30%) (108줄) | 완료 |
+| 테스트 | 4개 lib + 4개 test 파일 추가 | 1148 tests, 54 files |
+
+### v5.4 — 추천 UI 통합 & 검색 고도화 ✅ (2026-03-05 완료)
+
+v5.3에서 구축한 추천 엔진을 UI 컴포넌트에 통합하고 검색 품질을 개선.
+
+| 항목 | 설명 | 결과 |
+|------|------|------|
+| ChatInputArea 의도 추천 칩 | detectIntent() 실시간 300ms 디바운스, 의도별 아이콘 칩, onApplyIntent 콜백 | 완료 |
+| useChat 사용 추적 + 자동 요약 | trackUsage() 모델/비서 추적, 20+ 메시지 자동 요약, 시스템 프롬프트 주입 | 완료 |
+| 비서/모델 추천 배지 | AssistantSelector ⭐ 추천 + 카테고리 탭, ModelSelector ⭐ 배지 | 완료 |
+| BM25 검색 통합 | messageSearch.ts calculateScore를 BM25 기반으로 교체, trigram 유지 | 완료 |
+| 테스트 | 5개 test 파일 추가 | 1210 tests, 59 files |
+
+### v5.5 — 확장성 (예정)
 
 추가 품질 개선과 사용자 피드백 반영에 집중한다.
 

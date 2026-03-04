@@ -116,7 +116,6 @@ export default function PptxPlanTool({
     if (slides.length === 0) return
     try {
       const pptxBlob = await generatePptx(slides)
-      setBlob(pptxBlob)
       downloadBlob(pptxBlob, `${topic}.pptx`)
       showToast(t('common.downloadComplete'))
       setStep('done')

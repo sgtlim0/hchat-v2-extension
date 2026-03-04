@@ -515,7 +515,7 @@ hchat-v2-extension/
     │       │
     │       └──→ pageContext.ts → 시스템 프롬프트 주입
     │
-    └──→ models.ts → SigV4 서명 → Bedrock API
+    └──→ provider.stream() → SigV4 서명 → Bedrock API
                 │
                 └──→ Event Stream 파싱 → 실시간 UI 업데이트
 ```

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { List, useDynamicRowHeight, type ListImperativeAPI } from 'react-window'
 import { useChat } from '../hooks/useChat'
 import { useLocale } from '../i18n'
 import { ModelSelector } from './ModelSelector'
@@ -67,9 +68,39 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
   const endRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  const listRef = useRef<ListImperativeAPI | null>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
+  const [containerHeight, setContainerHeight] = useState(600)
+
+  const dynamicRowHeight = useDynamicRowHeight({
+    defaultRowHeight: 150,
+    key: conv?.id || 'default',
+  })
 
   useEffect(() => { if (loadConvId) loadConv(loadConvId) }, [loadConvId, loadConv])
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
+
+  useEffect(() => {
+    if (messagesContainerRef.current) {
+      const updateHeight = () => {
+        if (messagesContainerRef.current) {
+          setContainerHeight(messagesContainerRef.current.clientHeight)
+        }
+      }
+      updateHeight()
+      window.addEventListener('resize', updateHeight)
+      return () => window.removeEventListener('resize', updateHeight)
+    }
+  }, []) // Run once on mount
+
+  useEffect(() => {
+    if (messages.length > 50 && listRef.current) {
+      // Virtual scroll: scroll to last item
+      listRef.current.scrollToRow(messages.length - 1, 'end')
+    } else {
+      // Simple scroll: scroll to bottom
+      endRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [messages])
 
   useEffect(() => {
     onRegisterActions?.({
@@ -391,7 +422,7 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
   ]
 
   return (
-    <div className="chat-wrap">
+    <div className="chat-wrap" role="main">
       <ChatToolbar
         convTitle={conv?.title}
         contextEnabled={contextEnabled}
@@ -435,7 +466,7 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
         <UsageAlertBanner alert={usageAlert} onDismiss={() => setAlertDismissed(true)} />
       )}
 
-      <div className="messages">
+      <div className="messages" ref={messagesContainerRef} role="log" aria-live="polite" aria-relevant="additions">
         {messages.length === 0 ? (
           <div className="chat-empty">
             <div className="chat-empty-logo">H</div>
@@ -453,6 +484,28 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
               ))}
             </div>
           </div>
+        ) : messages.length > 50 ? (
+          <List
+            listRef={listRef}
+            defaultHeight={containerHeight}
+            rowCount={messages.length}
+            rowHeight={dynamicRowHeight}
+            overscanCount={5}
+            rowComponent={({ index, ...props }) => (
+              <MsgBubble
+                key={messages[index].id}
+                msg={messages[index]}
+                onCopy={copyMsg}
+                onTTS={handleTTS}
+                onEdit={handleEdit}
+                onRegenerate={handleRegenerate}
+                onFork={handleFork}
+                onPin={handlePin}
+                {...props}
+              />
+            )}
+            rowProps={{}}
+          />
         ) : (
           messages.map((m) => <MsgBubble key={m.id} msg={m} onCopy={copyMsg} onTTS={handleTTS} onEdit={handleEdit} onRegenerate={handleRegenerate} onFork={handleFork} onPin={handlePin} />)
         )}
@@ -503,7 +556,7 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
         <span className="text-xs">{t('chat.promptHint')}</span>
       </div>
 
-      {toast && <div className="copy-toast">{toast}</div>}
+      {toast && <div className="copy-toast" role="status" aria-live="polite">{toast}</div>}
     </div>
   )
 }

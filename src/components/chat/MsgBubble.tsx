@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, memo } from 'react'
 import { useLocale } from '../../i18n'
 import { TTS } from '../../lib/tts'
 import { MD } from './MarkdownRenderer'
@@ -16,7 +16,7 @@ export interface MsgBubbleProps {
   onPin?: (msgId: string) => void
 }
 
-export function MsgBubble({ msg, onCopy, onTTS, onEdit, onRegenerate, onFork, onPin }: MsgBubbleProps) {
+const MsgBubbleComponent = ({ msg, onCopy, onTTS, onEdit, onRegenerate, onFork, onPin }: MsgBubbleProps) => {
   const { t } = useLocale()
   const isUser = msg.role === 'user'
   const [editing, setEditing] = useState(false)
@@ -46,7 +46,11 @@ export function MsgBubble({ msg, onCopy, onTTS, onEdit, onRegenerate, onFork, on
   }
 
   return (
-    <div className={`msg ${isUser ? 'msg-user' : 'msg-ai'}`}>
+    <div
+      className={`msg ${isUser ? 'msg-user' : 'msg-ai'}`}
+      role="article"
+      aria-label={t('aria.messageFrom', { role: isUser ? t('common.me') : 'AI' })}
+    >
       <div className="msg-avatar">{isUser ? t('common.me') : 'H'}</div>
       <div className="msg-body">
         {msg.imageUrl && <img src={msg.imageUrl} className="msg-img" alt="attachment" />}
@@ -113,3 +117,15 @@ export function MsgBubble({ msg, onCopy, onTTS, onEdit, onRegenerate, onFork, on
     </div>
   )
 }
+
+export const MsgBubble = memo(
+  MsgBubbleComponent,
+  (prev, next) =>
+    prev.msg.id === next.msg.id &&
+    prev.msg.content === next.msg.content &&
+    prev.msg.role === next.msg.role &&
+    prev.msg.streaming === next.msg.streaming &&
+    prev.msg.editing === next.msg.editing &&
+    prev.msg.pinned === next.msg.pinned &&
+    prev.msg.error === next.msg.error
+)

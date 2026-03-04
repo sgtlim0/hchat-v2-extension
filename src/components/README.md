@@ -2,7 +2,7 @@
 
 ## 개요
 
-사이드패널의 각 탭과 공용 UI 요소를 구성하는 20+ React 컴포넌트. 채팅 인터페이스, 크로스 모델 그룹 채팅, 크로스 모델 토론, 도구 뷰, 설정, 히스토리, 북마크, 프롬프트 라이브러리, 사용량 통계 등 모든 사용자 인터페이스를 포함한다.
+사이드패널의 각 탭과 공용 UI 요소를 구성하는 57개 React 컴포넌트 (.tsx 파일). 채팅 인터페이스, 크로스 모델 그룹 채팅, 크로스 모델 토론, 도구 뷰, 설정, 히스토리, 북마크, 프롬프트 라이브러리, 사용량 통계, 비서 마켓플레이스 등 모든 사용자 인터페이스를 포함한다.
 
 ## 파일 목록
 
@@ -19,7 +19,7 @@
 | `UsageView.tsx` | 150+ | 사용량 통계 — 프로바이더별/기능별 분류, 일별 비용 차트 [v3 강화] |
 | `MessageSearchModal.tsx` | 111 | 전체 대화 검색 모달 — 디바운스, 키보드 네비게이션, 하이라이팅 |
 | `ModelSelector.tsx` | 120+ | 모델 선택 드롭다운 — 9개 모델 (AWS, OpenAI, Google) [v3 강화] |
-| `PersonaSelector.tsx` | 128 | 페르소나 선택/생성 — 내장 6종 + 커스텀 생성 |
+| `AssistantSelector.tsx` | 130+ | 커스텀 비서 선택 드롭다운 — 20개 내장 비서 + 커스텀 비서 [v5.0] |
 
 ## 상세 설명
 
@@ -251,13 +251,14 @@ MODELS = [
 
 ---
 
-### PersonaSelector.tsx (128줄)
+### AssistantSelector.tsx (130+줄) [v5.0]
 
-페르소나 선택 및 커스텀 생성.
+커스텀 비서 선택 드롭다운. PersonaSelector 레거시를 대체.
 
-- **내장 6종**: 기본 어시스턴트, 개발자 도우미, 작문 코치, 통역사, 데이터 분석가, 튜터
-- **커스텀 생성**: 아이콘, 이름, 설명, 시스템 프롬프트 입력
-- **삭제**: 커스텀만 삭제 가능 (builtin 보호)
+- **내장 비서 20개**: 6개 카테고리 (문서작업, 번역통역, 분석기획, 코딩개발, 크리에이티브, 일반업무)
+- **커스텀 비서**: 사용자가 생성한 비서 목록
+- **특징**: 비서 아이콘, 이름, 설명 표시, 드롭다운에서 직접 선택
+- **자동 설정**: 비서 선택 시 모델, 온도, 시스템 프롬프트 자동 적용
 
 ## 공통 패턴
 
@@ -289,17 +290,18 @@ if (e.key === 'Escape') handleClose()
 
 ```
 App.tsx (sidepanel)
-├─ ChatView ← useChat hook ← lib/models, lib/chatHistory
-│  ├─ ModelSelector ← MODELS, Config
-│  ├─ PersonaSelector ← Personas
+├─ ChatView ← useChat hook ← providers, lib/chatHistory
+│  ├─ ModelSelector ← providers, Config
+│  ├─ AssistantSelector ← lib/assistantBuilder
 │  └─ (내부 MsgBubble, CodeBlock, MD, AgentStepsView, SearchSources)
-├─ GroupChatView ← lib/models, Config
-├─ ToolsView ← lib/pageReader, lib/models, lib/writingTools
+├─ GroupChatView ← providers, Config
+├─ ToolsView ← lib/pageReader, providers, lib/writingTools (17개 도구)
 ├─ PromptLibraryView ← lib/promptLibrary
 ├─ HistoryView ← lib/chatHistory, lib/tags, lib/importChat
 ├─ BookmarksView ← lib/bookmarks
 ├─ SettingsView ← useConfig, lib/aws-sigv4, lib/shortcuts
 │  └─ UsageView ← lib/usage
+├─ AssistantMarketplace ← lib/assistantBuilder (20개 내장 비서)
 └─ MessageSearchModal ← lib/messageSearch
 ```
 

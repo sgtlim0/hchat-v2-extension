@@ -215,7 +215,7 @@ H Chat은 Sider 스타일의 올인원 AI 브라우저 어시스턴트입니다.
 
 ### 23. 다국어 지원 (i18n)
 - 한국어/영어/일본어 3개 언어 지원
-- 경량 자체 구현 (외부 라이브러리 미사용, 730+ 키/언어)
+- 경량 자체 구현 (외부 라이브러리 미사용, 720+ 키/언어)
 - `t()` 함수 + `useLocale()` React 훅
 - Content Script용 `tSync()` + `getLocale()` 비동기 패턴
 - 설정 탭에서 언어 선택 (즉시 반영)
@@ -368,10 +368,10 @@ hchat-v2-extension/
     │   └── main.tsx               # React 마운트
     ├── i18n/
     │   ├── index.ts               # t(), useLocale(), tSync(), getLocale()
-    │   ├── ko.ts                  # 한국어 번역 (730+ 키)
-    │   ├── en.ts                  # 영어 번역 (730+ 키)
-    │   └── ja.ts                  # 일본어 번역 (730+ 키)
-    ├── components/                 # 57개 파일
+    │   ├── ko.ts                  # 한국어 번역 (720+ 키)
+    │   ├── en.ts                  # 영어 번역 (720+ 키)
+    │   └── ja.ts                  # 일본어 번역 (720+ 키)
+    ├── components/                 # 57개 컴포넌트 (테스트 포함)
     │   ├── ChatView.tsx            # 메인 채팅 (460줄)
     │   ├── GroupChatView.tsx       # 크로스 모델 비교
     │   ├── DebateView.tsx          # 크로스 모델 토론
@@ -433,7 +433,7 @@ hchat-v2-extension/
     │   ├── useNetworkStatus.ts     # 네트워크 상태 감지
     │   ├── useProvider.ts          # 프로바이더 인스턴스, 모델 리스트
     │   └── useShortcuts.ts         # 키보드 단축키 (40줄)
-    ├── lib/                        # 56개 파일
+    ├── lib/                        # 56개 모듈 (테스트 제외 92개 파일)
     │   ├── providers/
     │   │   ├── types.ts            # AIProvider 인터페이스, ModelDef
     │   │   ├── bedrock-provider.ts # AWS Bedrock Claude 프로바이더
@@ -642,7 +642,7 @@ npm run build      # 프로덕션 빌드 → dist/
 
 ## 버전 히스토리
 
-### v5.0.0 (2026-03-05) — UX 고도화
+### v5.0.0 (2026-03-05) — UX 고도화 + 기술 부채 정리
 
 | 기능 | 설명 |
 |------|------|
@@ -651,8 +651,9 @@ npm run build      # 프로덕션 빌드 → dist/
 | AI 가드레일 | PII 자동 감지 (이메일/전화/주민번호/카드/계좌), 마스킹 후 전송, 경고 배너 |
 | 비서 vs 비서 토론 | 토론 참가자에 커스텀 비서 연동, 비서 systemPrompt 주입 |
 | 대화 템플릿 | 다단계 대화 흐름 저장/재사용, {{변수}} 치환, JSON 내보내기/가져오기 |
+| 기술 부채 정리 | PersonaSelector.tsx 삭제, CSS 변수 정리 (7개 제거), i18n 키 정리 (10개 제거) |
 | 통계 | 17개 AI 도구, 20개 내장 비서, 57개 컴포넌트, 56개 lib 파일 |
-| 품질 | 741 tests (40 files), 730+ i18n 키 (ko/en/ja), ESLint 0 errors |
+| 품질 | 741 tests (40 files), 720+ i18n 키 (ko/en/ja), ESLint 0 errors |
 
 ### v4.5.0 (2026-03) — 추가 UX 개선
 
@@ -763,6 +764,14 @@ npm run build      # 프로덕션 빌드 → dist/
 | 성능 | React.lazy 코드 스플리팅, xlsx 동적 임포트 |
 | 스토리지 관리 | 고아 데이터 정리, 90일 이전 대화 삭제 |
 
+#### v5.0 기술 부채 정리 (2026-03-05)
+| 항목 | 내용 |
+|------|------|
+| 컴포넌트 정리 | PersonaSelector.tsx 삭제 (AssistantSelector로 대체됨) |
+| CSS 변수 정리 | 미사용 7개 제거 (--radius-lg, --color-bedrock/openai/gemini, --green, --border3, --accent-glow) |
+| i18n 키 정리 | model 블록(2개) + promptDefaults 블록(8개) = 10개 제거, 730+ → 720+ 키 |
+| 코드베이스 | 57개 컴포넌트, 56개 lib 파일 (테스트 제외), 741 tests (40 files) |
+
 ### v3.0.0 (2026-03) — 멀티 AI 프로바이더 시스템
 
 #### v3에서 추가 (10개 주요 기능)
@@ -808,29 +817,27 @@ npm run build      # 프로덕션 빌드 → dist/
 | 도구 | 4개 | 8개 | 8개 | 12개 | 15개 | 16개 | 16개 | 17개 |
 | 내장 비서 | 0개 | 0개 | 0개 | 0개 | 0개 | 0개 | 8개 | 20개 |
 | 테스트 | 0개 | 0개 | 0개 | 365개 | 498개 (30 파일) | 589개 (34 파일) | 649개 (36 파일) | 741개 (40 파일) |
-| i18n 키 | 0개 | 0개 | 0개 | 420+ (ko/en) | 600+ (ko/en/ja) | 650+ (ko/en/ja) | 670+ (ko/en/ja) | 730+ (ko/en/ja) |
+| i18n 키 | 0개 | 0개 | 0개 | 420+ (ko/en) | 600+ (ko/en/ja) | 650+ (ko/en/ja) | 670+ (ko/en/ja) | 720+ (ko/en/ja) |
 
 ## Design System
 
 ### 색상 (Dark 테마 기본)
 
-| 토큰 | Light | Dark |
-|------|-------|------|
-| Primary | `#3478FE` | `#5B93FF` |
-| Background (Page) | `#FFFFFF` | `#1A1A1A` |
-| Background (Sidebar) | `#F8F9FA` | `#1E1E1E` |
-| Background (Card) | `#F8F9FA` | `#2A2A2A` |
-| Background (Hover) | `#EEF2F6` | `#333333` |
-| Text Primary | `#1A1A1A` | `#F0F0F0` |
-| Text Secondary | `#6B7280` | `#9CA3AF` |
-| Border | `#E5E7EB` | `#374151` |
-| Success | `#22C55E` | `#22C55E` |
-| Danger | `#EF4444` | `#EF4444` |
+Dark Obsidian 테마, Emerald accent, 26개 CSS 변수 (dark), 18개 재정의 (light)
+
+| 토큰 | Dark | Light |
+|------|------|-------|
+| Background (0-5) | `#080b0e ~ #2a3a52` | `#ffffff ~ #c0c5cd` |
+| Text (0-3) | `#eef1f5 ~ #3d4f65` | `#1a1a2e ~ #a0aec0` |
+| Accent | `#34d399` (Emerald) | `#059669` |
+| Border | `rgba(255,255,255,0.06/0.1)` | `rgba(0,0,0,0.08/0.12)` |
+| Utility | `#a78bfa` (purple), `#60a5fa` (blue), `#fbbf24` (amber), `#f87171` (red) | 동일 |
 
 ### 타이포그래피
-- **Sans**: Inter (300-700)
-- **Mono**: JetBrains Mono (300-600)
+- **Sans**: IBM Plex Sans KR (300-700)
+- **Mono**: IBM Plex Mono (300-600)
 - **본문**: 13px, line-height 1.6
+- **Radius**: 10px (default), 6px (small)
 
 ## Security
 

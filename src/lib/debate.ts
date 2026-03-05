@@ -1,8 +1,17 @@
-// lib/debate.ts — Cross-model debate engine
+// lib/debate.ts — Cross-model debate engine with voting integration
 
 import type { AIProvider } from './providers/types'
 import { Usage } from './usage'
 import { AssistantRegistry } from './assistantBuilder'
+import {
+  type VotingConfig,
+  type DebateScoreboard,
+  calculateScoreboard,
+  checkConsensus,
+  buildVotingPrompt,
+  parseVotingResponse,
+  validateParticipants,
+} from './debateVoting'
 
 export interface DebateParticipant {
   modelId: string
@@ -13,7 +22,7 @@ export interface DebateRound {
   round: number
   modelId: string
   provider: string
-  role: 'initial' | 'critique' | 'synthesis'
+  role: 'initial' | 'critique' | 'synthesis' | 'voting'
   content: string
   ms: number
 }
@@ -27,6 +36,11 @@ export interface DebateConfig {
   onRound: (round: DebateRound) => void
   onChunk: (modelId: string, chunk: string) => void
   signal?: AbortSignal
+}
+
+export interface DebateWithVotingConfig extends DebateConfig {
+  votingConfig?: VotingConfig
+  onVotingComplete?: (scoreboard: DebateScoreboard) => void
 }
 
 /**
@@ -179,6 +193,93 @@ export async function runDebate(config: DebateConfig): Promise<DebateRound[]> {
     rounds.push(round)
     onRound(round)
     Usage.track(synthModelId, synthProvider.type, synthPrompt, content, 'debate').catch(() => {})
+  }
+
+  return rounds
+}
+
+/**
+ * Run a debate with optional voting round after critique.
+ * Round 1: Initial answers (parallel)
+ * Round 2: Critique (sequential)
+ * Round 2.5: Voting round (each model evaluates others, if enabled)
+ * Round 3: Synthesis
+ */
+export async function runDebateWithVoting(
+  config: DebateWithVotingConfig
+): Promise<DebateRound[]> {
+  const { votingConfig, onVotingComplete, ...baseConfig } = config
+  const { topic, modelIds, getProviderForModel, onRound, onChunk, signal } = baseConfig
+
+  // Validate participant count against voting config
+  if (votingConfig?.enableVoting) {
+    const validationError = validateParticipants(modelIds.length, votingConfig)
+    if (validationError) {
+      throw new Error(validationError)
+    }
+  }
+
+  // Run base debate (rounds 1-3)
+  const rounds = await runDebate(baseConfig)
+
+  // If voting is disabled or aborted, return base rounds
+  if (!votingConfig?.enableVoting || !votingConfig.votingRound || signal?.aborted) {
+    return rounds
+  }
+
+  // ── Voting Round: After critique, before synthesis ──
+  // Collect initial answers for voting prompt
+  const initialResponses = rounds
+    .filter((r) => r.role === 'initial')
+    .map((r) => ({ modelId: r.modelId, content: r.content }))
+
+  const allVotes: import('./debateVoting').DebateVote[] = []
+
+  for (const modelId of modelIds) {
+    if (signal?.aborted) break
+
+    const provider = getProviderForModel(modelId)
+    if (!provider?.isConfigured()) continue
+
+    const start = Date.now()
+    const votingPrompt = buildVotingPrompt(topic, initialResponses, modelId)
+
+    let content = ''
+    const gen = provider.stream({
+      model: modelId,
+      messages: [{ role: 'user', content: votingPrompt }],
+      systemPrompt: '당신은 토론 심사위원입니다. 각 참가자의 답변을 1~5점으로 공정하게 평가해주세요. 한국어로 답변하세요.',
+      signal,
+    })
+
+    for await (const chunk of gen) {
+      content += chunk
+      onChunk(modelId, chunk)
+    }
+
+    // Parse votes from AI response
+    const votes = parseVotingResponse(content, modelIds, modelId)
+    const votesWithRound = votes.map((v) => ({ ...v, round: 2 }))
+    allVotes.push(...votesWithRound)
+
+    const round: DebateRound = {
+      round: 2, modelId, provider: provider.type,
+      role: 'voting', content, ms: Date.now() - start,
+    }
+    rounds.push(round)
+    onRound(round)
+    Usage.track(modelId, provider.type, votingPrompt, content, 'debate').catch(() => {})
+  }
+
+  // Calculate scoreboard and check consensus
+  if (allVotes.length > 0) {
+    const scoreboard = calculateScoreboard(allVotes, modelIds)
+    const consensus = checkConsensus(allVotes, modelIds, votingConfig.consensusThreshold)
+    const finalScoreboard: DebateScoreboard = {
+      ...scoreboard,
+      consensusResult: consensus,
+    }
+    onVotingComplete?.(finalScoreboard)
   }
 
   return rounds

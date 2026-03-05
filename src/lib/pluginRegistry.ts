@@ -94,7 +94,7 @@ function executeJavaScript(cfg: JavaScriptConfig): (params: Record<string, unkno
       const code = cfg.code.replace(/\{\{input\}\}/g, input)
       // Use a restricted evaluation via Function constructor with limited scope
       // Only allow basic string operations for safety
-      const SAFE_PATTERN = /^[\w\s+\-*/().,"'`${}:;=<>!?\[\]|&%^~@#\\n\\t]+$/
+      const SAFE_PATTERN = /^[\w\s+\-*/().,"'`${}:;=<>!?[\]|&%^~@#\\n\\t]+$/
       if (!SAFE_PATTERN.test(code)) {
         return 'Error: Code contains unsafe characters'
       }

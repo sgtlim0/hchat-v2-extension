@@ -1,4 +1,4 @@
-# H Chat v5 Extension
+# H Chat v5.6 Extension
 
 멀티 AI 프로바이더 Chrome 올인원 어시스턴트 확장 프로그램
 
@@ -6,12 +6,12 @@
 
 H Chat은 Sider 스타일의 올인원 AI 브라우저 어시스턴트입니다. AWS Bedrock Claude, OpenAI GPT, Google Gemini를 통합 지원하며, 20개 내장 비서 마켓플레이스, AI 가드레일(PII 감지/마스킹), PPT 기획, 비서 토론, 대화 템플릿, 문서 번역/작성, PPTX/PDF 번역, 템플릿 문서 작성, 이미지 생성, 크로스 모델 토론, YouTube 분석, PDF 채팅, 검색 엔진 AI 카드, 글쓰기 어시스턴트 등 풍부한 기능을 제공합니다.
 
-- **Version**: 5.5
+- **Version**: 5.6
 - **Platform**: Chrome Extension (Manifest V3)
 - **AI Providers**: AWS Bedrock (Claude), OpenAI (GPT), Google Gemini
 - **GitHub**: https://github.com/sgtlim0/hchat-v2-extension
 - **Vercel**: https://hchat-v2-extension.vercel.app/sidepanel.html
-- **Latest**: v5.5 — 음성 대화 E2E 파이프라인, 비서 체인, 토론 투표 시스템, 키보드 단축키 확장, 1311 tests (63 files)
+- **Latest**: v5.6 — 토론 투표 UI 통합, 키보드 단축키 설정 UI, 1710 tests (89 files), 80% branch coverage
 
 ## Features
 
@@ -47,6 +47,7 @@ H Chat은 Sider 스타일의 올인원 AI 브라우저 어시스턴트입니다.
 - **비서 vs 비서 토론**: 커스텀 비서의 관점(systemPrompt)으로 토론 참가 (v5.0)
 - 토론 기록 시각화
 - 최종 합의 도출
+- **투표 시스템**: 1~5점 투표, 스코어보드 랭킹, 컨센서스 도출 (v5.6)
 
 ### 5. YouTube 콘텐츠 분석
 
@@ -216,7 +217,7 @@ H Chat은 Sider 스타일의 올인원 AI 브라우저 어시스턴트입니다.
 
 ### 23. 다국어 지원 (i18n)
 - 한국어/영어/일본어 3개 언어 지원
-- 경량 자체 구현 (외부 라이브러리 미사용, 730+ 키/언어)
+- 경량 자체 구현 (외부 라이브러리 미사용, 813+ 키/언어)
 - `t()` 함수 + `useLocale()` React 훅
 - Content Script용 `tSync()` + `getLocale()` 비동기 패턴 (toolbar.ts 전면 통합, v5.1)
 - 설정 탭에서 언어 선택 (즉시 반영)
@@ -298,12 +299,15 @@ H Chat은 Sider 스타일의 올인원 AI 브라우저 어시스턴트입니다.
 - 토론 참가자별 1~5점 투표
 - 스코어보드 랭킹 시각화
 - 컨센서스 도출 (threshold 0.7)
+- DebateView.tsx 통합: 투표 활성화 토글, 스코어보드 패널, 라운드별 투표 진행 (v5.6)
 
 ### 36. 키보드 단축키 확장 (v5.5 신규)
 - 포커스 트랩 (모달/패널 내 Tab 순환)
 - 키 레코더 (커스텀 단축키 녹화)
 - 예약 콤보 검증 (시스템 단축키 충돌 방지)
 - 플랫폼별 표시 (Mac: ⌘, Windows: Ctrl)
+- ShortcutsConfig.tsx: 키 변경 UI, 키 레코더, 예약 콤보 충돌 감지, 기본값 복원 (v5.6)
+- SettingsView.tsx 통합: 키보드 단축키 섹션 접기/펼치기 (v5.6)
 
 ### 37. AI 자동 추천 시스템 (v5.3 신규)
 - **의도 감지**: 사용자 입력에서 9가지 의도 자동 분류 (코드, 번역, 요약, 분석, 문서, 이미지, 검색, 대화, 기타)
@@ -325,7 +329,7 @@ H Chat은 Sider 스타일의 올인원 AI 브라우저 어시스턴트입니다.
 | Markdown | 커스텀 렌더러 (v5.1에서 react-markdown 제거) | - |
 | 코드 하이라이트 | 커스텀 구현 (v5.1에서 rehype-highlight 제거) | - |
 | PDF | pdfjs-dist | 4.x |
-| i18n | 자체 구현 (t, useLocale, tSync) | 730+ keys |
+| i18n | 자체 구현 (t, useLocale, tSync) | 813+ keys |
 | 폰트 | IBM Plex Sans KR + IBM Plex Mono | - |
 | 스타일 | CSS Variables (Dark) | - |
 
@@ -355,7 +359,7 @@ H Chat은 Sider 스타일의 올인원 AI 브라우저 어시스턴트입니다.
 ```
 hchat-v2-extension/
 ├── manifest.json                  # Chrome MV3 매니페스트
-├── package.json                   # 의존성 (React, remark, highlight 등)
+├── package.json                   # 의존성 (React, pdfjs-dist 등)
 ├── vite.config.ts                 # 멀티 엔트리 + 정적 에셋 복사
 ├── tsconfig.json                  # TypeScript (ES2020, strict)
 ├── vercel.json                    # Vercel 배포 설정
@@ -398,10 +402,10 @@ hchat-v2-extension/
     │   └── main.tsx               # React 마운트
     ├── i18n/
     │   ├── index.ts               # t(), useLocale(), tSync(), getLocale()
-    │   ├── ko.ts                  # 한국어 번역 (726+ 키)
-    │   ├── en.ts                  # 영어 번역 (726+ 키)
-    │   └── ja.ts                  # 일본어 번역 (726+ 키)
-    ├── components/                 # 52개 컴포넌트 (ChatInputArea, AssistantSelector, ModelSelector 수정)
+    │   ├── ko.ts                  # 한국어 번역 (813+ 키)
+    │   ├── en.ts                  # 영어 번역 (813+ 키)
+    │   └── ja.ts                  # 일본어 번역 (813+ 키)
+    ├── components/                 # 53개 컴포넌트 (ChatInputArea, AssistantSelector, ModelSelector 수정)
     │   ├── ChatView.tsx            # 메인 채팅 (460줄)
     │   ├── GroupChatView.tsx       # 크로스 모델 비교
     │   ├── DebateView.tsx          # 크로스 모델 토론
@@ -684,6 +688,23 @@ npm run build      # 프로덕션 빌드 → dist/
 
 ## 버전 히스토리
 
+#### v5.6 Phase 1 — 통합 (투표 + 단축키) (2026-03-05)
+| 항목 | 내용 |
+|------|------|
+| 토론 투표 통합 | debate.ts `runDebateWithVoting()` 추가, DebateView.tsx 투표 토글/스코어보드 UI |
+| 단축키 설정 UI | ShortcutsConfig.tsx 신규 (키 레코더, 예약 콤보 감지, 기본값 복원) |
+| SettingsView 통합 | ShortcutsConfig 섹션 추가, 접기/펼치기 토글 |
+| i18n 확장 | 투표 8개 + 단축키 10개 = 18개 키 추가 (ko/en/ja) |
+| 최종 통계 | 53개 컴포넌트, 64개 lib 파일, 1710 tests (89 files), 80% branch coverage, ESLint 0 errors, 813+ i18n 키 |
+
+#### v5.6 Phase 2 — 테스트 커버리지 강화 (2026-03-05)
+| 항목 | 내용 |
+|------|------|
+| Branch 커버리지 80% | 65.49% → **80.00%** 달성 (statements 87.73%, functions 87.91%, lines 88.60%) |
+| 테스트 확장 | 1350 → **1710** tests (+360), 67 → **89** files (+22) |
+| ESLint 수정 | pluginRegistry.ts 기존 1개 에러 해결 → **0 errors** |
+| 신규 테스트 26개 파일 | agent, debate, bookmarks, chartDataExtractor, commentAnalyzer, dataAnalysis, docTranslator, docTemplateGenerator, pluginRegistry 등 branch coverage 집중 테스트 |
+
 ### v5.5.0 (2026-03-05) — 음성 파이프라인 & 비서 체인 & 토론 투표
 
 | 기능 | 설명 |
@@ -904,26 +925,26 @@ npm run build      # 프로덕션 빌드 → dist/
 | YouTube 요약 | 자막 추출 (3단계 fallback) + AI 요약 |
 
 ### 규모 비교
-| 항목 | v1 | v2 | v3 | v3.6 | v4.2 | v4.3 | v4.5 | v5.0 | v5.1 | v5.2 | v5.3 | v5.4 | v5.5 |
-|------|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
-| 소스 파일 | ~22개 | ~40개 | ~50개 | ~80개 | ~90개 | ~100개 | ~107개 | ~115개 | ~115개 | ~125개 | ~133개 | ~138개 | ~146개 |
-| 코드 라인 | ~4,000 | ~8,000 | ~10,000+ | ~15,000+ | ~18,000+ | ~20,000+ | ~21,500+ | ~25,000+ | ~25,000+ | ~26,000+ | ~27,000+ | ~28,000+ | ~30,000+ |
-| 탭 수 | 5개 | 7개 | 8개 | 8개 | 8개 | 8개 | 8개 | 8개 | 8개 | 8개 | 8개 | 8개 | 8개 |
-| 컴포넌트 (.tsx) | 12개 | 18개 | 24개 | 40개 | 48개 | 50개 | 52개 | 52개 | 52개 | 52개 | 52개 | 52개 | 52개 |
-| lib 파일 | 6개 | 20개 | 30개 | 45개 | 50개 | 55개 | 57개 | 56개 | 56개 | 56개 | 50개 | 50개 | 64개 |
-| AI 프로바이더 | 1개 | 1개 | 3개 | 3개 | 3개 | 3개 | 3개 | 3개 | 3개 | 3개 | 3개 | 3개 | 3개 |
-| 지원 모델 | 3개 | 3개 | 9개 | 9개 | 9개 | 9개 | 9개 | 9개 | 9개 | 9개 | 9개 | 9개 | 9개 |
-| 도구 | 4개 | 8개 | 8개 | 12개 | 15개 | 16개 | 16개 | 17개 | 17개 | 17개 | 17개 | 17개 | 17개 |
-| 내장 비서 | 0개 | 0개 | 0개 | 0개 | 0개 | 0개 | 8개 | 20개 | 20개 | 20개 | 20개 | 20개 | 20개 |
-| 테스트 | 0개 | 0개 | 0개 | 365개 | 498개 (30 파일) | 589개 (34 파일) | 649개 (36 파일) | 741개 (40 파일) | 741개 (40 파일) | 993개 (50 파일) | 1148개 (54 파일) | 1210개 (59 파일) | 1311개 (63 파일) |
-| i18n 키 | 0개 | 0개 | 0개 | 420+ (ko/en) | 600+ (ko/en/ja) | 650+ (ko/en/ja) | 670+ (ko/en/ja) | 720+ (ko/en/ja) | 726+ (ko/en/ja) | 726+ (ko/en/ja) | 730+ (ko/en/ja) | 730+ (ko/en/ja) | 730+ (ko/en/ja) |
-| npm 패키지 | - | - | - | - | - | - | - | - | -96 (react-markdown 제거) | +1 (react-window) | - | - | - |
+| 항목 | v1 | v2 | v3 | v3.6 | v4.2 | v4.3 | v4.5 | v5.0 | v5.1 | v5.2 | v5.3 | v5.4 | v5.5 | v5.6 |
+|------|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
+| 소스 파일 | ~22개 | ~40개 | ~50개 | ~80개 | ~90개 | ~100개 | ~107개 | ~115개 | ~115개 | ~125개 | ~133개 | ~138개 | ~146개 | ~150개 |
+| 코드 라인 | ~4,000 | ~8,000 | ~10,000+ | ~15,000+ | ~18,000+ | ~20,000+ | ~21,500+ | ~25,000+ | ~25,000+ | ~26,000+ | ~27,000+ | ~28,000+ | ~30,000+ | ~31,000+ |
+| 탭 수 | 5개 | 7개 | 8개 | 8개 | 8개 | 8개 | 8개 | 8개 | 8개 | 8개 | 8개 | 8개 | 8개 | 8개 |
+| 컴포넌트 (.tsx) | 12개 | 18개 | 24개 | 40개 | 48개 | 50개 | 52개 | 52개 | 52개 | 52개 | 52개 | 52개 | 52개 | 53개 |
+| lib 파일 | 6개 | 20개 | 30개 | 45개 | 50개 | 55개 | 57개 | 56개 | 56개 | 56개 | 50개 | 50개 | 64개 | 64개 |
+| AI 프로바이더 | 1개 | 1개 | 3개 | 3개 | 3개 | 3개 | 3개 | 3개 | 3개 | 3개 | 3개 | 3개 | 3개 | 3개 |
+| 지원 모델 | 3개 | 3개 | 9개 | 9개 | 9개 | 9개 | 9개 | 9개 | 9개 | 9개 | 9개 | 9개 | 9개 | 9개 |
+| 도구 | 4개 | 8개 | 8개 | 12개 | 15개 | 16개 | 16개 | 17개 | 17개 | 17개 | 17개 | 17개 | 17개 | 17개 |
+| 내장 비서 | 0개 | 0개 | 0개 | 0개 | 0개 | 0개 | 8개 | 20개 | 20개 | 20개 | 20개 | 20개 | 20개 | 20개 |
+| 테스트 | 0개 | 0개 | 0개 | 365개 | 498개 (30 파일) | 589개 (34 파일) | 649개 (36 파일) | 741개 (40 파일) | 741개 (40 파일) | 993개 (50 파일) | 1148개 (54 파일) | 1210개 (59 파일) | 1311개 (63 파일) | 1710개 (89 파일) |
+| i18n 키 | 0개 | 0개 | 0개 | 420+ (ko/en) | 600+ (ko/en/ja) | 650+ (ko/en/ja) | 670+ (ko/en/ja) | 720+ (ko/en/ja) | 726+ (ko/en/ja) | 726+ (ko/en/ja) | 730+ (ko/en/ja) | 730+ (ko/en/ja) | 730+ (ko/en/ja) | 813+ (ko/en/ja) |
+| npm 패키지 | - | - | - | - | - | - | - | - | -96 (react-markdown 제거) | +1 (react-window) | - | - | - | - |
 
 ## Design System
 
 ### 색상 (Dark 테마 기본)
 
-Dark Obsidian 테마, Emerald accent, 26개 CSS 변수 (dark), 18개 재정의 (light)
+Dark Obsidian 테마, Emerald accent, 17개 CSS 변수 (dark), 15개 재정의 (light)
 
 | 토큰 | Dark | Light |
 |------|------|-------|

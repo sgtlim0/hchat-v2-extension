@@ -2,7 +2,7 @@
 
 ## 개요
 
-비즈니스 로직과 유틸리티 함수를 캡슐화하는 라이브러리 모듈. 총 40+ 파일, 약 5,000줄. 멀티 프로바이더 API 통신, 데이터 관리, AI 기능, 검색, 음성, 내보내기/가져오기를 담당한다. 모든 모듈은 `Storage` 래퍼를 통해 `chrome.storage.local`에 접근한다.
+비즈니스 로직과 유틸리티 함수를 캡슐화하는 라이브러리 모듈. 총 65+ 파일 (v5.6). 멀티 프로바이더 API 통신, 데이터 관리, AI 기능, 검색, 음성, 내보내기/가져오기를 담당한다. 모든 모듈은 `Storage` 래퍼를 통해 `chrome.storage.local`에 접근한다.
 
 ## 파일 목록
 
@@ -16,12 +16,14 @@
 | `providers/gemini-provider.ts` | 150+ | Google Gemini 프로바이더 (SSE 스트리밍) |
 | `providers/provider-factory.ts` | 120+ | 프로바이더 생성, 모델 탐색 (createAllProviders, getProviderForModel, getAllModels) |
 | `providers/model-router.ts` | 80+ | 자동 모델 라우팅 (프롬프트 패턴 분석) |
+| `providers/stream-retry.ts` | 100+ | 스트리밍 에러 복구 (streamWithRetry 자동 재시도 2회) [v3.3] |
 
 ### 기존 API 모듈
 
 | 파일 | 줄 수 | 설명 |
 |------|-------|------|
 | `aws-sigv4.ts` | 94 | AWS Signature V4 서명 (Web Crypto API) |
+
 ### AI 기능 모듈
 
 | 파일 | 줄 수 | 설명 |
@@ -32,9 +34,12 @@
 | `commentAnalyzer.ts` | 200+ | YouTube 댓글 추출 및 분석 (감정, 토픽, 인사이트) [v3 신규] |
 | `pdfParser.ts` | 150+ | PDF 텍스트 추출 (pdfjs-dist 기반) [v3 신규] |
 | `insightReport.ts` | 180+ | YouTube 자막 + 댓글 통합 리포트 생성 [v3 신규] |
-| `debate.ts` | 250+ | 크로스 모델 토론 엔진 (3라운드: 초기 → 비평 → 종합) [v3 신규] |
+| `debate.ts` | 250+ | 크로스 모델 토론 엔진 (3라운드: 초기 → 비평 → 종합), 투표 통합 `runDebateWithVoting()` [v5.6] |
+| `debateVoting.ts` | 150+ | 토론 투표 시스템 (1~5점 평가), 스코어보드, 컨센서스 도출 [v5.6 신규] |
 | `summarize.ts` | 78 | AI 대화 요약 (최근 30개 메시지) |
 | `writingTools.ts` | 60+ | 글쓰기 액션 7종 정의 (프롬프트 템플릿) [v3 업데이트] |
+| `batchOcr.ts` | 150+ | 배치 OCR 오케스트레이션 (최대 10장, 4모드: 일반/명함/영수증/스크린샷) [v4.0] |
+| `deepResearch.ts` | 180+ | 딥 리서치 오케스트레이션 (쿼리 생성→검색→리포트) [v3.1] |
 
 ### 검색 모듈
 
@@ -51,6 +56,10 @@
 | `bookmarks.ts` | 148 | 하이라이트 CRUD, XPath 유틸, 상대 시간 포맷 |
 | `tags.ts` | 59 | 대화 태그 CRUD, 자동 색상 할당, 사용 횟수 |
 | `storage.ts` | 20 | chrome.storage.local 래퍼 (get/set/remove/getAll) |
+| `folders.ts` | 60+ | 대화 폴더 CRUD [v3.1] |
+| `storageManager.ts` | 100+ | 스토리지 분석, 고아 데이터 정리 [v3.1] |
+| `messageQueue.ts` | 80+ | 오프라인 메시지 큐 (FIFO), 자동 재시도 [v3.6] |
+| `detectLanguage.ts` | 40+ | 언어 자동 감지 (한/영/일) |
 
 ### 문서 도구 모듈 (v4.1~v4.3)
 
@@ -63,14 +72,41 @@
 | `docTemplateGenerator.ts` | 160+ | 템플릿 필드 AI 제안, 섹션별 AI 확장 생성 [v4.3 신규] |
 | `pptxParser.ts` | 130+ | PPTX 파싱/재조립 (JSZip + DOMParser, `<a:t>` 노드) [v4.3 신규] |
 | `imageGenerator.ts` | 100+ | DALL-E 3 이미지 생성 (3크기, HD/Standard) [v4.2 신규] |
+| `docTemplateStore.ts` | 120+ | 템플릿 갤러리 CRUD, Base64, export/import [v4.3] |
+| `timeFormat.ts` | 80+ | 시간 포맷팅 (ko/en/ja), ETA 계산 [v4.5] |
+| `chartDataExtractor.ts` | 100+ | 차트 데이터 자동 추출 (bar/line) [v3.4] |
+| `dataAnalysis.ts` | 150+ | CSV/Excel 파싱 + 분석 프롬프트 [v3.1] |
 
 ### 설정/UI 모듈
 
 | 파일 | 줄 수 | 설명 |
 |------|-------|------|
+| `types.ts` | 50+ | 공통 타입 정의 (PROVIDER_COLORS 상수 등) [v5.1] |
 | `shortcuts.ts` | 66 | 키보드 단축키 정의, 파싱, 매칭, 커스터마이징 |
 | `promptLibrary.ts` | 67 | 프롬프트 CRUD, 기본 8개, 단축키 검색 |
 | `personas.ts` | 124 | 페르소나 관리, 내장 6종 + 커스텀 CRUD |
+| `pluginRegistry.ts` | 150+ | 커스텀 플러그인 레지스트리 (Webhook/JS/Prompt), CRUD, 에이전트 모드 통합 [v3.6] |
+
+### 비서 & 추천 모듈 (v5.0~v5.4)
+
+| 파일 | 줄 수 | 설명 |
+|------|-------|------|
+| `assistantBuilder.ts` | 200+ | 커스텀 비서 CRUD, 20개 내장 비서, 6 카테고리, export/import [v5.0] |
+| `guardrail.ts` | 187 | PII 감지/마스킹 (이메일/전화/주민번호/카드/계좌) [v5.0] |
+| `chatTemplates.ts` | 170 | 대화 템플릿 CRUD, {{변수}} 치환, max 20 [v5.0] |
+| `pptxGenerator.ts` | 292 | PPT 기획 (주제→목차→콘텐츠→PPTX), JSZip OOXML [v5.0] |
+| `intentRouter.ts` | 281 | 의도 감지 (9종), 비서/도구 자동 추천 [v5.3] |
+| `userPreferences.ts` | 143 | 가중 빈도 추적, 시간 감쇠, top 3 추천 [v5.3] |
+| `conversationSummarizer.ts` | 162 | 20+ 메시지 자동 요약, FIFO 캐시 [v5.3] |
+| `bm25.ts` | 108 | BM25 스코어링, IDF 계산, 역색인 v2 [v5.3] |
+
+### 멀티모달 & 협업 모듈 (v5.5~v5.6)
+
+| 파일 | 줄 수 | 설명 |
+|------|-------|------|
+| `voicePipeline.ts` | 200 | 음성 E2E 파이프라인 — STT→AI→TTS 루프, 침묵 감지 [v5.5] |
+| `assistantChain.ts` | 284 | 비서 체인 — 순차 파이프라인, {{input}}/{{original}} 치환 [v5.5] |
+| `shortcutManager.ts` | 148 | 단축키 매니저 — 포커스 트랩, 키 레코더, 예약 콤보 [v5.5] |
 
 ### 컨텍스트 추출 모듈
 
@@ -91,6 +127,7 @@
 | 파일 | 줄 수 | 설명 |
 |------|-------|------|
 | `usage.ts` | 180+ | 토큰 사용량/비용 추적 (프로바이더별, 기능별), 90일 보관 [v3 강화] |
+| `usageAlert.ts` | 120+ | 사용량 알림 + Webhook (Slack/Discord/generic) [v3.5] |
 
 ### 음성 모듈
 
@@ -284,6 +321,13 @@ stt.ts / tts.ts     (Web Speech API만 사용)
 | `hchat:config` | (useConfig) | 전체 설정 객체 |
 | `hchat:doc-projects` | docProjects | 문서 프로젝트 인덱스 [v4.3 신규] |
 | `hchat:doc-project:{id}` | docProjects | 개별 프로젝트 + 버전 [v4.3 신규] |
+| `hchat:doc-templates` | docTemplateStore | 템플릿 갤러리 (Base64, max 10) [v4.3] |
+| `hchat:chat-templates` | chatTemplates | 대화 템플릿 (max 20) [v5.0] |
+| `hchat:guardrail-config` | guardrail | PII 가드레일 설정 [v5.0] |
+| `hchat:assistants` | assistantBuilder | 커스텀 비서 정의 [v5.0] |
+| `hchat:user-prefs` | userPreferences | 사용 패턴 학습 [v5.3] |
+| `hchat:conv-summaries` | conversationSummarizer | 대화 요약 캐시 [v5.3] |
+| `hchat:assistant-chains` | assistantChain | 비서 체인 정의 [v5.5] |
 
 ## 설계 원칙
 

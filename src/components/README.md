@@ -2,7 +2,7 @@
 
 ## 개요
 
-사이드패널의 각 탭과 공용 UI 요소를 구성하는 57개 React 컴포넌트 (.tsx 파일). 채팅 인터페이스, 크로스 모델 그룹 채팅, 크로스 모델 토론, 도구 뷰, 설정, 히스토리, 북마크, 프롬프트 라이브러리, 사용량 통계, 비서 마켓플레이스 등 모든 사용자 인터페이스를 포함한다.
+사이드패널의 각 탭과 공용 UI 요소를 구성하는 53개 React 컴포넌트 (.tsx 파일). 채팅 인터페이스, 크로스 모델 그룹 채팅, 크로스 모델 토론, 도구 뷰, 설정, 히스토리, 북마크, 프롬프트 라이브러리, 사용량 통계, 비서 마켓플레이스 등 모든 사용자 인터페이스를 포함한다.
 
 **v5.1 정리 (2026-03-05)**: react-markdown 제거 (~130KB 절감), PROVIDER_COLORS 상수 중앙화 (types.ts), 커스텀 MD 렌더러 유지.
 
@@ -12,16 +12,17 @@
 |------|-------|------|
 | `ChatView.tsx` | 700+ | 메인 채팅 인터페이스 — 메시지, 스트리밍, 에이전트, TTS/STT, 내보내기, 분기 |
 | `GroupChatView.tsx` | 200+ | 크로스 모델 그룹 채팅 — 모든 프로바이더 모델 동시 비교 [v3 강화] |
-| `DebateView.tsx` | 300+ | 크로스 모델 토론 — 3라운드 토론 엔진, 토론 기록 시각화 [v3 신규] |
+| `DebateView.tsx` | 420+ | 크로스 모델 토론 — 3라운드 토론 엔진, 비서 vs 비서 토론, 투표 시스템 + 스코어보드 [v5.6] |
 | `ToolsView.tsx` | 400+ | AI 도구 모음 — 페이지 요약, YouTube 분석, 번역, 글쓰기, 문법, OCR, PDF 채팅 [v3 강화] |
 | `PromptLibraryView.tsx` | 139 | 프롬프트 라이브러리 — CRUD, 카테고리 필터, 단축키 |
 | `HistoryView.tsx` | 204 | 대화 기록 — 검색, 태그 필터, 고정, 가져오기 |
 | `BookmarksView.tsx` | 165 | 하이라이트 북마크 — 색상, 메모, 태그, 검색 |
-| `SettingsView.tsx` | 300+ | 설정 — 다중 프로바이더 자격증명, 기능 토글, 웹 검색 설정, 단축키 [v3 강화] |
+| `SettingsView.tsx` | 350+ | 설정 — 다중 프로바이더 자격증명, 기능 토글, 웹 검색, 키보드 단축키 설정 [v5.6] |
 | `UsageView.tsx` | 150+ | 사용량 통계 — 프로바이더별/기능별 분류, 일별 비용 차트 [v3 강화] |
 | `MessageSearchModal.tsx` | 111 | 전체 대화 검색 모달 — 디바운스, 키보드 네비게이션, 하이라이팅 |
 | `ModelSelector.tsx` | 120+ | 모델 선택 드롭다운 — 9개 모델 (AWS, OpenAI, Google), PROVIDER_COLORS 사용 [v5.1] |
 | `AssistantSelector.tsx` | 130+ | 커스텀 비서 선택 드롭다운 — 20개 내장 비서 + 커스텀 비서 [v5.0] |
+| `ShortcutsConfig.tsx` | 150+ | 키보드 단축키 설정 — 키 레코더, 예약 콤보 감지, 기본값 복원 [v5.6] |
 
 ## 상세 설명
 
@@ -95,9 +96,9 @@ interface ModelResponse {
 
 ---
 
-### DebateView.tsx (300+줄) [v3 신규]
+### DebateView.tsx (420+줄) [v5.6 강화]
 
-서로 다른 AI 모델 간 토론을 진행하는 뷰.
+서로 다른 AI 모델 또는 비서 간 토론을 진행하는 뷰.
 
 #### 토론 구조
 ```typescript
@@ -110,24 +111,34 @@ interface DebateRound {
     text: string
   }>
 }
+
+interface DebateScoreboard {
+  votes: Record<number, number>  // participantIndex → score (1-5)
+  rank: number[]                 // participantIndex sorted by score
+  avgScore: Record<number, number>
+  consensus: number | null       // index of participant if consensus reached
+}
 ```
 
 #### 3라운드 토론 엔진
 1. **라운드 1**: 각 모델이 질문에 독립적으로 답변
 2. **라운드 2**: 각 모델이 다른 모델들의 답변을 비평
 3. **라운드 3**: 각 모델이 최종 종합 의견 제시
+4. **투표**: 각 참가자가 다른 참가자들을 1~5점으로 평가 (v5.6)
 
 #### 특징
-- 최소 2개, 최대 4개 모델 선택
+- 최소 2개, 최대 4개 모델/비서 선택
+- 비서 vs 비서 토론 지원 (비서 시스템 프롬프트 자동 주입)
 - 토론 기록 타임라인 시각화
 - 라운드별 접기/펼치기
+- 투표 및 스코어보드 (평균 점수, 순위, 컨센서스) [v5.6]
 - 전체 토론 내보내기 (Markdown)
 
 ---
 
 ### ToolsView.tsx (230줄) [v4.3 강화]
 
-16개 AI 도구를 제공하는 도구 모음 뷰. 도구별 서브 컴포넌트는 `tools/` 디렉토리에 분리.
+17개 AI 도구를 제공하는 도구 모음 뷰. 도구별 서브 컴포넌트는 `tools/` 디렉토리에 분리.
 
 | 도구 | 아이콘 | 설명 |
 |------|--------|------|
@@ -142,6 +153,12 @@ interface DebateRound {
 | 문서 작성 | 📋 | 5유형 AI 문서 생성, 프로젝트 관리 [v4.1, v4.3 확장] |
 | 이미지 생성 | 🎨 | DALL-E 3 (3크기, HD/Standard) [v4.2 신규] |
 | 템플릿 문서 | 📋 | DOCX 템플릿 → {{필드}} 추출 → AI 생성 [v4.3 신규] |
+| 배치 OCR | 📸 | 최대 10장 동시 처리, 4모드 (일반/명함/영수증/스크린샷) [v4.0] |
+| 데이터 분석 | 📊 | CSV/Excel 업로드 → AI 분석 [v3.1] |
+| 딥 리서치 | 🔬 | 3단계 자동 리서치 (쿼리→검색→리포트) [v3.1] |
+| PPT 기획 | 📊 | 주제→AI 목차→콘텐츠→PPTX 다운로드 [v5.0] |
+| 멀티 탭 요약 | 📑 | 열린 탭 동시 요약 (최대 10개) |
+| 페이지 검색 | 🔎 | 현재 페이지 내용 검색 |
 
 #### YouTube 분석 (v3 강화)
 - **자막 요약**: 기존 3단계 fallback 유지
@@ -187,7 +204,7 @@ interface DebateRound {
 
 ---
 
-### SettingsView.tsx (300+줄) [v3 강화]
+### SettingsView.tsx (350+줄) [v5.6 강화]
 
 | 섹션 | 내용 |
 |------|------|
@@ -196,7 +213,7 @@ interface DebateRound {
 | Google Gemini 설정 | API Key (마스킹), 연결 테스트 [v3 신규] |
 | 기본 설정 | 기본 모델 (모든 프로바이더), 자동 라우팅 토글, 텍스트 선택 도구 토글, 검색 엔진 강화, 웹 검색 (RAG) |
 | 웹 검색 설정 | Google Search API Key, CSE Engine ID (선택, 기본 DuckDuckGo) |
-| 키보드 단축키 | 전체 단축키 목록, Mac/Windows 자동 표시 |
+| 키보드 단축키 | `ShortcutsConfig` 컴포넌트 임베드, 키 레코더, 예약 콤보 감지, 기본값 복원 [v5.6] |
 | 사용량 통계 | `UsageView` 컴포넌트 임베드 |
 | 정보 | H Chat v3.0 로고, 지원 프로바이더 및 모델 표시 |
 
@@ -315,4 +332,4 @@ App.tsx (sidepanel)
 - **lib/types.ts**: PROVIDER_COLORS 상수 중앙 관리 (v5.1)
 - **Chrome APIs**: chrome.storage, chrome.tabs
 - **styles/global.css**: 공용 CSS 디자인 시스템
-- **i18n/**: 3개 언어 (ko/en/ja, 730+ keys, v5.1에서 toolbar.ts 통합)
+- **i18n/**: 3개 언어 (ko/en/ja, 813+ keys)

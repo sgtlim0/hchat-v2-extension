@@ -8,7 +8,7 @@
 
 | 파일 | 줄 수 | 설명 |
 |------|-------|------|
-| `useChat.ts` | 256 | 채팅 상태 관리 — 메시지 전송/수신, 에이전트 모드, 웹 검색, 스트리밍 |
+| `useChat.ts` | 487 | 채팅 상태 관리 — 메시지 전송/수신, 에이전트 모드, 웹 검색, 스트리밍, PII 감지, 템플릿 실행 [v5.6] |
 | `useConfig.ts` | 80+ | 설정 관리 — 다중 프로바이더 자격증명, 기본 모델, 기능 토글 [v3 강화] |
 | `useProvider.ts` | 100+ | 프로바이더 관리 — 메모이제이션된 인스턴스, 모델 리스트, 자동 라우팅 [v3 신규] |
 | `useShortcuts.ts` | 40 | 키보드 단축키 바인딩 |
@@ -33,35 +33,43 @@ function useChat(config: Config): UseChatReturn
 | `isSearching` | `boolean` | 웹 검색 중 |
 | `agentMode` | `boolean` | 에이전트 모드 활성화 여부 |
 | `setAgentMode` | `function` | 에이전트 모드 토글 |
-| `personaId` | `string` | 현재 페르소나 ID |
-| `setPersonaId` | `function` | 페르소나 변경 |
+| `assistantId` | `string \| null` | 현재 활성 비서 ID [v5.0+] |
+| `setAssistantId` | `function` | 비서 변경 [v5.0+] |
 | `error` | `string` | 에러 메시지 |
 | `currentModel` | `string` | 현재 선택된 모델 |
 | `setCurrentModel` | `function` | 모델 변경 |
+| `piiDetections` | `PIIDetection[]` | 감지된 PII 목록 [v5.0+] |
+| `confirmSendWithPII` | `function` | PII 포함 메시지 전송 확인 [v5.0+] |
 | `sendMessage` | `function` | 메시지 전송 (이미지/시스템 프롬프트 옵션) |
 | `startNew` | `function` | 새 대화 시작 |
 | `loadConv` | `function` | 기존 대화 불러오기 |
 | `stop` | `function` | 응답 생성 중지 (AbortController) |
 | `editAndResend` | `function` | 사용자 메시지 편집 후 재전송 |
 | `regenerate` | `function` | 마지막 AI 응답 재생성 |
+| `runTemplate` | `function` | 채팅 템플릿 실행 (변수 치환) [v5.0+] |
 
 ### 메시지 전송 플로우
 
 ```
-1. 대화 없으면 startNew() 호출
-2. 사용자 메시지 DB 저장 및 화면 추가
-3. AI 응답 플레이스홀더 생성 (streaming: true)
-4. 모드 분기:
+1. PII 감지: guardrail.detectPII() 실행 [v5.0+]
+   → 감지되면 piiDetections 설정 후 중단 (confirmSendWithPII 대기)
+2. 대화 없으면 startNew() 호출
+3. 사용자 메시지 DB 저장 및 화면 추가
+4. AI 응답 플레이스홀더 생성 (streaming: true)
+5. 비서 활성화 시 시스템 프롬프트 주입 [v5.0+]
+6. 모드 분기:
    ┌─ 에이전트 모드:
-   │  → runAgent() (최대 10단계, BUILTIN_TOOLS)
+   │  → runAgent() (최대 10단계, BUILTIN_TOOLS + custom plugins)
    │  → onStep() 콜백으로 단계별 UI 업데이트
    │  → thinking → tool_call → tool_result → response
    └─ 일반 모드:
       → needsWebSearch() 의도 감지
       → 검색 필요 시 webSearch() → RAG 시스템 프롬프트 주입
-      → streamChatLive() (최근 20개 메시지)
+      → provider.stream() (최근 20개 메시지)
       → onChunk()로 실시간 텍스트 업데이트
-5. 완료: streaming: false, DB 저장, Usage.track()
+7. 사용 패턴 추적: trackUsage() [v5.3+]
+8. 자동 요약: 20+ 메시지 시 summarizeConversation() [v5.3+]
+9. 완료: streaming: false, DB 저장, Usage.track()
 ```
 
 ### sendMessage 옵션
@@ -71,6 +79,7 @@ opts?: {
   imageBase64?: string       // 첨부 이미지 (Base64 data URL)
   systemPrompt?: string      // 커스텀 시스템 프롬프트 (페이지 컨텍스트)
   forcedModel?: string       // 모델 강제 지정
+  bypassPII?: boolean        // PII 검사 우회 (confirmSendWithPII에서 사용) [v5.0+]
 }
 ```
 
@@ -235,17 +244,28 @@ useShortcuts(shortcutActions)
 
 ```
 useChat
-├── lib/models          (streamChatLive, MODELS)
+├── lib/providers       (provider.stream, getProviderForModel) [v3+]
 ├── lib/chatHistory     (CRUD, ChatMessage, Conversation)
 ├── lib/searchIntent    (needsWebSearch, extractSearchQuery)
 ├── lib/webSearch       (webSearch, buildSearchContext)
 ├── lib/agent           (runAgent, AgentStep)
 ├── lib/agentTools      (BUILTIN_TOOLS)
-├── lib/personas        (Personas — 시스템 프롬프트)
+├── lib/pluginRegistry  (custom tools) [v3.6+]
+├── lib/assistantBuilder (getAssistantById, systemPrompt) [v5.0+]
+├── lib/guardrail       (detectPII, PIIDetection) [v5.0+]
+├── lib/chatTemplates   (extractVariables, replaceVariables) [v5.0+]
+├── lib/userPreferences (trackUsage) [v5.3+]
+├── lib/conversationSummarizer (summarizeConversation) [v5.3+]
+├── lib/intentRouter    (detectIntent, recommendAssistant, recommendTool) [v5.3+]
+├── lib/messageQueue    (enqueueMessage, processQueue) [v3.6+]
 └── lib/usage           (Usage.track)
 
 useConfig
 └── lib/storage         (chrome.storage.local 래퍼)
+
+useProvider
+├── lib/providers       (createAllProviders, getAllModels, model-router) [v3+]
+└── useConfig
 
 useShortcuts
 └── lib/shortcuts       (loadShortcuts, matchShortcut, Shortcut, ShortcutAction)

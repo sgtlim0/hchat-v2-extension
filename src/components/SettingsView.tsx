@@ -2,9 +2,10 @@ import { useState, useEffect, lazy, Suspense } from 'react'
 import { useConfig } from '../hooks/useConfig'
 import { useProvider } from '../hooks/useProvider'
 import { signRequest } from '../lib/aws-sigv4'
-import { DEFAULT_SHORTCUTS, loadShortcuts, type Shortcut } from '../lib/shortcuts'
+import { DEFAULT_SHORTCUTS, loadShortcuts, saveShortcuts, type Shortcut } from '../lib/shortcuts'
 import { UsageView } from './UsageView'
 import { StorageManagement } from './StorageManagement'
+import { ShortcutsConfig } from './ShortcutsConfig'
 import type { ProviderType } from '../lib/providers/types'
 import { PROVIDER_COLORS } from '../lib/providers/types'
 import { useLocale } from '../i18n'
@@ -25,8 +26,14 @@ export default function SettingsView() {
     gemini: { ...config.gemini },
   })
   const [shortcuts, setShortcuts] = useState<Shortcut[]>(DEFAULT_SHORTCUTS)
+  const [shortcutsExpanded, setShortcutsExpanded] = useState(false)
 
   useEffect(() => { loadShortcuts().then(setShortcuts) }, [])
+
+  const handleShortcutsChange = async (updated: Shortcut[]) => {
+    setShortcuts(updated)
+    await saveShortcuts(updated)
+  }
 
   const handleSave = async () => {
     await update({ aws: draft.aws, openai: draft.openai, gemini: draft.gemini })
@@ -300,15 +307,28 @@ export default function SettingsView() {
       )}
 
       <div className="settings-section">
-        <div className="settings-section-title">{t('settings.shortcutsTitle')}</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {shortcuts.map((s) => (
-            <div key={s.id} className="shortcut-row">
-              <span className="shortcut-desc">{t(s.description)}</span>
-              <kbd>{s.keys.replace('Ctrl', navigator.platform.includes('Mac') ? '⌘' : 'Ctrl')}</kbd>
-            </div>
-          ))}
+        <div
+          className="settings-section-title"
+          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+          onClick={() => setShortcutsExpanded((v) => !v)}
+        >
+          <span>{t('settings.shortcutsTitle')}</span>
+          <span style={{ fontSize: 12, color: 'var(--text3)', transition: 'transform 0.2s', transform: shortcutsExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+            ▼
+          </span>
         </div>
+        {shortcutsExpanded ? (
+          <ShortcutsConfig shortcuts={shortcuts} onChange={handleShortcutsChange} />
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {shortcuts.map((s) => (
+              <div key={s.id} className="shortcut-row">
+                <span className="shortcut-desc">{t(s.description)}</span>
+                <kbd>{s.keys.replace('Ctrl', navigator.platform.includes('Mac') ? '⌘' : 'Ctrl')}</kbd>
+              </div>
+            ))}
+          </div>
+        )}
         <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 4 }}>
           {t('settings.globalShortcuts')}
         </div>

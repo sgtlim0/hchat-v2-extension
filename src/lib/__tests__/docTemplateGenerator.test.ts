@@ -55,6 +55,16 @@ describe('generateFieldSuggestions', () => {
     expect(mockFn.mock.calls[0][0]).toContain('Important context')
   })
 
+  it('JSON 매치되지만 파싱 실패 시 빈 객체 (catch branch)', async () => {
+    const fields: TemplateField[] = [
+      { id: 'a', name: 'a', label: 'a', context: '', sectionIndex: 0 },
+    ]
+    // This matches /{...}/ but is invalid JSON
+    const mockFn = vi.fn().mockResolvedValue('{invalid: json without quotes}')
+    const result = await generateFieldSuggestions(fields, '', mockFn)
+    expect(result).toEqual({})
+  })
+
   it('숫자 값을 문자열로 변환', async () => {
     const fields: TemplateField[] = [
       { id: 'count', name: 'count', label: 'Count', context: '', sectionIndex: 0 },
@@ -179,6 +189,26 @@ describe('generateFullTemplateDoc', () => {
     )
 
     expect(result.title).toBe('NoProgress 보고서')
+  })
+
+  it('빈 콘텐츠 섹션은 AI 호출 없이 빈 문자열로 처리 (line 83 branch)', async () => {
+    const templateWithEmpty: ParsedTemplate = {
+      title: 'Test',
+      sections: [
+        { index: 0, heading: 'Non-empty', content: 'Some content', level: 1 },
+        { index: 1, heading: 'Empty Section', content: '', level: 1 },
+      ],
+      fields: [],
+      rawMarkdown: '# Test\n\n## Non-empty\nSome content\n\n## Empty Section\n',
+    }
+
+    const mockFn = vi.fn().mockResolvedValue('expanded')
+    const result = await generateFullTemplateDoc(templateWithEmpty, {}, mockFn)
+
+    // AI should only be called for the non-empty section
+    expect(mockFn).toHaveBeenCalledTimes(1)
+    expect(result.sections).toHaveLength(2)
+    expect(result.sections[1].content).toBe('')
   })
 
   it('이전 섹션이 다음 생성에 컨텍스트로 전달', async () => {

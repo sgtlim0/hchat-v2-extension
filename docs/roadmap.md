@@ -1,7 +1,7 @@
 # H Chat 로드맵
 
 > 마지막 업데이트: 2026-03-05
-> 현재 버전: v5.4
+> 현재 버전: v5.5
 
 ---
 
@@ -63,13 +63,13 @@
 
 ---
 
-## 현재 수치 (v5.4)
+## 현재 수치 (v5.5)
 
 | 항목 | 수치 |
 |------|------|
-| 테스트 | 1210 tests, 59 files |
+| 테스트 | 1311 tests, 63 files |
 | 컴포넌트 | 57 .tsx 파일 (ChatInputArea, AssistantSelector, ModelSelector 수정) |
-| lib 모듈 | 50개 (messageSearch.ts BM25 통합) |
+| lib 모듈 | 57개 (voicePipeline, assistantChain, debateVoting, shortcutManager 추가) |
 | 도구 | 17개 (요약, 멀티탭, 번역, 글쓰기, 문서작성, YouTube, OCR, 배치OCR, 문법, 댓글분석, PDF, 인사이트, 데이터분석, 이미지생성, 문서번역, 템플릿문서, PPT기획) |
 | 언어 | 3개 (ko/en/ja), 730+ i18n keys |
 | AI 프로바이더 | 3개 (Bedrock/OpenAI/Gemini) |
@@ -138,17 +138,34 @@ v5.3에서 구축한 추천 엔진을 UI 컴포넌트에 통합하고 검색 품
 | BM25 검색 통합 | messageSearch.ts calculateScore를 BM25 기반으로 교체, trigram 유지 | 완료 |
 | 테스트 | 5개 test 파일 추가 | 1210 tests, 59 files |
 
-### v5.5 — 확장성 (예정)
+### v5.5 — 음성 파이프라인 & 비서 체인 & 토론 투표 ✅ (2026-03-05 완료)
 
-추가 품질 개선과 사용자 피드백 반영에 집중한다.
+음성 대화 자동화, 비서 간 순차 파이프라인, 토론 투표/컨센서스, 키보드 단축키 확장에 집중.
+
+| 항목 | 설명 | 결과 |
+|------|------|------|
+| 음성 대화 E2E 파이프라인 | voicePipeline.ts — STT → AI → TTS 자동 루프, 침묵 감지, 포즈/리줌 | 완료 |
+| 비서 체인 | assistantChain.ts — 비서1→비서2→비서3 순차 파이프라인, {{input}}/{{original}} 치환, export/import | 완료 |
+| 토론 투표 시스템 | debateVoting.ts — 1~5점 투표, 스코어보드 랭킹, 컨센서스 도출 (threshold 0.7) | 완료 |
+| 키보드 단축키 확장 | shortcutManager.ts — 포커스 트랩, 키 레코더, 예약 콤보 검증, 플랫폼별 표시 | 완료 |
+| 테스트 | 4개 lib + 4개 test 파일 추가 | 1311 tests, 63 files |
+
+### v5.6 — UI 통합 & 테스트 강화 (예정)
+
+v5.5에서 구축한 4가지 핵심 기능을 UI 컴포넌트에 통합하고 테스트 커버리지를 50% 이상으로 확대.
 
 | 항목 | 설명 | 목표 |
 |------|------|------|
+| 음성 대화 UI 통합 | `VoiceConversation.tsx` — ChatView에 음성 대화 UI, 포즈/리줌/중단 | 완료 |
+| 비서 체인 UI 통합 | `ChainBuilder.tsx` — 비서 체인 생성/편집/실행 UI, useChat 통합 | 완료 |
+| 투표 UI 통합 | `DebateView` — 투표 UI (1~5점), 스코어보드, 컨센서스 표시 | 완료 |
+| 단축키 설정 UI 통합 | `ShortcutsConfig.tsx` — 키 레코더, 예약 콤보 검증, 플랫폼별 표시 | 완료 |
+| 테스트 강화 | 4개 UI 컴포넌트 + 통합 테스트 추가 | 1400+ tests, 50%+ 커버리지 |
 | E2E 테스트 | Playwright로 핵심 사용자 흐름 (채팅, 도구, 설정) 검증 | 10+ E2E 시나리오 |
-| 사용자 피드백 반영 | Chrome Web Store 피드백 분석 및 개선 | 버그 수정 |
-| 성능 모니터링 | 대용량 대화 메모리 프로파일링 | 메모리 누수 제거 |
 
 ---
+
+**향후 고려 (v5.7+)**:
 
 | 항목 | 설명 |
 |------|------|

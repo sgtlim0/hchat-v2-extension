@@ -12,7 +12,7 @@ H Chat is a Chrome Extension (Manifest V3) that provides a multi-AI sidebar assi
 npm run build    # Production build to dist/
 npm run dev      # Watch mode (vite build --watch)
 npm run clean    # Remove dist/
-npm test         # Run all tests (Vitest, 1210 tests, 59 files)
+npm test         # Run all tests (Vitest, 1311 tests, 63 files)
 npm run lint     # ESLint (flat config)
 ```
 
@@ -83,6 +83,7 @@ All persistence uses `chrome.storage.local` via `src/lib/storage.ts` wrapper. Ke
 - `hchat:guardrail-config` — PII guardrail settings
 - `hchat:user-prefs` — User usage pattern preferences (weighted frequency, time decay)
 - `hchat:conv-summaries` — Conversation summary cache (FIFO)
+- `hchat:assistant-chains` — Assistant chain pipeline definitions
 
 ### Styling
 
@@ -109,4 +110,4 @@ Haiku 4.5:  us.anthropic.claude-haiku-4-5-20251001-v1:0  (-v1:0)
 - Files should stay under 800 lines; extract into separate files if approaching limit
 - Korean is the primary UI language, with English and Japanese translations
 - Immutable patterns throughout (never mutate objects)
-- Tests: Vitest with chrome.storage.local mock, 1210 tests across 59 files
+- Tests: Vitest with chrome.storage.local mock, 1311 tests across 63 files

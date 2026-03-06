@@ -1,11 +1,13 @@
 // providers/types.ts — Multi-provider type definitions
 
-export type ProviderType = 'bedrock' | 'openai' | 'gemini'
+export type ProviderType = 'bedrock' | 'openai' | 'gemini' | 'ollama' | 'openrouter'
 
 export const PROVIDER_COLORS: Record<ProviderType, string> = {
   bedrock: '#ff9900',
   openai: '#10a37f',
   gemini: '#4285f4',
+  ollama: '#ffffff',
+  openrouter: '#6366f1',
 }
 
 export type ModelCapability = 'chat' | 'code' | 'vision' | 'reasoning' | 'fast'

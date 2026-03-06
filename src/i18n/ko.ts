@@ -994,6 +994,29 @@ const ko = {
     select: '대화 선택',
     close: '닫기',
   },
+  mcp: {
+    title: 'MCP 서버',
+    addServer: '서버 추가',
+    testConnection: '연결 테스트',
+    connected: '연결됨',
+    failed: '연결 실패',
+    tools: '도구',
+    remove: '삭제',
+    enabled: '활성화',
+  },
+
+  sharing: {
+    title: '팀 공유',
+    export: '내보내기',
+    import: '가져오기',
+    history: '기록',
+    author: '작성자',
+    description: '설명',
+    selectItems: '항목 선택',
+    preview: '미리보기',
+    apply: '적용',
+    download: '다운로드',
+  },
 } as const
 
 export default ko

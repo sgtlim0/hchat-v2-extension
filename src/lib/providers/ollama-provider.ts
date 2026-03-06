@@ -17,7 +17,7 @@ function toModelDef(model: { name: string }): ModelDef {
   const shortName = model.name.split(':')[0]
   return {
     id: model.name,
-    provider: 'ollama' as ProviderType,
+    provider: 'ollama',
     label: model.name,
     shortLabel: shortName,
     emoji: '\uD83E\uDDE0',
@@ -45,7 +45,7 @@ function convertMessages(messages: SendParams['messages'], systemPrompt?: string
 }
 
 export class OllamaProvider implements AIProvider {
-  readonly type: ProviderType = 'ollama' as ProviderType
+  readonly type: ProviderType = 'ollama'
   readonly models: ModelDef[] = []
 
   private readonly baseUrl: string

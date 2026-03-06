@@ -994,6 +994,29 @@ const en = {
     select: 'Select conversation',
     close: 'Close',
   },
+  mcp: {
+    title: 'MCP Servers',
+    addServer: 'Add Server',
+    testConnection: 'Test Connection',
+    connected: 'Connected',
+    failed: 'Connection Failed',
+    tools: 'Tools',
+    remove: 'Remove',
+    enabled: 'Enabled',
+  },
+
+  sharing: {
+    title: 'Team Sharing',
+    export: 'Export',
+    import: 'Import',
+    history: 'History',
+    author: 'Author',
+    description: 'Description',
+    selectItems: 'Select Items',
+    preview: 'Preview',
+    apply: 'Apply',
+    download: 'Download',
+  },
 } as const
 
 export default en

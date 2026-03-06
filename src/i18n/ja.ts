@@ -993,6 +993,29 @@ const ja = {
     select: '会話選択',
     close: '閉じる',
   },
+  mcp: {
+    title: 'MCPサーバー',
+    addServer: 'サーバー追加',
+    testConnection: '接続テスト',
+    connected: '接続済み',
+    failed: '接続失敗',
+    tools: 'ツール',
+    remove: '削除',
+    enabled: '有効',
+  },
+
+  sharing: {
+    title: 'チーム共有',
+    export: 'エクスポート',
+    import: 'インポート',
+    history: '履歴',
+    author: '作成者',
+    description: '説明',
+    selectItems: 'アイテム選択',
+    preview: 'プレビュー',
+    apply: '適用',
+    download: 'ダウンロード',
+  },
 } as const
 
 export default ja

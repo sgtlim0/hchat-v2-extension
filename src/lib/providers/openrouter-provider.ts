@@ -8,7 +8,7 @@ export interface OpenRouterConfig {
   siteName?: string
 }
 
-const OPENROUTER_TYPE = 'openrouter' as unknown as ProviderType
+const OPENROUTER_TYPE: ProviderType = 'openrouter'
 
 export const OPENROUTER_MODELS: ModelDef[] = [
   {

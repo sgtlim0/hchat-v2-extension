@@ -7,7 +7,7 @@ import type { AIProvider, ModelDef } from '../types'
 // --- Mock providers ---
 
 function makeMockProvider(
-  type: 'bedrock' | 'openai' | 'gemini',
+  type: 'bedrock' | 'openai' | 'gemini' | 'ollama' | 'openrouter',
   models: ModelDef[],
   configured = true
 ): AIProvider {
@@ -104,6 +104,39 @@ describe('provider-factory branches', () => {
       const types = providers.map((p) => p.type)
       expect(types).toEqual(['bedrock', 'openai', 'gemini'])
     })
+
+    it('includes ollama provider when ollama config is present', () => {
+      const configs = { ...defaultConfigs, ollama: { baseUrl: 'http://localhost:11434' } }
+      const providers = createAllProviders(configs)
+      expect(providers).toHaveLength(4)
+      expect(providers[3].type).toBe('ollama')
+    })
+
+    it('includes openrouter provider when openrouter config is present', () => {
+      const configs = { ...defaultConfigs, openrouter: { apiKey: 'or-test' } }
+      const providers = createAllProviders(configs)
+      expect(providers).toHaveLength(4)
+      expect(providers[3].type).toBe('openrouter')
+    })
+
+    it('includes both ollama and openrouter when both configs are present', () => {
+      const configs = {
+        ...defaultConfigs,
+        ollama: { baseUrl: 'http://localhost:11434' },
+        openrouter: { apiKey: 'or-test' },
+      }
+      const providers = createAllProviders(configs)
+      expect(providers).toHaveLength(5)
+      expect(providers.map((p) => p.type)).toEqual([
+        'bedrock', 'openai', 'gemini', 'ollama', 'openrouter',
+      ])
+    })
+
+    it('does not include ollama/openrouter when configs are absent', () => {
+      const providers = createAllProviders(defaultConfigs)
+      expect(providers).toHaveLength(3)
+      expect(providers.map((p) => p.type)).toEqual(['bedrock', 'openai', 'gemini'])
+    })
   })
 
   // ── createProvider ──────────────────────────────────────────────────
@@ -122,6 +155,29 @@ describe('provider-factory branches', () => {
     it('creates gemini provider via switch', () => {
       const p = createProvider('gemini', defaultConfigs)
       expect(p.type).toBe('gemini')
+    })
+
+    it('creates ollama provider via switch', () => {
+      const configs = { ...defaultConfigs, ollama: { baseUrl: 'http://localhost:11434' } }
+      const p = createProvider('ollama', configs)
+      expect(p.type).toBe('ollama')
+    })
+
+    it('creates openrouter provider via switch', () => {
+      const configs = { ...defaultConfigs, openrouter: { apiKey: 'or-test' } }
+      const p = createProvider('openrouter', configs)
+      expect(p.type).toBe('openrouter')
+    })
+
+    it('creates ollama provider with default config when not provided', () => {
+      const p = createProvider('ollama', defaultConfigs)
+      expect(p.type).toBe('ollama')
+    })
+
+    it('creates openrouter provider with default config when not provided', () => {
+      const p = createProvider('openrouter', defaultConfigs)
+      expect(p.type).toBe('openrouter')
+      expect(p.isConfigured()).toBe(false)
     })
   })
 

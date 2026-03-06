@@ -665,6 +665,21 @@ const ja = {
     platformNote: 'プラットフォームによりキー表示が異なる場合があります (Mac: ⌘⇧⌥)',
   },
 
+  chain: {
+    title: 'アシスタントチェーン',
+    create: 'チェーン作成',
+    addStep: 'ステップ追加',
+    removeStep: 'ステップ削除',
+    run: 'チェーン実行',
+    testRun: 'テスト実行',
+    result: '実行結果',
+    error: 'チェーン実行失敗',
+    exportAll: 'すべてエクスポート',
+    import: 'インポート',
+    selectAssistant: 'アシスタント選択',
+    promptTemplate: 'プロンプトテンプレート',
+  },
+
   writing: {
     paraphrase: '言い換え',
     formal: '敬語',
@@ -884,6 +899,19 @@ const ja = {
     modelSelect: 'AIモデル選択',
     messageFrom: '{{role}}のメッセージ',
     voiceButton: '音声入力',
+  },
+
+  voice: {
+    conversation: '音声会話',
+    listening: '聞いています...',
+    thinking: '考えています...',
+    speaking: '話しています...',
+    pause: '一時停止',
+    resume: '再開',
+    silenceTimeout: '沈黙タイムアウト',
+    endConversation: '会話終了',
+    switchMode: '音声モード切替',
+    conversationLog: '会話ログ',
   },
 } as const
 

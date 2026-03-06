@@ -666,6 +666,21 @@ const en = {
     platformNote: 'Key display may vary by platform (Mac: ⌘⇧⌥)',
   },
 
+  chain: {
+    title: 'Assistant Chain',
+    create: 'Create Chain',
+    addStep: 'Add Step',
+    removeStep: 'Remove Step',
+    run: 'Run Chain',
+    testRun: 'Test Run',
+    result: 'Result',
+    error: 'Chain execution failed',
+    exportAll: 'Export All',
+    import: 'Import',
+    selectAssistant: 'Select Assistant',
+    promptTemplate: 'Prompt Template',
+  },
+
   writing: {
     paraphrase: 'Paraphrase',
     formal: 'Formal',
@@ -885,6 +900,19 @@ const en = {
     modelSelect: 'Select AI model',
     messageFrom: 'Message from {{role}}',
     voiceButton: 'Voice input',
+  },
+
+  voice: {
+    conversation: 'Voice Conversation',
+    listening: 'Listening...',
+    thinking: 'Thinking...',
+    speaking: 'Speaking...',
+    pause: 'Pause',
+    resume: 'Resume',
+    silenceTimeout: 'Silence Timeout',
+    endConversation: 'End Conversation',
+    switchMode: 'Switch to Voice Mode',
+    conversationLog: 'Conversation Log',
   },
 } as const
 

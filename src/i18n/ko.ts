@@ -666,6 +666,21 @@ const ko = {
     platformNote: '플랫폼별 키 표시가 다를 수 있습니다 (Mac: ⌘⇧⌥)',
   },
 
+  chain: {
+    title: '비서 체인',
+    create: '체인 생성',
+    addStep: '단계 추가',
+    removeStep: '단계 삭제',
+    run: '체인 실행',
+    testRun: '테스트 실행',
+    result: '실행 결과',
+    error: '체인 실행 실패',
+    exportAll: '전체 내보내기',
+    import: '가져오기',
+    selectAssistant: '비서 선택',
+    promptTemplate: '프롬프트 템플릿',
+  },
+
   writing: {
     paraphrase: '문장 바꾸기',
     formal: '격식체로',
@@ -885,6 +900,19 @@ const ko = {
     modelSelect: 'AI 모델 선택',
     messageFrom: '{{role}} 메시지',
     voiceButton: '음성 입력',
+  },
+
+  voice: {
+    conversation: '음성 대화',
+    listening: '듣는 중...',
+    thinking: '생각 중...',
+    speaking: '말하는 중...',
+    pause: '일시정지',
+    resume: '계속',
+    silenceTimeout: '침묵 타임아웃',
+    endConversation: '대화 종료',
+    switchMode: '음성 모드 전환',
+    conversationLog: '대화 기록',
   },
 } as const
 

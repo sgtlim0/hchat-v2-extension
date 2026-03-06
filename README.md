@@ -1,14 +1,14 @@
-# H Chat v5.6 Extension
+# H Chat v6.0 Extension
 
 멀티 AI 프로바이더 Chrome 올인원 어시스턴트 확장 프로그램
 
 ## Overview
 
-H Chat은 Sider 스타일의 올인원 AI 브라우저 어시스턴트입니다. AWS Bedrock Claude, OpenAI GPT, Google Gemini를 통합 지원하며, 20개 내장 비서 마켓플레이스, AI 가드레일(PII 감지/마스킹), PPT 기획, 비서 토론, 대화 템플릿, 문서 번역/작성, PPTX/PDF 번역, 템플릿 문서 작성, 이미지 생성, 크로스 모델 토론, YouTube 분석, PDF 채팅, 검색 엔진 AI 카드, 글쓰기 어시스턴트 등 풍부한 기능을 제공합니다.
+H Chat은 Sider 스타일의 올인원 AI 브라우저 어시스턴트입니다. AWS Bedrock Claude, OpenAI GPT, Google Gemini, Ollama (로컬 LLM), OpenRouter (100+ 모델)을 통합 지원하며, AI 메모리 시스템, 워크플로우 빌더, 대화 분석 대시보드, MCP 서버 연동, 팀 공유, 감사 로그, 정책 관리, 20개 내장 비서 마켓플레이스, AI 가드레일(PII 감지/마스킹), PPT 기획, 비서 토론, 대화 템플릿, 문서 번역/작성, 이미지 생성, 크로스 모델 토론, YouTube 분석, PDF 채팅, 검색 엔진 AI 카드, 글쓰기 어시스턴트 등 풍부한 기능을 제공합니다.
 
 - **Version**: 6.0
 - **Platform**: Chrome Extension (Manifest V3)
-- **AI Providers**: AWS Bedrock (Claude), OpenAI (GPT), Google Gemini
+- **AI Providers**: AWS Bedrock (Claude), OpenAI (GPT), Google Gemini, Ollama (로컬 LLM), OpenRouter (100+ 모델)
 - **GitHub**: https://github.com/sgtlim0/hchat-v2-extension
 - **Vercel**: https://hchat-v2-extension.vercel.app/sidepanel.html
 - **Latest**: v6.0 — 5개 프로바이더, 엔터프라이즈 (감사 로그, 정책), 크로스 브라우저, MCP, 팀 공유, 2232 tests (118 files)
@@ -325,7 +325,7 @@ H Chat은 Sider 스타일의 올인원 AI 브라우저 어시스턴트입니다.
 | 언어 | TypeScript | 5.5.3 |
 | 빌드 | Vite | 5.4.2 |
 | 확장 API | Chrome Manifest V3 | 3 |
-| AI | Multi-Provider | AWS Bedrock, OpenAI, Google |
+| AI | Multi-Provider (5개) | AWS Bedrock, OpenAI, Google, Ollama, OpenRouter |
 | Markdown | 커스텀 렌더러 (v5.1에서 react-markdown 제거) | - |
 | 코드 하이라이트 | 커스텀 구현 (v5.1에서 rehype-highlight 제거) | - |
 | PDF | pdfjs-dist | 4.x |
@@ -439,6 +439,10 @@ hchat-v2-extension/
     │   │   ├── DeepResearchToggle.tsx     # 딥 리서치 토글
     │   │   ├── UsageAlertBanner.tsx       # 사용량 알림 배너
     │   │   ├── VoiceWaveform.tsx          # 음성 파형 SVG
+    │   │   ├── VoiceConversation.tsx     # 음성 대화 모드 (v5.6)
+    │   │   ├── ResponseStyleSelector.tsx # 응답 스타일 선택 (v5.7)
+    │   │   ├── MultimodalPreview.tsx     # 이미지 첨부 미리보기 (v5.7)
+    │   │   ├── CollaborationBadge.tsx    # 탭 동기화 배지 (v5.7)
     │   │   └── index.ts            # 서브 컴포넌트 export
     │   └── tools/                  # 도구 서브 컴포넌트 (20개 파일)
     │       ├── SummarizeTool.tsx   # 페이지 요약
@@ -467,12 +471,14 @@ hchat-v2-extension/
     │   ├── useNetworkStatus.ts     # 네트워크 상태 감지
     │   ├── useProvider.ts          # 프로바이더 인스턴스, 모델 리스트
     │   └── useShortcuts.ts         # 키보드 단축키 (40줄)
-    ├── lib/                        # 81개 모듈 (음성 파이프라인, 비서 체인, 토론 투표, 단축키 확장)
+    ├── lib/                        # 81개 모듈 (5 프로바이더, AI 메모리, 워크플로우, 분석, MCP, 감사 로그, 정책)
     │   ├── providers/
     │   │   ├── types.ts            # AIProvider 인터페이스, ModelDef
     │   │   ├── bedrock-provider.ts # AWS Bedrock Claude 프로바이더
     │   │   ├── openai-provider.ts  # OpenAI GPT 프로바이더
     │   │   ├── gemini-provider.ts  # Google Gemini 프로바이더
+    │   │   ├── ollama-provider.ts  # Ollama 로컬 LLM (v6.0)
+    │   │   ├── openrouter-provider.ts # OpenRouter 100+ 모델 (v6.0)
     │   │   ├── provider-factory.ts # 프로바이더 생성, 모델 탐색
     │   │   └── model-router.ts     # 자동 모델 라우팅
     │   ├── aws-sigv4.ts            # AWS SigV4 서명 (Web Crypto)
@@ -532,6 +538,20 @@ hchat-v2-extension/
     │   ├── assistantChain.ts     # 비서 체인 — 순차 파이프라인, {{input}}/{{original}} 치환 (v5.5)
     │   ├── debateVoting.ts       # 토론 투표 — 1~5점, 스코어보드, 컨센서스 (v5.5)
     │   ├── shortcutManager.ts    # 키보드 단축키 확장 — 포커스 트랩, 키 레코더, 콤보 검증 (v5.5)
+    │   ├── contextOptimizer.ts  # 토큰 카운팅, 메시지 압축, 컨텍스트 모니터링 (v5.7)
+    │   ├── promptCache.ts       # BM25 유사도 캐시, TTL 24h (v5.7)
+    │   ├── analyticsEngine.ts   # TF-IDF 토픽, 일별 활동, 히트맵 (v5.7)
+    │   ├── aiMemory.ts          # AI 장기 기억 — 자동 추출, 검색, 시스템 프롬프트 주입 (v5.7)
+    │   ├── conversationTree.ts  # 대화 분기 트리 — DFS 탐색, 병합 (v5.7)
+    │   ├── responseTemplate.ts  # 응답 스타일 4 프리셋, 후처리, 사용 패턴 학습 (v5.7)
+    │   ├── multimodalInput.ts   # 다중 이미지 첨부, 유효성 검증, 리사이즈 (v5.7)
+    │   ├── collaborationMode.ts # BroadcastChannel 탭 동기화, heartbeat (v5.7)
+    │   ├── workflowBuilder.ts   # 노드 기반 워크플로우, 조건 분기, 순환 감지 (v5.7)
+    │   ├── teamSharing.ts       # 팀 공유 패키지 생성/검증/적용 (v6.0)
+    │   ├── mcpClient.ts         # MCP 서버 등록, 도구 실행, 리소스 접근 (v6.0)
+    │   ├── auditLog.ts          # 감사 로그, 필터/검색, CSV/JSON 내보내기 (v6.0)
+    │   ├── policyManager.ts     # 정책 5종 (모델/도구/PII/예산/승인) (v6.0)
+    │   ├── firefoxAdapter.ts    # 크로스 브라우저 어댑터 (v6.0)
     │   ├── types.ts                # 공통 타입 정의 (PROVIDER_COLORS 등)
     │   └── README.md               # lib 문서
     └── styles/

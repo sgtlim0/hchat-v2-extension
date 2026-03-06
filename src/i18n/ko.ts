@@ -969,6 +969,21 @@ const ko = {
     tabs: '탭',
   },
 
+  workflow: {
+    title: '워크플로우',
+    create: '생성',
+    addNode: '노드 추가',
+    removeNode: '노드 삭제',
+    validate: '검증',
+    run: '실행',
+    result: '결과',
+    error: '오류',
+    export: '내보내기',
+    import: '가져오기',
+    nodeType: '노드 타입',
+    input: '초기 입력',
+  },
+
   tree: {
     title: '대화 트리',
     branches: '분기',

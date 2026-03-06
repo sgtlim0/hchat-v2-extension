@@ -968,6 +968,21 @@ const ja = {
     tabs: 'タブ',
   },
 
+  workflow: {
+    title: 'ワークフロー',
+    create: '作成',
+    addNode: 'ノード追加',
+    removeNode: 'ノード削除',
+    validate: '検証',
+    run: '実行',
+    result: '結果',
+    error: 'エラー',
+    export: 'エクスポート',
+    import: 'インポート',
+    nodeType: 'ノードタイプ',
+    input: '初期入力',
+  },
+
   tree: {
     title: '会話ツリー',
     branches: '分岐',

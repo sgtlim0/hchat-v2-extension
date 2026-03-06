@@ -2,7 +2,7 @@
 
 ## 개요
 
-비즈니스 로직과 유틸리티 함수를 캡슐화하는 라이브러리 모듈. 총 65+ 파일 (v5.6). 멀티 프로바이더 API 통신, 데이터 관리, AI 기능, 검색, 음성, 내보내기/가져오기를 담당한다. 모든 모듈은 `Storage` 래퍼를 통해 `chrome.storage.local`에 접근한다.
+비즈니스 로직과 유틸리티 함수를 캡슐화하는 라이브러리 모듈. 총 74+ 파일 (v5.7). 멀티 프로바이더 API 통신, 데이터 관리, AI 기능, 검색, 음성, 내보내기/가져오기를 담당한다. 모든 모듈은 `Storage` 래퍼를 통해 `chrome.storage.local`에 접근한다.
 
 ## 파일 목록
 
@@ -107,6 +107,20 @@
 | `voicePipeline.ts` | 200 | 음성 E2E 파이프라인 — STT→AI→TTS 루프, 침묵 감지 [v5.5] |
 | `assistantChain.ts` | 284 | 비서 체인 — 순차 파이프라인, {{input}}/{{original}} 치환 [v5.5] |
 | `shortcutManager.ts` | 148 | 단축키 매니저 — 포커스 트랩, 키 레코더, 예약 콤보 [v5.5] |
+
+### 고급 기능 모듈 (v5.7)
+
+| 파일 | 줄 수 | 설명 |
+|------|-------|------|
+| `contextOptimizer.ts` | 120 | 토큰 카운팅 (한글 2자/토큰), 메시지 압축, 컨텍스트 모니터링 [v5.7] |
+| `promptCache.ts` | 150 | BM25 유사도 캐시, TTL 24h, FIFO 100 항목, 캐시 통계 [v5.7] |
+| `analyticsEngine.ts` | 296 | TF-IDF 토픽 추출, 일별 활동, 시간대 히트맵, 프로바이더 비교 [v5.7] |
+| `aiMemory.ts` | 190 | 장기 기억 CRUD, 자동 추출 (이름/선호/프로젝트), 검색, 시스템 프롬프트 주입 [v5.7] |
+| `conversationTree.ts` | 190 | 포크 트리 빌드, DFS 탐색, 분기 정보, 대화 병합 [v5.7] |
+| `responseTemplate.ts` | 224 | 응답 스타일 4 프리셋, 후처리, 사용 패턴 학습 [v5.7] |
+| `multimodalInput.ts` | 190 | 다중 이미지 첨부 (max 5), 유효성 검증, 리사이즈, 스크린샷 캡처 [v5.7] |
+| `collaborationMode.ts` | 120 | BroadcastChannel 탭 간 동기화, heartbeat, last-write-wins [v5.7] |
+| `workflowBuilder.ts` | 260 | 노드 기반 워크플로우 (4 타입), 조건 분기, 순환 감지, 실행 엔진 [v5.7] |
 
 ### 컨텍스트 추출 모듈
 
@@ -328,6 +342,10 @@ stt.ts / tts.ts     (Web Speech API만 사용)
 | `hchat:user-prefs` | userPreferences | 사용 패턴 학습 [v5.3] |
 | `hchat:conv-summaries` | conversationSummarizer | 대화 요약 캐시 [v5.3] |
 | `hchat:assistant-chains` | assistantChain | 비서 체인 정의 [v5.5] |
+| `hchat:prompt-cache` | promptCache | 프롬프트 캐시 (max 100, TTL 24h) [v5.7] |
+| `hchat:ai-memories` | aiMemory | AI 장기 기억 (max 100, FIFO) [v5.7] |
+| `hchat:response-styles` | responseTemplate | 응답 스타일 커스텀 (max 20) [v5.7] |
+| `hchat:workflows` | workflowBuilder | 워크플로우 정의 (max 20) [v5.7] |
 
 ## 설계 원칙
 

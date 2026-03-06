@@ -969,6 +969,21 @@ const en = {
     tabs: 'tabs',
   },
 
+  workflow: {
+    title: 'Workflow',
+    create: 'Create',
+    addNode: 'Add Node',
+    removeNode: 'Remove Node',
+    validate: 'Validate',
+    run: 'Run',
+    result: 'Result',
+    error: 'Error',
+    export: 'Export',
+    import: 'Import',
+    nodeType: 'Node Type',
+    input: 'Initial Input',
+  },
+
   tree: {
     title: 'Conversation Tree',
     branches: 'Branches',

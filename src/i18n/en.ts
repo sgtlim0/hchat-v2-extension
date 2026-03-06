@@ -902,6 +902,34 @@ const en = {
     voiceButton: 'Voice input',
   },
 
+  memory: {
+    title: 'AI Memory',
+    search: 'Search memories',
+    add: 'Add Memory',
+    approve: 'Approve',
+    delete: 'Delete',
+    export: 'Export',
+    import: 'Import',
+    category: 'Category',
+    approved: 'Approved',
+    pending: 'Pending',
+    addPlaceholder: 'Enter memory content',
+    addSubmit: 'Add',
+  },
+
+  analytics: {
+    title: 'Conversation Analytics',
+    totalConversations: 'Total Conversations',
+    totalMessages: 'Total Messages',
+    avgMessages: 'Avg Messages',
+    providerComparison: 'Provider Comparison',
+    topTopics: 'Top Topics',
+    dailyActivity: 'Daily Activity',
+    hourlyHeatmap: 'Hourly Heatmap',
+    conversations: 'conversations',
+    messages: 'messages',
+  },
+
   voice: {
     conversation: 'Voice Conversation',
     listening: 'Listening...',
@@ -913,6 +941,43 @@ const en = {
     endConversation: 'End Conversation',
     switchMode: 'Switch to Voice Mode',
     conversationLog: 'Conversation Log',
+  },
+
+  style: {
+    title: 'Response Style',
+    default: 'Default',
+    concise: 'Concise',
+    detailed: 'Detailed',
+    technical: 'Technical',
+    casual: 'Casual',
+    recommended: 'Recommended',
+    custom: 'Custom',
+    builtin: 'Built-in',
+  },
+  attachment: {
+    remove: 'Remove',
+    clearAll: 'Clear All',
+    count: '{count} attached',
+    size: 'Size',
+    image: 'Image',
+  },
+
+  collab: {
+    syncing: 'Syncing',
+    disconnected: 'Disconnected',
+    newMessage: 'New message received',
+    tabs: 'tabs',
+  },
+
+  tree: {
+    title: 'Conversation Tree',
+    branches: 'Branches',
+    maxDepth: 'Max Depth',
+    messages: 'messages',
+    noForks: 'No forks',
+    forkedFrom: 'Forked from',
+    select: 'Select conversation',
+    close: 'Close',
   },
 } as const
 

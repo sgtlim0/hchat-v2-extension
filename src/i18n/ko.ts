@@ -902,6 +902,34 @@ const ko = {
     voiceButton: '음성 입력',
   },
 
+  memory: {
+    title: 'AI 메모리',
+    search: '메모리 검색',
+    add: '메모리 추가',
+    approve: '승인',
+    delete: '삭제',
+    export: '내보내기',
+    import: '가져오기',
+    category: '카테고리',
+    approved: '승인됨',
+    pending: '대기 중',
+    addPlaceholder: '메모리 내용 입력',
+    addSubmit: '추가',
+  },
+
+  analytics: {
+    title: '대화 분석',
+    totalConversations: '총 대화',
+    totalMessages: '총 메시지',
+    avgMessages: '평균 메시지',
+    providerComparison: '프로바이더 비교',
+    topTopics: '주요 토픽',
+    dailyActivity: '일별 활동',
+    hourlyHeatmap: '시간대 히트맵',
+    conversations: '대화',
+    messages: '메시지',
+  },
+
   voice: {
     conversation: '음성 대화',
     listening: '듣는 중...',
@@ -913,6 +941,43 @@ const ko = {
     endConversation: '대화 종료',
     switchMode: '음성 모드 전환',
     conversationLog: '대화 기록',
+  },
+
+  style: {
+    title: '응답 스타일',
+    default: '기본',
+    concise: '간결',
+    detailed: '상세',
+    technical: '기술적',
+    casual: '캐주얼',
+    recommended: '추천',
+    custom: '커스텀',
+    builtin: '내장',
+  },
+  attachment: {
+    remove: '제거',
+    clearAll: '전체 삭제',
+    count: '{count}개 첨부',
+    size: '크기',
+    image: '이미지',
+  },
+
+  collab: {
+    syncing: '동기화 중',
+    disconnected: '연결 끊김',
+    newMessage: '새 메시지 수신',
+    tabs: '탭',
+  },
+
+  tree: {
+    title: '대화 트리',
+    branches: '분기',
+    maxDepth: '최대 깊이',
+    messages: '메시지',
+    noForks: '분기 없음',
+    forkedFrom: '분기 원본',
+    select: '대화 선택',
+    close: '닫기',
   },
 } as const
 

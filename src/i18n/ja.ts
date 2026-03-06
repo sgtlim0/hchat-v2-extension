@@ -901,6 +901,34 @@ const ja = {
     voiceButton: '音声入力',
   },
 
+  memory: {
+    title: 'AIメモリ',
+    search: 'メモリ検索',
+    add: 'メモリ追加',
+    approve: '承認',
+    delete: '削除',
+    export: 'エクスポート',
+    import: 'インポート',
+    category: 'カテゴリ',
+    approved: '承認済み',
+    pending: '保留中',
+    addPlaceholder: 'メモリ内容を入力',
+    addSubmit: '追加',
+  },
+
+  analytics: {
+    title: '会話分析',
+    totalConversations: '総会話数',
+    totalMessages: '総メッセージ',
+    avgMessages: '平均メッセージ',
+    providerComparison: 'プロバイダー比較',
+    topTopics: '主要トピック',
+    dailyActivity: '日別活動',
+    hourlyHeatmap: '時間帯ヒートマップ',
+    conversations: '会話',
+    messages: 'メッセージ',
+  },
+
   voice: {
     conversation: '音声会話',
     listening: '聞いています...',
@@ -912,6 +940,43 @@ const ja = {
     endConversation: '会話終了',
     switchMode: '音声モード切替',
     conversationLog: '会話ログ',
+  },
+
+  style: {
+    title: '応答スタイル',
+    default: 'デフォルト',
+    concise: '簡潔',
+    detailed: '詳細',
+    technical: '技術的',
+    casual: 'カジュアル',
+    recommended: 'おすすめ',
+    custom: 'カスタム',
+    builtin: '組み込み',
+  },
+  attachment: {
+    remove: '削除',
+    clearAll: 'すべて削除',
+    count: '{count}件添付',
+    size: 'サイズ',
+    image: '画像',
+  },
+
+  collab: {
+    syncing: '同期中',
+    disconnected: '切断',
+    newMessage: '新しいメッセージ',
+    tabs: 'タブ',
+  },
+
+  tree: {
+    title: '会話ツリー',
+    branches: '分岐',
+    maxDepth: '最大深度',
+    messages: 'メッセージ',
+    noForks: '分岐なし',
+    forkedFrom: '分岐元',
+    select: '会話選択',
+    close: '閉じる',
   },
 } as const
 

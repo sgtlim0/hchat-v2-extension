@@ -12,7 +12,7 @@ H Chat is a Chrome Extension (Manifest V3) that provides a multi-AI sidebar assi
 npm run build    # Production build to dist/
 npm run dev      # Watch mode (vite build --watch)
 npm run clean    # Remove dist/
-npm test         # Run all tests (Vitest, 1311 tests, 63 files)
+npm test         # Run all tests (Vitest, 2232 tests, 118 files)
 npm run lint     # ESLint (flat config)
 ```
 
@@ -33,11 +33,13 @@ After building, load `dist/` as an unpacked Chrome extension.
 
 ### Provider System (`src/lib/providers/`)
 
-All AI providers implement the `AIProvider` interface (`types.ts`), which uses `AsyncGenerator<string, string>` for streaming (yield chunks, return full text). `types.ts` also exports `PROVIDER_COLORS` constant (v5.1 centralization).
+All AI providers implement the `AIProvider` interface (`types.ts`), which uses `AsyncGenerator<string, string>` for streaming (yield chunks, return full text). `types.ts` also exports `PROVIDER_COLORS` constant (v5.1 centralization). `ProviderType = 'bedrock' | 'openai' | 'gemini' | 'ollama' | 'openrouter'`.
 
 - `bedrock-provider.ts` — AWS Bedrock Claude (SigV4 signing via `aws-sigv4.ts`, binary event stream parsing)
 - `openai-provider.ts` — OpenAI GPT (SSE streaming, `data:` line parsing)
 - `gemini-provider.ts` — Google Gemini (SSE streaming, `systemInstruction` separate from `contents`)
+- `ollama-provider.ts` — Ollama local models (OpenAI-compatible API)
+- `openrouter-provider.ts` — OpenRouter multi-model gateway (SSE streaming)
 - `provider-factory.ts` — `createAllProviders()`, `getProviderForModel()`, `getAllModels()`
 - `model-router.ts` — `routeModel()` auto-selects model based on prompt patterns (code/reasoning/fast)
 
@@ -84,6 +86,14 @@ All persistence uses `chrome.storage.local` via `src/lib/storage.ts` wrapper. Ke
 - `hchat:user-prefs` — User usage pattern preferences (weighted frequency, time decay)
 - `hchat:conv-summaries` — Conversation summary cache (FIFO)
 - `hchat:assistant-chains` — Assistant chain pipeline definitions
+- `hchat:prompt-cache` — Prompt similarity cache (BM25, TTL 24h)
+- `hchat:ai-memories` — AI long-term memory (max 100, FIFO)
+- `hchat:response-styles` — Response style presets (max 20)
+- `hchat:workflows` — Workflow definitions (max 20)
+- `hchat:mcp-servers` — MCP server registrations (max 10)
+- `hchat:audit-log` — Audit log entries (max 1000)
+- `hchat:policies` — Policy definitions (max 20)
+- `hchat:share-history` — Team sharing history (max 50)
 
 ### Styling
 
@@ -100,7 +110,7 @@ Haiku 4.5:  us.anthropic.claude-haiku-4-5-20251001-v1:0  (-v1:0)
 
 ### Internationalization (`src/i18n/`)
 
-3 locales: Korean (primary), English, Japanese. Lightweight custom implementation — `t()` function + `useLocale()` hook. 730+ keys per locale. Content scripts use `tSync()` + `getLocale()`. v5.1: toolbar.ts fully integrated with i18n (6 keys added, Japanese support).
+3 locales: Korean (primary), English, Japanese. Lightweight custom implementation — `t()` function + `useLocale()` hook. 930+ keys per locale. Content scripts use `tSync()` + `getLocale()`. v5.1: toolbar.ts fully integrated with i18n (6 keys added, Japanese support).
 
 ## Key Constraints
 
@@ -110,4 +120,4 @@ Haiku 4.5:  us.anthropic.claude-haiku-4-5-20251001-v1:0  (-v1:0)
 - Files should stay under 800 lines; extract into separate files if approaching limit
 - Korean is the primary UI language, with English and Japanese translations
 - Immutable patterns throughout (never mutate objects)
-- Tests: Vitest with chrome.storage.local mock, 1311 tests across 63 files
+- Tests: Vitest with chrome.storage.local mock, 2232 tests across 118 files

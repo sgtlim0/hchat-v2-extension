@@ -24,6 +24,12 @@
 | `AssistantSelector.tsx` | 130+ | 커스텀 비서 선택 드롭다운 — 20개 내장 비서 + 커스텀 비서 [v5.0] |
 | `ShortcutsConfig.tsx` | 150+ | 키보드 단축키 설정 — 키 레코더, 예약 콤보 감지, 기본값 복원 [v5.6] |
 | `ChainBuilder.tsx` | 200+ | 비서 체인 관리 — CRUD, 단계 추가/삭제, export/import [v5.6 Phase 3] |
+| `ConversationAnalytics.tsx` | 200+ | 대화 분석 대시보드 — TF-IDF 토픽, 히트맵, 프로바이더 비교 [v5.7] |
+| `ConversationTreeView.tsx` | 107 | 대화 분기 트리 — 포크 시각화, 깊이 기반 들여쓰기 [v5.7] |
+| `MemoryPanel.tsx` | 195 | AI 메모리 — 카드 CRUD, 카테고리 필터, 승인/거부 [v5.7] |
+| `WorkflowEditor.tsx` | 367 | 워크플로우 편집기 — 노드 CRUD, 조건 분기, 검증, 실행 [v5.7] |
+| `McpServerManager.tsx` | 194 | MCP 서버 관리 — CRUD, 연결 테스트, 도구 탐색 [v6.0] |
+| `TeamSharingPanel.tsx` | 200+ | 팀 공유 — 내보내기/가져오기/히스토리 3탭 [v6.0] |
 
 ## 상세 설명
 
@@ -316,6 +322,12 @@ App.tsx (sidepanel)
 │  ├─ VoiceConversation ← lib/voicePipeline (음성 대화 모드)
 │  └─ (내부 MsgBubble, CodeBlock, MD, AgentStepsView, SearchSources)
 ├─ ChainBuilder ← lib/assistantChain, lib/assistantBuilder
+├─ ConversationAnalytics ← lib/analyticsEngine
+├─ ConversationTreeView ← lib/conversationTree
+├─ MemoryPanel ← lib/aiMemory
+├─ WorkflowEditor ← lib/workflowBuilder
+├─ McpServerManager ← lib/mcpClient
+├─ TeamSharingPanel ← lib/teamSharing
 ├─ GroupChatView ← providers, Config
 ├─ ToolsView ← lib/pageReader, providers, lib/writingTools (17개 도구)
 ├─ PromptLibraryView ← lib/promptLibrary

@@ -2,7 +2,7 @@
 
 ## 개요
 
-비즈니스 로직과 유틸리티 함수를 캡슐화하는 라이브러리 모듈. 총 74+ 파일 (v5.7). 멀티 프로바이더 API 통신, 데이터 관리, AI 기능, 검색, 음성, 내보내기/가져오기를 담당한다. 모든 모듈은 `Storage` 래퍼를 통해 `chrome.storage.local`에 접근한다.
+비즈니스 로직과 유틸리티 함수를 캡슐화하는 라이브러리 모듈. 총 81+ 파일 (v6.0). 멀티 프로바이더 API 통신, 데이터 관리, AI 기능, 검색, 음성, 내보내기/가져오기를 담당한다. 모든 모듈은 `Storage` 래퍼를 통해 `chrome.storage.local`에 접근한다.
 
 ## 파일 목록
 
@@ -17,6 +17,8 @@
 | `providers/provider-factory.ts` | 120+ | 프로바이더 생성, 모델 탐색 (createAllProviders, getProviderForModel, getAllModels) |
 | `providers/model-router.ts` | 80+ | 자동 모델 라우팅 (프롬프트 패턴 분석) |
 | `providers/stream-retry.ts` | 100+ | 스트리밍 에러 복구 (streamWithRetry 자동 재시도 2회) [v3.3] |
+| `providers/ollama-provider.ts` | 140 | Ollama 로컬 LLM 프로바이더 (NDJSON 스트리밍, 동적 모델 탐색) [v6.0] |
+| `providers/openrouter-provider.ts` | 160 | OpenRouter 100+ 모델 (OpenAI SSE 호환, 5 프리셋) [v6.0] |
 
 ### 기존 API 모듈
 
@@ -121,6 +123,16 @@
 | `multimodalInput.ts` | 190 | 다중 이미지 첨부 (max 5), 유효성 검증, 리사이즈, 스크린샷 캡처 [v5.7] |
 | `collaborationMode.ts` | 120 | BroadcastChannel 탭 간 동기화, heartbeat, last-write-wins [v5.7] |
 | `workflowBuilder.ts` | 260 | 노드 기반 워크플로우 (4 타입), 조건 분기, 순환 감지, 실행 엔진 [v5.7] |
+
+### 플랫폼 확장 모듈 (v6.0)
+
+| 파일 | 줄 수 | 설명 |
+|------|-------|------|
+| `teamSharing.ts` | 190 | 팀 공유 패키지 생성/검증/적용, 히스토리 (max 50 FIFO) [v6.0] |
+| `mcpClient.ts` | 170 | MCP 서버 등록/도구 실행/리소스 접근, 연결 테스트 [v6.0] |
+| `auditLog.ts` | 148 | 감사 로그 CRUD, 필터/검색, CSV/JSON 내보내기, 90일 정리 [v6.0] |
+| `policyManager.ts` | 185 | 정책 5종 (모델/도구 화이트리스트, PII, 예산, 승인), 검증 엔진 [v6.0] |
+| `firefoxAdapter.ts` | 120 | 크로스 브라우저 어댑터 (감지, manifest 변환, 사이드패널) [v6.0] |
 
 ### 컨텍스트 추출 모듈
 
@@ -346,6 +358,12 @@ stt.ts / tts.ts     (Web Speech API만 사용)
 | `hchat:ai-memories` | aiMemory | AI 장기 기억 (max 100, FIFO) [v5.7] |
 | `hchat:response-styles` | responseTemplate | 응답 스타일 커스텀 (max 20) [v5.7] |
 | `hchat:workflows` | workflowBuilder | 워크플로우 정의 (max 20) [v5.7] |
+| `hchat:share-history` | teamSharing | 공유 히스토리 (max 50 FIFO) [v6.0] |
+| `hchat:shared-items` | teamSharing | 가져온 공유 항목 [v6.0] |
+| `hchat:mcp-servers` | mcpClient | MCP 서버 등록 (max 10) [v6.0] |
+| `hchat:audit-log` | auditLog | 감사 로그 (max 1000 FIFO) [v6.0] |
+| `hchat:policies` | policyManager | 정책 정의 (max 20) [v6.0] |
+| `hchat:policy-status` | policyManager | 정책 적용 상태/위반 통계 [v6.0] |
 
 ## 설계 원칙
 

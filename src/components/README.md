@@ -2,7 +2,7 @@
 
 ## 개요
 
-사이드패널의 각 탭과 공용 UI 요소를 구성하는 53개 React 컴포넌트 (.tsx 파일). 채팅 인터페이스, 크로스 모델 그룹 채팅, 크로스 모델 토론, 도구 뷰, 설정, 히스토리, 북마크, 프롬프트 라이브러리, 사용량 통계, 비서 마켓플레이스 등 모든 사용자 인터페이스를 포함한다.
+사이드패널의 각 탭과 공용 UI 요소를 구성하는 55개 React 컴포넌트 (.tsx 파일). 채팅 인터페이스, 크로스 모델 그룹 채팅, 크로스 모델 토론, 도구 뷰, 설정, 히스토리, 북마크, 프롬프트 라이브러리, 사용량 통계, 비서 마켓플레이스 등 모든 사용자 인터페이스를 포함한다.
 
 **v5.1 정리 (2026-03-05)**: react-markdown 제거 (~130KB 절감), PROVIDER_COLORS 상수 중앙화 (types.ts), 커스텀 MD 렌더러 유지.
 
@@ -23,6 +23,7 @@
 | `ModelSelector.tsx` | 120+ | 모델 선택 드롭다운 — 9개 모델 (AWS, OpenAI, Google), PROVIDER_COLORS 사용 [v5.1] |
 | `AssistantSelector.tsx` | 130+ | 커스텀 비서 선택 드롭다운 — 20개 내장 비서 + 커스텀 비서 [v5.0] |
 | `ShortcutsConfig.tsx` | 150+ | 키보드 단축키 설정 — 키 레코더, 예약 콤보 감지, 기본값 복원 [v5.6] |
+| `ChainBuilder.tsx` | 200+ | 비서 체인 관리 — CRUD, 단계 추가/삭제, export/import [v5.6 Phase 3] |
 
 ## 상세 설명
 
@@ -312,7 +313,9 @@ App.tsx (sidepanel)
 ├─ ChatView ← useChat hook ← providers, lib/chatHistory
 │  ├─ ModelSelector ← providers, Config
 │  ├─ AssistantSelector ← lib/assistantBuilder
+│  ├─ VoiceConversation ← lib/voicePipeline (음성 대화 모드)
 │  └─ (내부 MsgBubble, CodeBlock, MD, AgentStepsView, SearchSources)
+├─ ChainBuilder ← lib/assistantChain, lib/assistantBuilder
 ├─ GroupChatView ← providers, Config
 ├─ ToolsView ← lib/pageReader, providers, lib/writingTools (17개 도구)
 ├─ PromptLibraryView ← lib/promptLibrary
@@ -332,4 +335,4 @@ App.tsx (sidepanel)
 - **lib/types.ts**: PROVIDER_COLORS 상수 중앙 관리 (v5.1)
 - **Chrome APIs**: chrome.storage, chrome.tabs
 - **styles/global.css**: 공용 CSS 디자인 시스템
-- **i18n/**: 3개 언어 (ko/en/ja, 813+ keys)
+- **i18n/**: 3개 언어 (ko/en/ja, 835+ keys)

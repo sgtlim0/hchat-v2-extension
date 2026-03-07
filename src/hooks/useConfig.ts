@@ -15,10 +15,23 @@ export interface BudgetConfig {
   webhookEnabled: boolean // Whether webhook notification is enabled
 }
 
+export interface OllamaConfig {
+  baseUrl: string
+  modelFilter: string[]
+}
+
+export interface OpenRouterConfig {
+  apiKey: string
+  siteUrl: string
+  siteName: string
+}
+
 export interface Config {
   aws: AwsCredentials
   openai: { apiKey: string }
   gemini: { apiKey: string }
+  ollama: OllamaConfig
+  openrouter: OpenRouterConfig
   defaultModel: string
   autoRouting: boolean
   theme: 'system' | 'dark' | 'light'
@@ -35,6 +48,8 @@ const DEFAULTS: Config = {
   aws: { accessKeyId: '', secretAccessKey: '', region: 'us-east-1' },
   openai: { apiKey: '' },
   gemini: { apiKey: '' },
+  ollama: { baseUrl: '', modelFilter: [] },
+  openrouter: { apiKey: '', siteUrl: '', siteName: '' },
   defaultModel: 'us.anthropic.claude-sonnet-4-6',
   autoRouting: false,
   theme: 'system',
@@ -59,6 +74,8 @@ export function useConfig() {
         aws: { ...c.aws, ...(saved.aws ?? {}) },
         openai: { ...c.openai, ...(saved.openai ?? {}) },
         gemini: { ...c.gemini, ...(saved.gemini ?? {}) },
+        ollama: { ...c.ollama, ...(saved.ollama ?? {}) },
+        openrouter: { ...c.openrouter, ...(saved.openrouter ?? {}) },
         budget: { ...c.budget, ...(saved.budget ?? {}) },
       }))
       setLoaded(true)
@@ -73,6 +90,8 @@ export function useConfig() {
         aws: { ...c.aws, ...(patch.aws ?? {}) },
         openai: { ...c.openai, ...(patch.openai ?? {}) },
         gemini: { ...c.gemini, ...(patch.gemini ?? {}) },
+        ollama: { ...c.ollama, ...(patch.ollama ?? {}) },
+        openrouter: { ...c.openrouter, ...(patch.openrouter ?? {}) },
         budget: { ...c.budget, ...(patch.budget ?? {}) },
       }
       Storage.set('hchat:config', updated)

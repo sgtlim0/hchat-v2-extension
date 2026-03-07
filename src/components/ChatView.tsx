@@ -315,7 +315,13 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
   }
 
   const handleDeepResearch = useCallback(async (question: string) => {
-    const providers = createAllProviders(config)
+    const providers = createAllProviders({
+      bedrock: config.aws,
+      openai: config.openai,
+      gemini: config.gemini,
+      ollama: config.ollama.baseUrl ? config.ollama : undefined,
+      openrouter: config.openrouter.apiKey ? config.openrouter : undefined,
+    })
     const provider = getProviderForModel(providers, currentModel)
     if (!provider) {
       showToast(t('common.apiKeyNotSet'))

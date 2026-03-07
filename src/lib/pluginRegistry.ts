@@ -2,6 +2,7 @@
 
 import { Storage } from './storage'
 import { getGlobalLocale } from '../i18n'
+import { executeSandboxCode } from './sandboxExecutor'
 import type { Tool } from './agent'
 
 const STORAGE_KEY = 'hchat:plugins'
@@ -88,21 +89,9 @@ function executePromptTemplate(cfg: PromptConfig): (params: Record<string, unkno
 
 function executeJavaScript(cfg: JavaScriptConfig): (params: Record<string, unknown>) => Promise<string> {
   return async (params) => {
-    try {
-      const input = String(params.input ?? '')
-      // Simple template-based approach: replace {{input}} in code template
-      const code = cfg.code.replace(/\{\{input\}\}/g, input)
-      // Use a restricted evaluation via Function constructor with limited scope
-      // Only allow basic string operations for safety
-      const SAFE_PATTERN = /^[\w\s+\-*/().,"'`${}:;=<>!?[\]|&%^~@#\\n\\t]+$/
-      if (!SAFE_PATTERN.test(code)) {
-        return 'Error: Code contains unsafe characters'
-      }
-      const result = new Function('input', `"use strict"; ${code}`)(input)
-      return String(result ?? '')
-    } catch (err) {
-      return `JavaScript error: ${String(err)}`
-    }
+    const input = String(params.input ?? '')
+    const code = cfg.code.replace(/\{\{input\}\}/g, input)
+    return executeSandboxCode(code, input)
   }
 }
 

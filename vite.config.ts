@@ -15,6 +15,11 @@ function copyStaticAssets(): Plugin {
         copyFileSync('public/content.css', 'dist/content.css')
       }
 
+      // Copy sandbox.html
+      if (existsSync('public/sandbox.html')) {
+        copyFileSync('public/sandbox.html', 'dist/sandbox.html')
+      }
+
       // Copy icons
       const iconsDir = 'public/icons'
       const destDir = 'dist/icons'

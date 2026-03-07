@@ -74,6 +74,10 @@
     "extension_pages": "script-src 'self'; object-src 'none';"
   },
 
+  "sandbox": {
+    "pages": ["sandbox.html"]
+  },
+
   "web_accessible_resources": [
     {
       "resources": ["icons/*"],

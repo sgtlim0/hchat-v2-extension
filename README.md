@@ -6,12 +6,13 @@
 
 H Chat은 Sider 스타일의 올인원 AI 브라우저 어시스턴트입니다. AWS Bedrock Claude, OpenAI GPT, Google Gemini, Ollama (로컬 LLM), OpenRouter (100+ 모델)을 통합 지원하며, AI 메모리 시스템, 워크플로우 빌더, 대화 분석 대시보드, MCP 서버 연동, 팀 공유, 감사 로그, 정책 관리, 20개 내장 비서 마켓플레이스, AI 가드레일(PII 감지/마스킹), PPT 기획, 비서 토론, 대화 템플릿, 문서 번역/작성, 이미지 생성, 크로스 모델 토론, YouTube 분석, PDF 채팅, 검색 엔진 AI 카드, 글쓰기 어시스턴트 등 풍부한 기능을 제공합니다.
 
-- **Version**: 6.0
+- **Version**: 6.0.0
 - **Platform**: Chrome Extension (Manifest V3)
 - **AI Providers**: AWS Bedrock (Claude), OpenAI (GPT), Google Gemini, Ollama (로컬 LLM), OpenRouter (100+ 모델)
 - **GitHub**: https://github.com/sgtlim0/hchat-v2-extension
 - **Vercel**: https://hchat-v2-extension.vercel.app/sidepanel.html
-- **Latest**: v6.0 — 5개 프로바이더, 엔터프라이즈 (감사 로그, 정책), 크로스 브라우저, MCP, 팀 공유, 2232 tests (118 files)
+- **Latest**: v6.0 — 5개 프로바이더, 엔터프라이즈, 크로스 브라우저, MCP, 팀 공유
+- **Stats**: 284 files, 59,974 lines, 2,232 tests (118 files, 8.96s), TypeScript strict, ESLint 0 errors, `any` 2개, console.log 0개
 
 ## Features
 
@@ -19,6 +20,8 @@ H Chat은 Sider 스타일의 올인원 AI 브라우저 어시스턴트입니다.
 - **AWS Bedrock**: Claude Sonnet 4.6, Opus 4.6, Haiku 4.5
 - **OpenAI**: GPT-4o, GPT-4o mini
 - **Google Gemini**: Flash 2.0, Pro 1.5
+- **Ollama**: 로컬 LLM (Llama 3, Mistral, Qwen) — NDJSON 스트리밍, 동적 모델 탐색
+- **OpenRouter**: 100+ 모델 게이트웨이 — SSE 스트리밍, 5개 프리셋
 - 모든 프로바이더 직접 스트리밍 (외부 SDK 미사용, fetch() + AsyncGenerator)
 - Provider Factory 패턴으로 통합 관리
 - 자동 모델 라우팅: 프롬프트 패턴 분석으로 최적 모델 선택
@@ -373,7 +376,8 @@ hchat-v2-extension/
 │   └── roadmap.md                     # 향후 로드맵 (v4.3~v5.5)
 ├── public/
 │   ├── icons/                     # 확장 아이콘 (16, 48, 128px)
-│   └── content.css                # 하이라이트 스타일
+│   ├── content.css                # 하이라이트 스타일
+│   └── sandbox.html               # JS 플러그인 샌드박스 iframe (v6.0.1)
 └── src/
     ├── background/
     │   └── index.ts               # 서비스 워커 (410줄)
@@ -552,6 +556,7 @@ hchat-v2-extension/
     │   ├── auditLog.ts          # 감사 로그, 필터/검색, CSV/JSON 내보내기 (v6.0)
     │   ├── policyManager.ts     # 정책 5종 (모델/도구/PII/예산/승인) (v6.0)
     │   ├── firefoxAdapter.ts    # 크로스 브라우저 어댑터 (v6.0)
+    │   ├── sandboxExecutor.ts  # JS 플러그인 샌드박스 실행기 (v6.0.1)
     │   ├── types.ts                # 공통 타입 정의 (PROVIDER_COLORS 등)
     │   └── README.md               # lib 문서
     └── styles/
@@ -659,6 +664,14 @@ hchat-v2-extension/
 | `hchat:user-prefs` | UserPreferences | 사용 패턴 학습 데이터 (v5.3) |
 | `hchat:conv-summaries` | ConvSummaryCache | 대화 요약 캐시 (v5.3) |
 | `hchat:assistant-chains` | AssistantChain[] | 비서 체인 파이프라인 정의 (v5.5) |
+| `hchat:prompt-cache` | PromptCache[] | 프롬프트 유사도 캐시 (BM25, TTL 24h) (v5.7) |
+| `hchat:ai-memories` | AiMemory[] | AI 장기 기억 (max 100, FIFO) (v5.7) |
+| `hchat:response-styles` | ResponseStyle[] | 응답 스타일 프리셋 (max 20) (v5.7) |
+| `hchat:workflows` | Workflow[] | 워크플로우 정의 (max 20) (v5.7) |
+| `hchat:mcp-servers` | McpServer[] | MCP 서버 등록 (max 10) (v6.0) |
+| `hchat:audit-log` | AuditEntry[] | 감사 로그 (max 1000, 90일) (v6.0) |
+| `hchat:policies` | Policy[] | 정책 정의 (max 20) (v6.0) |
+| `hchat:share-history` | ShareRecord[] | 팀 공유 히스토리 (max 50) (v6.0) |
 
 ## Manifest Permissions
 
@@ -1024,7 +1037,8 @@ Dark Obsidian 테마, Emerald accent, 17개 CSS 변수 (dark), 15개 재정의 (
 - AWS Bedrock 직접 통신 (HTTPS, SigV4 서명)
 - 모든 데이터 로컬 저장 (텔레메트리, 분석 없음)
 - 콘텐츠 스크립트: 격리된 world에서 실행
-- JavaScript eval 도구: 페이지 컨텍스트에서 샌드박스 실행
+- JavaScript 플러그인: manifest sandbox iframe에서 격리 실행 (`sandboxExecutor.ts`)
+- CSP: `script-src 'self'; object-src 'none'`
 
 ## License
 

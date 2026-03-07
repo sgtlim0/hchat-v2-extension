@@ -12,8 +12,10 @@ export function useProvider(config: Config) {
       bedrock: config.aws,
       openai: config.openai,
       gemini: config.gemini,
+      ollama: config.ollama.baseUrl ? config.ollama : undefined,
+      openrouter: config.openrouter.apiKey ? config.openrouter : undefined,
     }),
-    [config.aws, config.openai, config.gemini]
+    [config.aws, config.openai, config.gemini, config.ollama, config.openrouter]
   )
 
   const allModels = useMemo<ModelDef[]>(

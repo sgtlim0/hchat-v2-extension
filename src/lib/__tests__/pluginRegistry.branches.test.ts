@@ -4,6 +4,18 @@ vi.mock('../../i18n', () => ({
   getGlobalLocale: vi.fn(() => 'en'),
 }))
 
+vi.mock('../sandboxExecutor', () => ({
+  executeSandboxCode: vi.fn((code: string, input: string) => {
+    try {
+      const fn = new Function('input', `"use strict"; ${code}`)
+      const result = fn(input)
+      return Promise.resolve(String(result ?? ''))
+    } catch (err) {
+      return Promise.resolve(`JavaScript error: ${String(err)}`)
+    }
+  }),
+}))
+
 import { PluginRegistry } from '../pluginRegistry'
 import type { Plugin } from '../pluginRegistry'
 
@@ -149,19 +161,18 @@ describe('pluginRegistry branch coverage', () => {
     expect(result).toBe('data processed')
   })
 
-  it('javascript tool rejects unsafe characters', async () => {
+  it('javascript tool handles code with errors in sandbox', async () => {
     await PluginRegistry.add({
       name: 'js-unsafe',
       description: 'test',
       enabled: true,
       type: 'javascript',
-      config: { code: 'process.exit(1)\x00' },
+      config: { code: 'throw new Error("not allowed")' },
     })
 
     const tools = await PluginRegistry.toAgentTools()
     const result = await tools[0].execute({ input: '' })
-    // Either 'unsafe' or a JS error from the safety check
-    expect(result.toLowerCase()).toMatch(/unsafe|error/)
+    expect(result.toLowerCase()).toContain('error')
   })
 
   it('javascript tool handles runtime error', async () => {

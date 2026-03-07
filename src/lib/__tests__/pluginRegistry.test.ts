@@ -1,4 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+
+vi.mock('../sandboxExecutor', () => ({
+  executeSandboxCode: vi.fn((code: string, input: string) => {
+    try {
+      const fn = new Function('input', `"use strict"; ${code}`)
+      const result = fn(input)
+      return Promise.resolve(String(result ?? ''))
+    } catch (err) {
+      return Promise.resolve(`JavaScript error: ${String(err)}`)
+    }
+  }),
+}))
+
 import { PluginRegistry, type Plugin, type PluginType } from '../pluginRegistry'
 
 function makePlugin(overrides: Partial<Plugin> & { type: PluginType } = { type: 'prompt' }): Omit<Plugin, 'id'> {

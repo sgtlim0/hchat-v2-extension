@@ -84,6 +84,8 @@ const mockConfig: Config = {
   aws: { region: 'us-east-1', accessKeyId: 'test', secretAccessKey: 'test' },
   openai: { apiKey: 'test' },
   gemini: { apiKey: 'test' },
+  ollama: { baseUrl: '', modelFilter: [] },
+  openrouter: { apiKey: '', siteUrl: '', siteName: '' },
   selectedModel: 'modelA',
   systemPrompt: '',
   thinkingDepth: 'normal',

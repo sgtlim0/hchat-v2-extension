@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-H Chat is a Chrome Extension (Manifest V3) that provides a multi-AI sidebar assistant supporting AWS Bedrock (Claude), OpenAI (GPT), and Google Gemini. Korean is the primary UI language.
+H Chat is a Chrome Extension (Manifest V3) that provides a multi-AI sidebar assistant supporting AWS Bedrock (Claude), OpenAI (GPT), Google Gemini, Ollama (local LLM), and OpenRouter (100+ models). Korean is the primary UI language. 284 files, 59,974 lines, 2,232 tests.
 
 ## Commands
 
@@ -12,7 +12,7 @@ H Chat is a Chrome Extension (Manifest V3) that provides a multi-AI sidebar assi
 npm run build    # Production build to dist/
 npm run dev      # Watch mode (vite build --watch)
 npm run clean    # Remove dist/
-npm test         # Run all tests (Vitest, 2232 tests, 118 files)
+npm test         # Run all tests (Vitest, 2232 tests, 118 files, 8.96s)
 npm run lint     # ESLint (flat config)
 ```
 

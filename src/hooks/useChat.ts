@@ -149,6 +149,8 @@ export function useChat(config: Config) {
       bedrock: config.aws,
       openai: config.openai,
       gemini: config.gemini,
+      ollama: config.ollama.baseUrl ? config.ollama : undefined,
+      openrouter: config.openrouter.apiKey ? config.openrouter : undefined,
     })
 
     // Determine model: forced > autoRouting > currentModel

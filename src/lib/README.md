@@ -14,6 +14,8 @@
 | `providers/bedrock-provider.ts` | 200+ | AWS Bedrock Claude 프로바이더 (SigV4 서명, Event Stream 파싱) |
 | `providers/openai-provider.ts` | 150+ | OpenAI GPT 프로바이더 (SSE 스트리밍) |
 | `providers/gemini-provider.ts` | 150+ | Google Gemini 프로바이더 (SSE 스트리밍) |
+| `providers/ollama-provider.ts` | 140 | Ollama 로컬 LLM (NDJSON 스트리밍, 동적 모델 탐색) [v6.0] |
+| `providers/openrouter-provider.ts` | 160 | OpenRouter 100+ 모델 게이트웨이 (SSE, 5 프리셋) [v6.0] |
 | `providers/provider-factory.ts` | 120+ | 프로바이더 생성, 모델 탐색 (createAllProviders, getProviderForModel, getAllModels) |
 | `providers/model-router.ts` | 80+ | 자동 모델 라우팅 (프롬프트 패턴 분석) |
 | `providers/stream-retry.ts` | 100+ | 스트리밍 에러 복구 (streamWithRetry 자동 재시도 2회) [v3.3] |

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body>
+<script>
+// Sandboxed page for safe JavaScript plugin execution.
+// This page is listed in manifest.json "sandbox" so it can use eval/new Function
+// while being isolated from the extension's origin (no access to chrome.* APIs).
+window.addEventListener('message', function(event) {
+  var id = event.data && event.data.id;
+  var code = event.data && event.data.code;
+  var input = event.data && event.data.input;
+
+  if (typeof code !== 'string') return;
+
+  try {
+    var fn = new Function('input', '"use strict"; ' + code);
+    var result = fn(input);
+    event.source.postMessage({ id: id, result: String(result != null ? result : '') }, '*');
+  } catch (err) {
+    event.source.postMessage({ id: id, error: 'JavaScript error: ' + String(err) }, '*');
+  }
+});
+</script>
+</body>
+</html>

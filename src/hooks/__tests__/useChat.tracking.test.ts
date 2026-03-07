@@ -156,6 +156,8 @@ const baseConfig: Config = {
   aws: { accessKeyId: 'test-key', secretAccessKey: 'test-secret', region: 'us-east-1' },
   openai: { apiKey: '' },
   gemini: { apiKey: '' },
+  ollama: { baseUrl: '', modelFilter: [] },
+  openrouter: { apiKey: '', siteUrl: '', siteName: '' },
   autoRouting: false,
   enableWebSearch: false,
   language: 'ko',

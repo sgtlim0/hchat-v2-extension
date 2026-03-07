@@ -2,7 +2,7 @@
 
 ## 개요
 
-Chrome Extension MV3 서비스 워커. 확장의 백그라운드 로직을 담당하며, 컨텍스트 메뉴 등록, 사이드패널 제어, 하이라이트 저장/조회, 탭 컨텍스트 갱신, 플로팅 툴바 스트리밍 (멀티 프로바이더), 키보드 커맨드를 처리한다.
+Chrome Extension MV3 서비스 워커. 확장의 백그라운드 로직을 담당하며, 컨텍스트 메뉴 등록, 사이드패널 제어, 하이라이트 저장/조회, 탭 컨텍스트 갱신, 플로팅 툴바/인라인 스트리밍 (5개 멀티 프로바이더), 키보드 커맨드를 처리한다.
 
 ## 파일 목록
 
@@ -75,6 +75,10 @@ chrome.runtime.onConnect.addListener((port) => {
 - **AWS Bedrock**: AWS Event Stream 바이너리 프로토콜 파싱 (SigV4 서명)
 - **OpenAI**: SSE 스트리밍 (`data: {...}` 라인 파싱)
 - **Google Gemini**: SSE 스트리밍 (JSON Lines)
+- **Ollama**: NDJSON 스트리밍 (OpenAI 호환 API, 로컬) [v6.0]
+- **OpenRouter**: SSE 스트리밍 (OpenAI 호환, 100+ 모델) [v6.0]
+
+`inline-stream` 포트도 동일한 패턴으로 콘텐츠 스크립트 인라인 스트리밍을 지원한다.
 
 포트 메시지 프로토콜:
 - `{ type: 'chunk', text }` — 텍스트 청크
@@ -116,6 +120,11 @@ toolbar.ts → chrome.runtime.connect('toolbar-stream')
 | 모듈 | 사용 목적 |
 |------|----------|
 | `../lib/aws-sigv4` | AWS Signature V4 서명 (`signRequest`) |
+| `../lib/providers/bedrock-provider` | AWS Bedrock 프로바이더 |
+| `../lib/providers/openai-provider` | OpenAI 프로바이더 |
+| `../lib/providers/gemini-provider` | Google Gemini 프로바이더 |
+| `../lib/providers/ollama-provider` | Ollama 로컬 프로바이더 [v6.0] |
+| `../lib/providers/openrouter-provider` | OpenRouter 프로바이더 [v6.0] |
 
 ## 스토리지 키
 

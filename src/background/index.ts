@@ -4,6 +4,8 @@
 import { BedrockProvider } from '../lib/providers/bedrock-provider'
 import { OpenAIProvider } from '../lib/providers/openai-provider'
 import { GeminiProvider } from '../lib/providers/gemini-provider'
+import { OllamaProvider } from '../lib/providers/ollama-provider'
+import { OpenRouterProvider } from '../lib/providers/openrouter-provider'
 import type { AIProvider } from '../lib/providers/types'
 
 chrome.runtime.onInstalled.addListener(() => {
@@ -134,6 +136,8 @@ function createProviderForModel(modelId: string, config: Record<string, unknown>
   const aws = config.aws as { accessKeyId?: string; secretAccessKey?: string; region?: string } | undefined
   const openai = config.openai as { apiKey?: string } | undefined
   const gemini = config.gemini as { apiKey?: string } | undefined
+  const ollama = config.ollama as { baseUrl?: string; modelFilter?: string[] } | undefined
+  const openrouter = config.openrouter as { apiKey?: string; siteUrl?: string; siteName?: string } | undefined
 
   // Determine provider type from model ID
   if (modelId.startsWith('us.anthropic') || modelId.startsWith('anthropic')) {
@@ -148,6 +152,10 @@ function createProviderForModel(modelId: string, config: Record<string, unknown>
     if (openai?.apiKey) return new OpenAIProvider(openai.apiKey)
   } else if (modelId.startsWith('gemini-')) {
     if (gemini?.apiKey) return new GeminiProvider(gemini.apiKey)
+  } else if (openrouter?.apiKey && (modelId.includes('/') || modelId.startsWith('anthropic/'))) {
+    return new OpenRouterProvider({ apiKey: openrouter.apiKey, siteUrl: openrouter.siteUrl, siteName: openrouter.siteName })
+  } else if (ollama?.baseUrl) {
+    return new OllamaProvider({ baseUrl: ollama.baseUrl, modelFilter: ollama.modelFilter })
   }
 
   // Fallback to bedrock

@@ -2,6 +2,7 @@
 // Uses Shadow DOM to avoid CSP conflicts with host pages
 
 import { getLocale, tSync, type Locale } from '../i18n'
+import { SK } from '../lib/storageKeys'
 
 let shadowHost: HTMLElement | null = null
 let shadowRoot: ShadowRoot | null = null
@@ -300,8 +301,8 @@ async function runAction(actionId: string, selectedText: string, x: number, y: n
   body.appendChild(cursor)
 
   // Get config
-  const result = await chrome.storage.local.get('hchat:config')
-  const cfg = result['hchat:config']
+  const result = await chrome.storage.local.get(SK.CONFIG)
+  const cfg = result[SK.CONFIG]
   const aws = cfg?.aws ?? {}
   const model = cfg?.defaultModel ?? 'us.anthropic.claude-sonnet-4-6'
 
@@ -422,8 +423,8 @@ document.addEventListener('mouseup', () => {
       return
     }
 
-    chrome.storage.local.get('hchat:config', async (r) => {
-      if (!r['hchat:config']?.enableContentScript) return
+    chrome.storage.local.get(SK.CONFIG, async (r) => {
+      if (!r[SK.CONFIG]?.enableContentScript) return
 
       const locale = await getLocale()
       const root = ensureShadowHost()

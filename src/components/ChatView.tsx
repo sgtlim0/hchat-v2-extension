@@ -1,30 +1,25 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { List, useDynamicRowHeight, type ListImperativeAPI } from 'react-window'
 import { useChat } from '../hooks/useChat'
 import { useLocale } from '../i18n'
-import { ModelSelector } from './ModelSelector'
-import { AssistantSelector } from './AssistantSelector'
-import { PromptLibrary, type Prompt } from '../lib/promptLibrary'
+import { useChatVoice } from '../hooks/useChatVoice'
+import { useChatPrompts } from '../hooks/useChatPrompts'
+import { useDeepResearch } from '../hooks/useDeepResearch'
 import { fileToBase64, getCurrentPageContent } from '../lib/pageReader'
 import { exportConversation, downloadBlob, copyConversationAsMarkdown, type ExportFormat } from '../lib/exportChat'
-import { TTS } from '../lib/tts'
-import { STT } from '../lib/stt'
 import { generateSummary, saveSummary, loadSummary, type Summary } from '../lib/summarize'
 import { ChatHistory } from '../lib/chatHistory'
 import { type PageContext, buildPageSystemPrompt } from '../lib/pageContext'
-import { MsgBubble } from './chat/MsgBubble'
 import { ChatToolbar } from './chat/ChatToolbar'
 import { ChatInputArea } from './chat/ChatInputArea'
 import { SummaryPanel } from './chat/SummaryPanel'
 import { PinnedPanel } from './chat/PinnedPanel'
-import { ThinkingDepthSelector } from './chat/ThinkingDepthSelector'
 import { UsageAlertBanner } from './chat/UsageAlertBanner'
-import { DeepResearchToggle } from './chat/DeepResearchToggle'
-import { streamDeepResearch, type ResearchProgress, type SourceRef } from '../lib/deepResearch'
-import { createAllProviders, getProviderForModel } from '../lib/providers/provider-factory'
+import { ChatMessages } from './chat/ChatMessages'
+import { ChatMetaBar } from './chat/ChatMetaBar'
 import { checkAndNotify, type UsageAlertState } from '../lib/usageAlert'
 import type { Config } from '../hooks/useConfig'
 import type { ThinkingDepth } from '../lib/providers/types'
+import { SK } from '../lib/storageKeys'
 
 interface Props {
   config: Config
@@ -41,17 +36,10 @@ interface Props {
 export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onToggleContext, initialPrompt, onConsumePrompt, onRegisterActions, onForkConv }: Props) {
   const { t, locale } = useLocale()
   const { conv, messages, isLoading, isSearching, agentMode, setAgentMode, assistantId, setAssistantId, error, currentModel, setCurrentModel, sendMessage, startNew, loadConv, stop, editAndResend, regenerate, piiDetections, confirmSendWithPII } = useChat(config)
-  const [, setTTSRefresh] = useState(0)
-  const [, setSTTRefresh] = useState(0)
-  const [voiceMode, setVoiceMode] = useState(false)
-  const voiceModeRef = useRef(false)
+
   const [thinkingDepth, setThinkingDepth] = useState<ThinkingDepth>('normal')
   const [input, setInput] = useState('')
   const [attachment, setAttachment] = useState<{ name: string; base64: string } | null>(null)
-  const [showPrompts, setShowPrompts] = useState(false)
-  const [promptSearch, setPromptSearch] = useState('')
-  const [prompts, setPrompts] = useState<Prompt[]>([])
-  const [promptIdx, setPromptIdx] = useState(0)
   const [toast, setToast] = useState('')
   const [showExport, setShowExport] = useState(false)
   const [pageCtx, setPageCtx] = useState<PageContext | null>(null)
@@ -61,46 +49,16 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
   const [showPinned, setShowPinned] = useState(false)
   const [usageAlert, setUsageAlert] = useState<UsageAlertState | null>(null)
   const [alertDismissed, setAlertDismissed] = useState(false)
-  const [deepResearch, setDeepResearch] = useState(false)
-  const [researchProgress, setResearchProgress] = useState<ResearchProgress | null>(null)
-  const [researchSources, setResearchSources] = useState<SourceRef[]>([])
-  const [researchReport, setResearchReport] = useState('')
-  const endRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
-  const listRef = useRef<ListImperativeAPI | null>(null)
-  const messagesContainerRef = useRef<HTMLDivElement>(null)
-  const [containerHeight, setContainerHeight] = useState(600)
 
-  const dynamicRowHeight = useDynamicRowHeight({
-    defaultRowHeight: 150,
-    key: conv?.id || 'default',
-  })
+  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 1800) }
+
+  const { voiceMode, toggleVoiceMode, handleTTS, handleSTT } = useChatVoice(sendMessage, isLoading, messages, setInput, input, textareaRef)
+  const { showPrompts, setShowPrompts, prompts, promptIdx, applyPrompt, handlePromptInput, handlePromptKeyDown } = useChatPrompts(setInput, textareaRef)
+  const { deepResearch, setDeepResearch, researchProgress, researchSources, researchReport, handleDeepResearch } = useDeepResearch(config, currentModel, sendMessage, showToast, t, locale)
 
   useEffect(() => { if (loadConvId) loadConv(loadConvId) }, [loadConvId, loadConv])
-
-  useEffect(() => {
-    if (messagesContainerRef.current) {
-      const updateHeight = () => {
-        if (messagesContainerRef.current) {
-          setContainerHeight(messagesContainerRef.current.clientHeight)
-        }
-      }
-      updateHeight()
-      window.addEventListener('resize', updateHeight)
-      return () => window.removeEventListener('resize', updateHeight)
-    }
-  }, []) // Run once on mount
-
-  useEffect(() => {
-    if (messages.length > 50 && listRef.current) {
-      // Virtual scroll: scroll to last item
-      listRef.current.scrollToRow(messages.length - 1, 'end')
-    } else {
-      // Simple scroll: scroll to bottom
-      endRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }
-  }, [messages])
 
   useEffect(() => {
     onRegisterActions?.({
@@ -112,13 +70,11 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
 
   useEffect(() => {
     const handler = (changes: Record<string, chrome.storage.StorageChange>) => {
-      if (changes['hchat:page-context']) {
-        setPageCtx(changes['hchat:page-context'].newValue ?? null)
-      }
+      if (changes[SK.PAGE_CONTEXT]) setPageCtx(changes[SK.PAGE_CONTEXT].newValue ?? null)
     }
     chrome.storage.local.onChanged.addListener(handler)
-    chrome.storage.local.get('hchat:page-context', (r) => {
-      if (r['hchat:page-context']) setPageCtx(r['hchat:page-context'])
+    chrome.storage.local.get(SK.PAGE_CONTEXT, (r) => {
+      if (r[SK.PAGE_CONTEXT]) setPageCtx(r[SK.PAGE_CONTEXT])
     })
     return () => chrome.storage.local.onChanged.removeListener(handler)
   }, [])
@@ -127,17 +83,7 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
     if (config.budget.monthly > 0) {
       checkAndNotify(config.budget).then(setUsageAlert)
     }
-  }, [config.budget, isLoading]) // re-check after each message
-
-  useEffect(() => {
-    TTS.onStateChange(() => setTTSRefresh((n) => n + 1))
-    return () => { TTS.stop(); TTS.onStateChange(() => {}) }
-  }, [])
-
-  useEffect(() => {
-    STT.onStateChange(() => setSTTRefresh((n) => n + 1))
-    return () => { STT.stop(); STT.onStateChange(() => {}) }
-  }, [])
+  }, [config.budget, isLoading])
 
   useEffect(() => {
     if (initialPrompt) {
@@ -147,87 +93,13 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
     }
   }, [initialPrompt]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleTTS = useCallback((msgId: string, text: string) => {
-    if (TTS.isPlaying(msgId)) TTS.stop()
-    else TTS.speak(text, msgId)
-  }, [])
-
-  const handleSTT = useCallback(() => {
-    if (STT.getState() === 'listening') {
-      STT.stop()
-    } else {
-      STT.start((text, isFinal) => {
-        if (isFinal) setInput((prev) => prev + (prev ? ' ' : '') + text)
-      })
-    }
-  }, [])
-
-  // Voice conversation mode: auto-send when STT gets final text
-  const startVoiceSTT = useCallback(() => {
-    STT.start((text, isFinal) => {
-      if (isFinal && text.trim()) {
-        setInput(text.trim())
-      }
-    })
-  }, [])
-
-  const toggleVoiceMode = useCallback(() => {
-    setVoiceMode((prev) => {
-      const next = !prev
-      voiceModeRef.current = next
-      if (next) {
-        // Start listening
-        startVoiceSTT()
-      } else {
-        // Stop everything
-        STT.stop()
-        TTS.stop()
-      }
-      return next
-    })
-  }, [startVoiceSTT])
-
-  // Voice mode: auto-TTS last assistant message when response completes
-  const prevLoadingRef = useRef(false)
-  useEffect(() => {
-    const wasLoading = prevLoadingRef.current
-    prevLoadingRef.current = isLoading
-    if (wasLoading && !isLoading && voiceModeRef.current && messages.length > 0) {
-      const lastMsg = messages[messages.length - 1]
-      if (lastMsg.role === 'assistant' && lastMsg.content) {
-        TTS.onEnd(() => {
-          if (voiceModeRef.current) startVoiceSTT()
-        })
-        TTS.speak(lastMsg.content, lastMsg.id)
-      }
-    }
-  }, [isLoading, messages, startVoiceSTT])
-
-  // Voice mode: auto-send when input is set by STT
-  useEffect(() => {
-    if (!voiceModeRef.current || !input.trim() || isLoading) return
-    if (STT.getState() === 'listening') return
-    const text = input.trim()
-    const timer = setTimeout(() => {
-      if (voiceModeRef.current && text) {
-        setInput('')
-        if (textareaRef.current) textareaRef.current.style.height = 'auto'
-        sendMessage(text)
-      }
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [input, isLoading, sendMessage])
-
-  const handleEdit = useCallback((msgId: string, newContent: string) => {
-    editAndResend(msgId, newContent)
-  }, [editAndResend])
-
-  const handleRegenerate = useCallback(() => { regenerate() }, [regenerate])
-
   useEffect(() => {
     if (conv?.id) loadSummary(conv.id).then(setSummary)
     else setSummary(null)
   }, [conv?.id])
+
+  const handleEdit = useCallback((msgId: string, newContent: string) => { editAndResend(msgId, newContent) }, [editAndResend])
+  const handleRegenerate = useCallback(() => { regenerate() }, [regenerate])
 
   const handleSummarize = useCallback(async () => {
     if (!conv || summarizing) return
@@ -258,46 +130,22 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
   }, [conv, loadConv, t])
 
   const pinnedMessages = messages.filter((m) => m.pinned)
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 1800) }
 
   const copyMsg = useCallback((text: string) => {
     navigator.clipboard.writeText(text)
     showToast(t('chat.copiedToast'))
   }, [t])
 
-  useEffect(() => {
-    if (!showPrompts) return
-    PromptLibrary.searchByShortcut(promptSearch).then(setPrompts)
-  }, [showPrompts, promptSearch])
-
   const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const v = e.target.value
     setInput(v)
     e.target.style.height = 'auto'
     e.target.style.height = Math.min(e.target.scrollHeight, 150) + 'px'
-    if (v.startsWith('/')) {
-      setShowPrompts(true)
-      setPromptSearch(v.slice(1))
-      setPromptIdx(0)
-    } else {
-      setShowPrompts(false)
-    }
-  }
-
-  const applyPrompt = (p: Prompt) => {
-    setInput(p.content.replace('{{content}}', ''))
-    setShowPrompts(false)
-    PromptLibrary.incrementUsage(p.id)
-    textareaRef.current?.focus()
+    handlePromptInput(v)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (showPrompts) {
-      if (e.key === 'ArrowDown') { e.preventDefault(); setPromptIdx((i) => Math.min(i + 1, prompts.length - 1)) }
-      if (e.key === 'ArrowUp') { e.preventDefault(); setPromptIdx((i) => Math.max(i - 1, 0)) }
-      if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); if (prompts[promptIdx]) applyPrompt(prompts[promptIdx]); return }
-      if (e.key === 'Escape') { setShowPrompts(false); return }
-    }
+    if (handlePromptKeyDown(e)) return
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
   }
 
@@ -313,64 +161,6 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
     } catch { /* content script not available */ }
     return undefined
   }
-
-  const handleDeepResearch = useCallback(async (question: string) => {
-    const providers = createAllProviders({
-      bedrock: config.aws,
-      openai: config.openai,
-      gemini: config.gemini,
-      ollama: config.ollama.baseUrl ? config.ollama : undefined,
-      openrouter: config.openrouter.apiKey ? config.openrouter : undefined,
-    })
-    const provider = getProviderForModel(providers, currentModel)
-    if (!provider) {
-      showToast(t('common.apiKeyNotSet'))
-      return
-    }
-    try {
-      setResearchProgress({ step: 'generating_queries', detail: '', current: 0, total: 3 })
-      setResearchSources([])
-      setResearchReport('')
-
-      const gen = streamDeepResearch({
-        question,
-        provider,
-        model: currentModel,
-        locale,
-        googleApiKey: config.googleSearchApiKey || undefined,
-        googleEngineId: config.googleSearchEngineId || undefined,
-      })
-
-      let finalReport = ''
-
-      for await (const event of gen) {
-        switch (event.type) {
-          case 'progress':
-            setResearchProgress(event.progress)
-            break
-          case 'sources_found':
-            setResearchSources((prev) => [...prev, ...event.sources])
-            break
-          case 'report_chunk':
-            finalReport += event.chunk
-            setResearchReport(finalReport)
-            break
-          case 'done':
-            setResearchProgress(null)
-            setResearchSources([])
-            setResearchReport('')
-            await sendMessage(question, { systemPrompt: t('aiPrompts.deepResearchSystem', { question, report: event.result.report }) })
-            break
-        }
-      }
-    } catch (err) {
-      setResearchProgress(null)
-      setResearchSources([])
-      setResearchReport('')
-      const errMsg = String(err)
-      if (!errMsg.includes(t('deepResearch.cancelled'))) showToast(t('deepResearch.failed', { error: errMsg }))
-    }
-  }, [config, currentModel, sendMessage, t, locale])
 
   const handleSend = async () => {
     const text = input.trim()
@@ -420,6 +210,11 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
     onNewConv?.()
   }
 
+  const handleSuggestionClick = async (text: string) => {
+    const systemPrompt = needsPageContext(text) ? await buildPageContextPrompt() : undefined
+    sendMessage(text, { systemPrompt })
+  }
+
   const SUGGESTIONS = [
     { icon: '📄', text: t('chat.suggestions.summarize') },
     { icon: '✏️', text: t('chat.suggestions.email') },
@@ -430,137 +225,54 @@ export function ChatView({ config, onNewConv, loadConvId, contextEnabled, onTogg
   return (
     <div className="chat-wrap" role="main">
       <ChatToolbar
-        convTitle={conv?.title}
-        contextEnabled={contextEnabled}
-        pageCtx={pageCtx}
-        onToggleContext={onToggleContext}
-        showExport={showExport}
-        onToggleExport={() => setShowExport(!showExport)}
-        hasMessages={messages.length > 0}
-        hasConv={!!conv}
-        onExport={handleExport}
-        onCopyConv={handleCopyConv}
-        canSummarize={!!conv && messages.length > 2}
-        summarizing={summarizing}
-        summary={summary}
-        onToggleSummary={() => setShowSummary(!showSummary)}
-        onSummarize={handleSummarize}
-        pinnedCount={pinnedMessages.length}
-        showPinned={showPinned}
-        onTogglePinned={() => setShowPinned(!showPinned)}
-        onNew={handleNew}
+        convTitle={conv?.title} contextEnabled={contextEnabled} pageCtx={pageCtx}
+        onToggleContext={onToggleContext} showExport={showExport}
+        onToggleExport={() => setShowExport(!showExport)} hasMessages={messages.length > 0}
+        hasConv={!!conv} onExport={handleExport} onCopyConv={handleCopyConv}
+        canSummarize={!!conv && messages.length > 2} summarizing={summarizing} summary={summary}
+        onToggleSummary={() => setShowSummary(!showSummary)} onSummarize={handleSummarize}
+        pinnedCount={pinnedMessages.length} showPinned={showPinned}
+        onTogglePinned={() => setShowPinned(!showPinned)} onNew={handleNew}
       />
 
       {showSummary && summary && (
-        <SummaryPanel
-          summary={summary}
-          summarizing={summarizing}
-          onClose={() => setShowSummary(false)}
-          onRegenerate={handleSummarize}
-        />
+        <SummaryPanel summary={summary} summarizing={summarizing} onClose={() => setShowSummary(false)} onRegenerate={handleSummarize} />
       )}
 
       {showPinned && pinnedMessages.length > 0 && (
-        <PinnedPanel
-          messages={pinnedMessages}
-          onClose={() => setShowPinned(false)}
-          onUnpin={handlePin}
-        />
+        <PinnedPanel messages={pinnedMessages} onClose={() => setShowPinned(false)} onUnpin={handlePin} />
       )}
 
       {usageAlert && usageAlert.level !== 'none' && !alertDismissed && (
         <UsageAlertBanner alert={usageAlert} onDismiss={() => setAlertDismissed(true)} />
       )}
 
-      <div className="messages" ref={messagesContainerRef} role="log" aria-live="polite" aria-relevant="additions">
-        {messages.length === 0 ? (
-          <div className="chat-empty">
-            <div className="chat-empty-logo">H</div>
-            <h2>{t('welcome.title')}</h2>
-            <p>{t('welcome.chatSubtitle')}</p>
-            <div className="suggestions-grid">
-              {SUGGESTIONS.map((s) => (
-                <button key={s.text} className="suggestion-card" onClick={async () => {
-                  const systemPrompt = needsPageContext(s.text) ? await buildPageContextPrompt() : undefined
-                  sendMessage(s.text, { systemPrompt })
-                }}>
-                  <span className="s-icon">{s.icon}</span>
-                  <span className="s-text">{s.text}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : messages.length > 50 ? (
-          <List
-            listRef={listRef}
-            defaultHeight={containerHeight}
-            rowCount={messages.length}
-            rowHeight={dynamicRowHeight}
-            overscanCount={5}
-            rowComponent={({ index, ...props }) => (
-              <MsgBubble
-                key={messages[index].id}
-                msg={messages[index]}
-                onCopy={copyMsg}
-                onTTS={handleTTS}
-                onEdit={handleEdit}
-                onRegenerate={handleRegenerate}
-                onFork={handleFork}
-                onPin={handlePin}
-                {...props}
-              />
-            )}
-            rowProps={{}}
-          />
-        ) : (
-          messages.map((m) => <MsgBubble key={m.id} msg={m} onCopy={copyMsg} onTTS={handleTTS} onEdit={handleEdit} onRegenerate={handleRegenerate} onFork={handleFork} onPin={handlePin} />)
-        )}
-        {isSearching && (
-          <div className="search-indicator">
-            <span className="spinner-sm" />
-            <span>{t('chat.searchingWeb')}</span>
-          </div>
-        )}
-        {error && !isLoading && (
-          <div style={{ color: 'var(--red)', fontSize: 11, padding: '4px 12px' }}>⚠ {error}</div>
-        )}
-        <div ref={endRef} />
-      </div>
-
-      <ChatInputArea
-        input={input}
-        onInputChange={handleInput}
-        onKeyDown={handleKeyDown}
-        onSend={handleSend}
-        onStop={stop}
-        isLoading={isLoading}
-        agentMode={agentMode}
-        onToggleAgent={() => setAgentMode(!agentMode)}
-        onSTT={handleSTT}
-        voiceMode={voiceMode}
-        onToggleVoiceMode={toggleVoiceMode}
-        attachment={attachment}
-        onRemoveAttachment={() => setAttachment(null)}
-        onFileSelect={handleFile}
-        showPrompts={showPrompts}
-        prompts={prompts}
-        promptIdx={promptIdx}
-        onApplyPrompt={applyPrompt}
-        textareaRef={textareaRef}
-        fileRef={fileRef}
-        piiDetections={piiDetections}
-        onConfirmPII={confirmSendWithPII}
+      <ChatMessages
+        messages={messages} convId={conv?.id} isSearching={isSearching}
+        error={error} isLoading={isLoading} onCopy={copyMsg} onTTS={handleTTS}
+        onEdit={handleEdit} onRegenerate={handleRegenerate} onFork={handleFork}
+        onPin={handlePin} onSuggestionClick={handleSuggestionClick} suggestions={SUGGESTIONS} t={t}
       />
 
-      <div className="input-meta">
-        <ModelSelector value={currentModel} onChange={setCurrentModel} config={config} />
-        <ThinkingDepthSelector depth={thinkingDepth} onChange={setThinkingDepth} model={currentModel} />
-        <AssistantSelector value={assistantId} onChange={setAssistantId} />
-        <DeepResearchToggle enabled={deepResearch} onToggle={() => setDeepResearch(!deepResearch)} progress={researchProgress} sources={researchSources} streamingReport={researchReport} />
-        {agentMode && <span className="agent-badge">🤖 {t('chat.agentMode')}</span>}
-        {voiceMode && <span className="agent-badge voice">🎙️ {t('chat.voiceModeBadge')}</span>}
-        <span className="text-xs">{t('chat.promptHint')}</span>
-      </div>
+      <ChatInputArea
+        input={input} onInputChange={handleInput} onKeyDown={handleKeyDown}
+        onSend={handleSend} onStop={stop} isLoading={isLoading} agentMode={agentMode}
+        onToggleAgent={() => setAgentMode(!agentMode)} onSTT={handleSTT}
+        voiceMode={voiceMode} onToggleVoiceMode={toggleVoiceMode}
+        attachment={attachment} onRemoveAttachment={() => setAttachment(null)}
+        onFileSelect={handleFile} showPrompts={showPrompts} prompts={prompts}
+        promptIdx={promptIdx} onApplyPrompt={applyPrompt} textareaRef={textareaRef}
+        fileRef={fileRef} piiDetections={piiDetections} onConfirmPII={confirmSendWithPII}
+      />
+
+      <ChatMetaBar
+        currentModel={currentModel} onModelChange={setCurrentModel} config={config}
+        thinkingDepth={thinkingDepth} onThinkingDepthChange={setThinkingDepth}
+        assistantId={assistantId} onAssistantChange={setAssistantId}
+        deepResearch={deepResearch} onToggleDeepResearch={() => setDeepResearch(!deepResearch)}
+        researchProgress={researchProgress} researchSources={researchSources}
+        streamingReport={researchReport} agentMode={agentMode} voiceMode={voiceMode} t={t}
+      />
 
       {toast && <div className="copy-toast" role="status" aria-live="polite">{toast}</div>}
     </div>

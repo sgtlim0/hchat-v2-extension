@@ -2,6 +2,7 @@
 
 import { Storage } from './storage'
 import { t } from '../i18n'
+import { SK } from './storageKeys'
 
 export type HighlightColor = 'yellow' | 'green' | 'blue' | 'pink' | 'purple'
 
@@ -20,8 +21,8 @@ export interface Highlight {
   updatedAt: number
 }
 
-const STORAGE_KEY = 'hchat:highlights'
-const INDEX_KEY = 'hchat:highlight-index'
+const STORAGE_KEY = SK.HIGHLIGHTS
+const INDEX_KEY = SK.HIGHLIGHT_INDEX
 
 interface HighlightIndex {
   id: string

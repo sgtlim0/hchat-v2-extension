@@ -1,0 +1,153 @@
+/* ═══════════════════════════════════════════════════
+   H Chat v2 — Design System
+   Dark Obsidian · Emerald accent · IBM Plex Mono
+   ═══════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,400&family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg0: #080b0e;
+  --bg1: #0e1318;
+  --bg2: #141b24;
+  --bg3: #1a2233;
+  --bg4: #212d40;
+  --bg5: #2a3a52;
+  --border: rgba(255,255,255,0.06);
+  --border2: rgba(255,255,255,0.1);
+  --text0: #eef1f5;
+  --text1: #adb8c8;
+  --text2: #8b9cb8;
+  --text3: #5d7090;
+  --accent: #34d399;
+  --accent2: #10b981;
+  --accent-dim: rgba(52,211,153,0.1);
+  --purple: #a78bfa;
+  --blue: #60a5fa;
+  --amber: #fbbf24;
+  --red: #f87171;
+  --red-dim: rgba(248,113,113,0.1);
+  --mono: 'IBM Plex Mono', monospace;
+  --sans: 'IBM Plex Sans KR', 'Noto Sans KR', sans-serif;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --shadow: 0 4px 24px rgba(0,0,0,0.4);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+:root.light {
+  --bg0: #ffffff;
+  --bg1: #f8f9fa;
+  --bg2: #f0f1f3;
+  --bg3: #e4e6ea;
+  --bg4: #d4d7dd;
+  --bg5: #c0c5cd;
+  --border: rgba(0,0,0,0.08);
+  --border2: rgba(0,0,0,0.12);
+  --text0: #1a1a2e;
+  --text1: #4a5568;
+  --text2: #718096;
+  --text3: #a0aec0;
+  --accent: #059669;
+  --accent2: #047857;
+  --accent-dim: rgba(5,150,105,0.08);
+  --red: #dc2626;
+  --red-dim: rgba(220,38,38,0.08);
+  --shadow: 0 4px 24px rgba(0,0,0,0.08);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+html, body, #root { height: 100%; }
+
+body {
+  font-family: var(--sans);
+  background: var(--bg0);
+  color: var(--text0);
+  font-size: 13px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+button { cursor: pointer; font-family: inherit; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+input, textarea, select { font-family: inherit; }
+
+/* ── Focus Styles ────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── Scrollbar ───────────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--bg5); border-radius: 2px; }
+
+/* ── Keyframe Animations ─────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@keyframes stt-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+@keyframes voice-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+  50% { box-shadow: 0 0 8px 2px rgba(34, 197, 94, 0.3); }
+}
+
+@keyframes voice-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.8; }
+}
+
+@keyframes tts-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Utility Classes ─────────────────────────── */
+.gap-2 { display: flex; flex-direction: column; gap: 8px; }
+.row { display: flex; align-items: center; gap: 6px; }
+.row-between { display: flex; align-items: center; justify-content: space-between; }
+.flex-1 { flex: 1; }
+.text-xs { font-size: 10px; color: var(--text3); }
+.text-mono { font-family: var(--mono); }
+.mt-2 { margin-top: 8px; }
+.mt-1 { margin-top: 4px; }
+
+.divider { border: none; border-top: 1px solid var(--border); margin: 4px 0; }
+
+.spinning {
+  animation: spin 1s linear infinite;
+}

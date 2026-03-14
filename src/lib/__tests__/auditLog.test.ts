@@ -1,6 +1,7 @@
 // lib/__tests__/auditLog.test.ts — Tests for audit log system
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { SK } from '../storageKeys'
 import {
   logAction,
   getAuditLog,
@@ -221,7 +222,7 @@ describe('auditLog', () => {
 
       // Directly set storage with aged entry
       await chrome.storage.local.set({
-        'hchat:audit-log': [oldEntry, recentEntry],
+        [SK.AUDIT_LOG]: [oldEntry, recentEntry],
       })
 
       const removed = await cleanOldLogs(90)

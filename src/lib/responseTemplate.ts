@@ -1,6 +1,7 @@
 import { Storage } from './storage'
+import { SK } from './storageKeys'
 
-const STORAGE_KEY = 'hchat:response-styles'
+const STORAGE_KEY = SK.RESPONSE_STYLES
 const MAX_CUSTOM_STYLES = 20
 const SHORT_LENGTH_THRESHOLD = 200
 const MEDIUM_LENGTH_THRESHOLD = 500

@@ -1,6 +1,7 @@
 import { Storage } from './storage'
+import { SK } from './storageKeys'
 
-const STORAGE_KEY = 'hchat:user-prefs'
+const STORAGE_KEY = SK.USER_PREFS
 const MAX_ENTRIES_PER_CATEGORY = 50
 const DEFAULT_LIMIT = 5
 const RECENT_DAYS = 7

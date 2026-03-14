@@ -1,6 +1,7 @@
 // lib/webSearch.ts — Web search via DuckDuckGo Instant Answer API + HTML scraping fallback
 
 import { t } from '../i18n'
+import { SK } from './storageKeys'
 
 export interface SearchResult {
   title: string
@@ -13,7 +14,7 @@ export interface SearchOptions {
   maxResults?: number
 }
 
-const CACHE_KEY_PREFIX = 'hchat:search-cache:'
+const CACHE_KEY_PREFIX = SK.SEARCH_CACHE_PREFIX
 const CACHE_TTL = 60 * 60 * 1000 // 1 hour
 
 function hashQuery(query: string): string {

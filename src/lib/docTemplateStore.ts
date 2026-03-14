@@ -1,8 +1,9 @@
 // lib/docTemplateStore.ts — Template gallery CRUD with chrome.storage
 
 import { Storage } from './storage'
+import { SK } from './storageKeys'
 
-const STORAGE_KEY = 'hchat:doc-templates'
+const STORAGE_KEY = SK.DOC_TEMPLATES
 const MAX_TEMPLATES = 10
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
 

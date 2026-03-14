@@ -1,6 +1,9 @@
 // providers/openrouter-provider.ts — OpenRouter provider (OpenAI-compatible API, direct fetch)
 
-import type { AIProvider, ModelDef, SendParams, ContentPart, ProviderType } from './types'
+import type { AIProvider, ModelDef, SendParams, ProviderType } from './types'
+import { readSSEStream } from './sse-parser'
+import { throwProviderError } from './error-parser'
+import { convertToOpenAIMessages } from './message-converter'
 
 export interface OpenRouterConfig {
   apiKey: string
@@ -61,30 +64,6 @@ export const OPENROUTER_MODELS: ModelDef[] = [
 
 const API_URL = 'https://openrouter.ai/api/v1/chat/completions'
 
-function convertMessages(messages: SendParams['messages'], systemPrompt?: string) {
-  const result: Array<{ role: string; content: string | Array<Record<string, unknown>> }> = []
-
-  if (systemPrompt) {
-    result.push({ role: 'system', content: systemPrompt })
-  }
-
-  for (const msg of messages) {
-    if (msg.role === 'system') continue
-
-    if (typeof msg.content === 'string') {
-      result.push({ role: msg.role, content: msg.content })
-    } else {
-      const parts = (msg.content as ContentPart[]).map((p) => {
-        if (p.type === 'text') return { type: 'text', text: p.text }
-        return { type: 'image_url', image_url: { url: p.image_url!.url } }
-      })
-      result.push({ role: msg.role, content: parts })
-    }
-  }
-
-  return result
-}
-
 export class OpenRouterProvider implements AIProvider {
   readonly type: ProviderType = OPENROUTER_TYPE
   readonly models = OPENROUTER_MODELS
@@ -109,7 +88,7 @@ export class OpenRouterProvider implements AIProvider {
     const effectiveMaxTokens = thinkingDepth === 'fast' ? Math.min(maxTokens, 1024) : maxTokens
     const body = JSON.stringify({
       model,
-      messages: convertMessages(messages, systemPrompt),
+      messages: convertToOpenAIMessages(messages, systemPrompt),
       max_tokens: effectiveMaxTokens,
       stream: true,
     })
@@ -133,61 +112,20 @@ export class OpenRouterProvider implements AIProvider {
       signal: params.signal,
     })
 
-    if (!res.ok) {
-      const errText = await res.text()
-      let errMsg = `HTTP ${res.status}`
-      try {
-        const errJson = JSON.parse(errText)
-        errMsg = errJson.error?.message ?? errMsg
-      } catch {
-        errMsg = errText || errMsg
-      }
-      throw new Error(errMsg)
-    }
+    if (!res.ok) await throwProviderError(res)
 
     if (!res.body) throw new Error('응답 스트림이 없습니다')
 
-    return yield* this.readSSEStream(res.body)
-  }
-
-  private async *readSSEStream(body: ReadableStream<Uint8Array>): AsyncGenerator<string, string> {
-    const reader = body.getReader()
-    const decoder = new TextDecoder()
-    let fullText = ''
-    let buffer = ''
-
-    try {
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n')
-        buffer = lines.pop() ?? ''
-
-        for (const line of lines) {
-          const trimmed = line.trim()
-          if (!trimmed || !trimmed.startsWith('data: ')) continue
-          const data = trimmed.slice(6)
-          if (data === '[DONE]') continue
-
-          try {
-            const parsed = JSON.parse(data)
-            const content = parsed.choices?.[0]?.delta?.content
-            if (content) {
-              fullText += content
-              yield content
-            }
-          } catch {
-            // Invalid JSON line, skip
-          }
-        }
-      }
-    } finally {
-      reader.releaseLock()
-    }
-
-    return fullText
+    return yield* readSSEStream(
+      res.body,
+      (p: unknown) => {
+        const obj = p as Record<string, unknown>
+        const choices = obj?.choices as Array<Record<string, unknown>> | undefined
+        const delta = choices?.[0]?.delta as Record<string, unknown> | undefined
+        return delta?.content as string | undefined
+      },
+      { hasDoneSignal: true }
+    )
   }
 
   async testConnection(): Promise<boolean> {

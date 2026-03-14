@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { SK } from '../storageKeys'
 
 vi.mock('../sandboxExecutor', () => ({
   executeSandboxCode: vi.fn((code: string, input: string) => {
@@ -329,8 +330,8 @@ describe('PluginRegistry', () => {
       await PluginRegistry.add(makePlugin({ type: 'prompt', name: 'Persistent' }))
 
       // Verify via raw storage
-      const raw = await chrome.storage.local.get('hchat:plugins')
-      const stored = raw['hchat:plugins'] as Plugin[]
+      const raw = await chrome.storage.local.get(SK.PLUGINS)
+      const stored = raw[SK.PLUGINS] as Plugin[]
       expect(stored).toHaveLength(1)
       expect(stored[0].name).toBe('Persistent')
     })

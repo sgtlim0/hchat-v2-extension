@@ -1,8 +1,9 @@
 // lib/assistantChain.ts — 비서 체인 파이프라인 (비서1 → 비서2 → 비서3)
 
 import { Storage } from './storage'
+import { SK } from './storageKeys'
 
-const STORAGE_KEY = 'hchat:assistant-chains'
+const STORAGE_KEY = SK.ASSISTANT_CHAINS
 const MAX_CHAINS = 20
 const MAX_STEPS = 10
 

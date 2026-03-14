@@ -2,6 +2,7 @@
 
 import { Storage } from './storage'
 import { t } from '../i18n'
+import { SK } from './storageKeys'
 
 export interface Persona {
   id: string
@@ -13,8 +14,8 @@ export interface Persona {
   createdAt: number
 }
 
-const PERSONAS_KEY = 'hchat:personas'
-const ACTIVE_PERSONA_KEY = 'hchat:active-persona'
+const PERSONAS_KEY = SK.PERSONAS
+const ACTIVE_PERSONA_KEY = SK.ACTIVE_PERSONA
 
 /**
  * Returns the built-in personas with localized names and descriptions.

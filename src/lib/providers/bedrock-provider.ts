@@ -2,6 +2,7 @@
 
 import { signRequest } from '../aws-sigv4'
 import type { AIProvider, ModelDef, SendParams, ContentPart, ProviderType } from './types'
+import { throwProviderError } from './error-parser'
 
 export interface BedrockCredentials {
   accessKeyId: string
@@ -119,17 +120,7 @@ export class BedrockProvider implements AIProvider {
       signal: params.signal,
     })
 
-    if (!res.ok) {
-      const errText = await res.text()
-      let errMsg = `HTTP ${res.status}`
-      try {
-        const errJson = JSON.parse(errText)
-        errMsg = errJson.message ?? errJson.Message ?? errMsg
-      } catch {
-        errMsg = errText || errMsg
-      }
-      throw new Error(errMsg)
-    }
+    if (!res.ok) await throwProviderError(res)
 
     if (!res.body) throw new Error('응답 스트림이 없습니다')
 

@@ -1,4 +1,5 @@
 import { Storage } from './storage'
+import { SK } from './storageKeys'
 
 export type PIIType = 'email' | 'phone' | 'ssn' | 'card' | 'bank'
 
@@ -174,7 +175,7 @@ export function getPIILabel(type: PIIType): string {
   return labels[type]
 }
 
-const CONFIG_KEY = 'hchat:guardrail-config'
+const CONFIG_KEY = SK.GUARDRAIL_CONFIG
 
 export async function getGuardrailConfig(): Promise<GuardrailConfig> {
   const stored = await Storage.get<GuardrailConfig>(CONFIG_KEY)

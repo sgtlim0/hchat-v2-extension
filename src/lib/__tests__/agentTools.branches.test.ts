@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { SK } from '../storageKeys'
 
 vi.mock('../../i18n', () => ({
   getGlobalLocale: vi.fn(() => 'ko'),
@@ -223,7 +224,7 @@ describe('agentTools branch coverage', () => {
 
     it('returns page content when available', async () => {
       await chrome.storage.local.set({
-        'hchat:page-context': { title: 'Test', url: 'https://test.com', text: 'content', meta: { type: 'code' } },
+        [SK.PAGE_CONTEXT]: { title: 'Test', url: 'https://test.com', text: 'content', meta: { type: 'code' } },
       })
       const result = await readPage.execute({})
       expect(result).toContain('Test')
@@ -233,7 +234,7 @@ describe('agentTools branch coverage', () => {
 
     it('shows unknown type when meta.type is missing', async () => {
       await chrome.storage.local.set({
-        'hchat:page-context': { title: 'Test', url: 'https://test.com', text: 'content' },
+        [SK.PAGE_CONTEXT]: { title: 'Test', url: 'https://test.com', text: 'content' },
       })
       const result = await readPage.execute({})
       expect(result).toContain('unknown')

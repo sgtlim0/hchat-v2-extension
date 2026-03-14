@@ -3,6 +3,7 @@
 import { Usage } from './usage'
 import { Storage } from './storage'
 import type { BudgetConfig } from '../hooks/useConfig'
+import { SK } from './storageKeys'
 
 export interface UsageAlertState {
   level: 'none' | 'warn' | 'critical'
@@ -20,7 +21,7 @@ const NONE_STATE: UsageAlertState = {
   remaining: 0,
 }
 
-const LAST_ALERT_KEY = 'hchat:last-webhook-alert'
+const LAST_ALERT_KEY = SK.LAST_WEBHOOK_ALERT
 
 export async function checkUsageAlert(budget: BudgetConfig): Promise<UsageAlertState> {
   if (!budget.monthly || budget.monthly <= 0) return NONE_STATE

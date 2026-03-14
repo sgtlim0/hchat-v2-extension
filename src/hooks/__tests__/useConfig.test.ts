@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
 import { useConfig, type Config } from '../useConfig'
+import { SK } from '../../lib/storageKeys'
 
 describe('useConfig', () => {
   beforeEach(() => {
@@ -16,7 +17,7 @@ describe('useConfig', () => {
         theme: 'dark',
       }
 
-      await chrome.storage.local.set({ 'hchat:config': savedConfig })
+      await chrome.storage.local.set({ [SK.CONFIG]: savedConfig })
 
       const { result } = renderHook(() => useConfig())
 
@@ -54,7 +55,7 @@ describe('useConfig', () => {
         aws: { accessKeyId: 'new-key' },
       }
 
-      await chrome.storage.local.set({ 'hchat:config': partialConfig })
+      await chrome.storage.local.set({ [SK.CONFIG]: partialConfig })
 
       const { result } = renderHook(() => useConfig())
 
@@ -72,7 +73,7 @@ describe('useConfig', () => {
         openai: { apiKey: 'test-key' },
       }
 
-      await chrome.storage.local.set({ 'hchat:config': partialConfig })
+      await chrome.storage.local.set({ [SK.CONFIG]: partialConfig })
 
       const { result } = renderHook(() => useConfig())
 
@@ -88,7 +89,7 @@ describe('useConfig', () => {
         gemini: { apiKey: 'gemini-key' },
       }
 
-      await chrome.storage.local.set({ 'hchat:config': partialConfig })
+      await chrome.storage.local.set({ [SK.CONFIG]: partialConfig })
 
       const { result } = renderHook(() => useConfig())
 
@@ -104,7 +105,7 @@ describe('useConfig', () => {
         budget: { monthly: 50, warnThreshold: 80, critThreshold: 95, webhookUrl: '', webhookEnabled: false },
       }
 
-      await chrome.storage.local.set({ 'hchat:config': partialConfig })
+      await chrome.storage.local.set({ [SK.CONFIG]: partialConfig })
 
       const { result } = renderHook(() => useConfig())
 
@@ -129,7 +130,7 @@ describe('useConfig', () => {
     })
 
     it('handles null storage value', async () => {
-      await chrome.storage.local.set({ 'hchat:config': null })
+      await chrome.storage.local.set({ [SK.CONFIG]: null })
 
       const { result } = renderHook(() => useConfig())
 
@@ -155,8 +156,8 @@ describe('useConfig', () => {
         expect(result.current.config.defaultModel).toBe('new-model')
       })
 
-      const saved = await chrome.storage.local.get('hchat:config')
-      expect(saved['hchat:config'].defaultModel).toBe('new-model')
+      const saved = await chrome.storage.local.get(SK.CONFIG)
+      expect(saved[SK.CONFIG].defaultModel).toBe('new-model')
     })
 
     it('deep-merges nested objects on update', async () => {
@@ -186,7 +187,7 @@ describe('useConfig', () => {
         language: 'en',
       }
 
-      await chrome.storage.local.set({ 'hchat:config': initialConfig })
+      await chrome.storage.local.set({ [SK.CONFIG]: initialConfig })
 
       const { result } = renderHook(() => useConfig())
 
@@ -219,8 +220,8 @@ describe('useConfig', () => {
         expect(result.current.config.aws.accessKeyId).toBe('key')
       })
 
-      const awsCreds = await chrome.storage.local.get('hchat:config:aws')
-      expect(awsCreds['hchat:config:aws']).toEqual({
+      const awsCreds = await chrome.storage.local.get(SK.CONFIG_AWS)
+      expect(awsCreds[SK.CONFIG_AWS]).toEqual({
         accessKeyId: 'key',
         secretAccessKey: 'secret',
         region: 'us-west-1',
@@ -300,7 +301,7 @@ describe('useConfig', () => {
         aws: { accessKeyId: 'key', secretAccessKey: 'secret', region: 'us-east-1' },
       }
 
-      await chrome.storage.local.set({ 'hchat:config': configWithAws })
+      await chrome.storage.local.set({ [SK.CONFIG]: configWithAws })
 
       const { result } = renderHook(() => useConfig())
 
@@ -316,7 +317,7 @@ describe('useConfig', () => {
         aws: { accessKeyId: 'key', secretAccessKey: '', region: 'us-east-1' },
       }
 
-      await chrome.storage.local.set({ 'hchat:config': configPartialAws })
+      await chrome.storage.local.set({ [SK.CONFIG]: configPartialAws })
 
       const { result } = renderHook(() => useConfig())
 

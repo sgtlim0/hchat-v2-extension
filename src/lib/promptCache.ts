@@ -2,10 +2,11 @@
 
 import { Storage } from './storage'
 import { buildBM25Index, scoreBM25 } from './bm25'
+import { SK } from './storageKeys'
 
 // ── Constants ──
 
-export const STORAGE_KEY = 'hchat:prompt-cache'
+export const STORAGE_KEY = SK.PROMPT_CACHE
 export const DEFAULT_TTL = 24 * 60 * 60 * 1000 // 24 hours
 export const MAX_ENTRIES = 100
 const TOKENS_PER_CHAR = 0.25 // rough estimate for token counting

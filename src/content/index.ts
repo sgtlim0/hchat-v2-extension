@@ -2,52 +2,8 @@
 // Runs on all pages
 
 import './toolbar'
-
-// ── Page context tracking ──────────────────────
-function extractMainContent(): string {
-  // Try semantic elements first, then fall back to body
-  const candidates = [
-    document.querySelector('article'),
-    document.querySelector('[role="main"]'),
-    document.querySelector('main'),
-    document.querySelector('#content'),
-    document.querySelector('.content'),
-  ].filter(Boolean) as HTMLElement[]
-
-  // Pick the candidate with the most text, or fall back to body
-  let best = document.body
-  let bestLen = 0
-  for (const el of candidates) {
-    const len = el.innerText?.length ?? 0
-    if (len > bestLen) { best = el; bestLen = len }
-  }
-
-  const text = best.innerText?.replace(/\n{3,}/g, '\n\n').trim() ?? ''
-  // If semantic elements gave too little, use body
-  if (text.length < 100) {
-    return document.body.innerText.replace(/\n{3,}/g, '\n\n').trim().slice(0, 8000)
-  }
-  return text.slice(0, 8000)
-}
-
-function detectPageType(url: string): string {
-  if (/github\.com|gitlab\.com|bitbucket\.org/.test(url)) return 'code'
-  if (/youtube\.com|youtu\.be|vimeo\.com/.test(url)) return 'video'
-  if (/twitter\.com|x\.com|reddit\.com/.test(url)) return 'social'
-  if (/docs\.|documentation|wiki|readme/i.test(url)) return 'docs'
-  return 'unknown'
-}
-
-function updatePageContext() {
-  const ctx = {
-    url: location.href,
-    title: document.title,
-    text: extractMainContent(),
-    meta: { type: detectPageType(location.href) },
-    ts: Date.now(),
-  }
-  chrome.storage.local.set({ 'hchat:page-context': ctx })
-}
+import { updatePageContext } from './pageContext'
+import { SK } from '../lib/storageKeys'
 
 // Initial context capture (after page loads)
 setTimeout(updatePageContext, 1500)
@@ -62,6 +18,12 @@ const observer = new MutationObserver(() => {
 })
 observer.observe(document.documentElement, { childList: true, subtree: true })
 
+// Cleanup observer on page unload to prevent memory leaks
+window.addEventListener('beforeunload', () => {
+  observer.disconnect()
+  if (selTimer) clearTimeout(selTimer)
+})
+
 // Text selection → update context with selection
 let selTimer: ReturnType<typeof setTimeout> | null = null
 document.addEventListener('mouseup', () => {
@@ -69,11 +31,11 @@ document.addEventListener('mouseup', () => {
   selTimer = setTimeout(() => {
     const sel = window.getSelection()?.toString().trim()
     if (sel && sel.length > 10) {
-      chrome.storage.local.get('hchat:page-context', (r) => {
-        const ctx = r['hchat:page-context']
+      chrome.storage.local.get(SK.PAGE_CONTEXT, (r) => {
+        const ctx = r[SK.PAGE_CONTEXT]
         if (ctx) {
           chrome.storage.local.set({
-            'hchat:page-context': { ...ctx, selection: sel.slice(0, 1000), ts: Date.now() },
+            [SK.PAGE_CONTEXT]: { ...ctx, selection: sel.slice(0, 1000), ts: Date.now() },
           })
         }
       })

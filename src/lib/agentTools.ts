@@ -2,7 +2,9 @@
 
 import { webSearch } from './webSearch'
 import { getGlobalLocale } from '../i18n'
+import { validateExternalUrl } from './urlValidator'
 import type { Tool } from './agent'
+import { SK } from './storageKeys'
 
 function isEn(): boolean {
   return getGlobalLocale() === 'en'
@@ -111,8 +113,8 @@ export const BUILTIN_TOOLS: Tool[] = [
     parameters: {},
     execute: async () => {
       try {
-        const result = await chrome.storage.local.get('hchat:page-context')
-        const ctx = result['hchat:page-context']
+        const result = await chrome.storage.local.get(SK.PAGE_CONTEXT)
+        const ctx = result[SK.PAGE_CONTEXT]
         if (!ctx) return isEn() ? 'Cannot read current page context.' : '현재 페이지 컨텍스트를 읽을 수 없습니다.'
         return `Title: ${ctx.title}\nURL: ${ctx.url}\nType: ${ctx.meta?.type ?? 'unknown'}\n\n${ctx.text}`
       } catch {
@@ -128,7 +130,12 @@ export const BUILTIN_TOOLS: Tool[] = [
     },
     execute: async (params) => {
       try {
-        const res = await fetch(params.url as string, {
+        const urlStr = params.url as string
+        const validation = validateExternalUrl(urlStr)
+        if (!validation.valid) {
+          return `${isEn() ? 'Blocked URL' : '차단된 URL'}: ${validation.reason}`
+        }
+        const res = await fetch(urlStr, {
           headers: { 'User-Agent': 'Mozilla/5.0 (compatible; HChatBot/2.0)' },
         })
         if (!res.ok) return `HTTP ${isEn() ? 'error' : '오류'}: ${res.status}`

@@ -1,8 +1,9 @@
 // lib/workflowBuilder.ts — 워크플로우 빌더 (노드 기반 AI 파이프라인)
 
 import { Storage } from './storage'
+import { SK } from './storageKeys'
 
-const STORAGE_KEY = 'hchat:workflows'
+const STORAGE_KEY = SK.WORKFLOWS
 const MAX_WORKFLOWS = 20
 const MAX_STEPS = 20
 

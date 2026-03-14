@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { generateSummary, saveSummary, loadSummary, deleteSummary } from '../summarize'
 import type { Conversation } from '../chatHistory'
 import type { Message } from '../providers/types'
+import { SK } from '../storageKeys'
 
 // Mock BedrockProvider as a class constructor
 vi.mock('../providers/bedrock-provider', () => {
@@ -124,9 +125,9 @@ describe('summarize', () => {
 
       await saveSummary(summary)
 
-      const result = await chrome.storage.local.get('hchat:summaries')
-      expect(result['hchat:summaries']).toBeDefined()
-      expect(result['hchat:summaries']['conv-123']).toEqual(summary)
+      const result = await chrome.storage.local.get(SK.SUMMARIES)
+      expect(result[SK.SUMMARIES]).toBeDefined()
+      expect(result[SK.SUMMARIES]['conv-123']).toEqual(summary)
     })
 
     it('overwrites existing summary for same conversation', async () => {

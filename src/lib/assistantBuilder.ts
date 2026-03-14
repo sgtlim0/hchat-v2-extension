@@ -2,6 +2,7 @@
 
 import { Storage } from './storage'
 import { t } from '../i18n'
+import { SK } from './storageKeys'
 
 export interface AssistantParameters {
   temperature?: number
@@ -27,8 +28,8 @@ export interface CustomAssistant {
   updatedAt: number
 }
 
-const STORAGE_KEY = 'hchat:assistants'
-const ACTIVE_ASSISTANT_KEY = 'hchat:active-assistant'
+const STORAGE_KEY = SK.ASSISTANTS
+const ACTIVE_ASSISTANT_KEY = SK.ACTIVE_ASSISTANT
 
 /**
  * Returns the built-in assistants with localized names and descriptions.

@@ -1,6 +1,7 @@
 // lib/pageContext.ts — Page context tracking for sidebar chat
 
 import { getGlobalLocale } from '../i18n'
+import { SK } from './storageKeys'
 
 export interface PageContext {
   url: string
@@ -13,8 +14,8 @@ export interface PageContext {
   ts: number
 }
 
-const CONTEXT_KEY = 'hchat:page-context'
-const CONTEXT_ENABLED_KEY = 'hchat:page-context-enabled'
+const CONTEXT_KEY = SK.PAGE_CONTEXT
+const CONTEXT_ENABLED_KEY = SK.PAGE_CONTEXT_ENABLED
 
 export function detectPageType(url: string): PageContext['meta']['type'] {
   if (/github\.com|gitlab\.com|bitbucket\.org/.test(url)) return 'code'

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { BUILTIN_TOOLS } from '../agentTools'
+import { SK } from '../storageKeys'
 
 // Mock dependencies
 vi.mock('../webSearch', () => ({
@@ -219,7 +220,7 @@ describe('agentTools', () => {
         meta: { type: 'article' },
       }
 
-      await chrome.storage.local.set({ 'hchat:page-context': mockContext })
+      await chrome.storage.local.set({ [SK.PAGE_CONTEXT]: mockContext })
 
       const result = await readPageTool.execute({})
       expect(result).toContain('Title: 테스트 페이지')

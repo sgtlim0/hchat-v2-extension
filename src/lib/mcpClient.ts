@@ -1,6 +1,7 @@
 import { Storage } from './storage'
+import { SK } from './storageKeys'
 
-const STORAGE_KEY = 'hchat:mcp-servers'
+const STORAGE_KEY = SK.MCP_SERVERS
 const MAX_SERVERS = 10
 
 export interface McpServerConfig {

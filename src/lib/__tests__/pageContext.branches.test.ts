@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { SK } from '../storageKeys'
 
 vi.mock('../../i18n', () => ({
   getGlobalLocale: vi.fn(() => 'ko'),
@@ -32,7 +33,7 @@ describe('pageContext branch coverage', () => {
 
     it('returns stored context', async () => {
       const ctx = makeCtx()
-      await chrome.storage.local.set({ 'hchat:page-context': ctx })
+      await chrome.storage.local.set({ [SK.PAGE_CONTEXT]: ctx })
       const result = await getPageContext()
       expect(result).toEqual(ctx)
     })

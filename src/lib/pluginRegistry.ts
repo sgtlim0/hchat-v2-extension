@@ -3,9 +3,11 @@
 import { Storage } from './storage'
 import { getGlobalLocale } from '../i18n'
 import { executeSandboxCode } from './sandboxExecutor'
+import { validateExternalUrl } from './urlValidator'
 import type { Tool } from './agent'
+import { SK } from './storageKeys'
 
-const STORAGE_KEY = 'hchat:plugins'
+const STORAGE_KEY = SK.PLUGINS
 
 export type PluginType = 'webhook' | 'javascript' | 'prompt'
 
@@ -48,6 +50,10 @@ async function savePlugins(plugins: Plugin[]): Promise<void> {
 function executeWebhook(cfg: WebhookConfig): (params: Record<string, unknown>) => Promise<string> {
   return async (params) => {
     try {
+      const validation = validateExternalUrl(cfg.url)
+      if (!validation.valid) {
+        return `Webhook blocked: ${validation.reason}`
+      }
       const url = new URL(cfg.url)
 
       if (cfg.method === 'GET') {

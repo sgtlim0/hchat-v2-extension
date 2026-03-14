@@ -2,6 +2,7 @@
 
 import { Storage } from './storage'
 import type { Conversation } from './chatHistory'
+import { SK } from './storageKeys'
 
 export type ImportSource = 'chatgpt' | 'claude' | 'hchat' | 'unknown'
 
@@ -231,8 +232,8 @@ async function batchImportConversations(
   conversations: Omit<Conversation, 'id'>[],
   errors: string[],
 ): Promise<number> {
-  const PREFIX = 'hchat:conv:'
-  const INDEX_KEY = 'hchat:conv-index'
+  const PREFIX = SK.CONV_PREFIX
+  const INDEX_KEY = SK.CONV_INDEX
 
   try {
     // Get current index

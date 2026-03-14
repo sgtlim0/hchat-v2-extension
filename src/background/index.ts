@@ -7,6 +7,7 @@ import { GeminiProvider } from '../lib/providers/gemini-provider'
 import { OllamaProvider } from '../lib/providers/ollama-provider'
 import { OpenRouterProvider } from '../lib/providers/openrouter-provider'
 import type { AIProvider } from '../lib/providers/types'
+import { SK } from '../lib/storageKeys'
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
@@ -76,7 +77,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
     })
   }
   if (msg.type === 'CONFIG_UPDATED') {
-    chrome.storage.local.set({ 'hchat:config': msg.config })
+    chrome.storage.local.set({ [SK.CONFIG]: msg.config })
   }
   if (msg.type === 'SAVE_HIGHLIGHT') {
     handleSaveHighlight(msg.data).then((h) => reply?.({ ok: true, highlight: h }))
@@ -95,7 +96,7 @@ async function handleSaveHighlight(data: {
   text: string; url: string; title: string;
   xpath: string; textOffset: number; color: string; tags: string[]
 }) {
-  const key = 'hchat:highlights'
+  const key = SK.HIGHLIGHTS
   const result = await chrome.storage.local.get(key)
   const all = result[key] ?? []
   const highlight = {
@@ -110,7 +111,7 @@ async function handleSaveHighlight(data: {
 }
 
 async function handleGetHighlights(url: string) {
-  const key = 'hchat:highlights'
+  const key = SK.HIGHLIGHTS
   const result = await chrome.storage.local.get(key)
   const all = result[key] ?? []
   return all.filter((h: { url: string }) => h.url === url)
@@ -127,8 +128,8 @@ chrome.tabs.onActivated.addListener(async ({ tabId }) => {
 
 // ── Helper: get config from storage ──
 async function getStoredConfig() {
-  const result = await chrome.storage.local.get('hchat:config')
-  return result['hchat:config'] ?? {}
+  const result = await chrome.storage.local.get(SK.CONFIG)
+  return result[SK.CONFIG] ?? {}
 }
 
 // ── Helper: create provider from stored config ──
@@ -222,7 +223,7 @@ chrome.commands?.onCommand?.addListener(async (command) => {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
     if (tab?.id) {
       await chrome.storage.local.set({
-        'hchat:quick-action': { action: 'summarize', ts: Date.now() },
+        [SK.QUICK_ACTION]: { action: 'summarize', ts: Date.now() },
       })
       await chrome.sidePanel.open({ tabId: tab.id })
     }

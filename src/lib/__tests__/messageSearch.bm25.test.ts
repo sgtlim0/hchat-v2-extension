@@ -2,6 +2,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { searchMessages, updateIndexForMessage, rebuildIndex, removeFromIndex } from '../messageSearch'
+import { SK } from '../storageKeys'
 
 // Mock storage
 vi.mock('../storage', () => ({
@@ -94,16 +95,15 @@ describe('messageSearch BM25 integration', () => {
   })
 
   it('uses scoreBM25 for scoring when documents match', async () => {
-    const { ChatHistory } = await import('../chatHistory')
-    vi.mocked(ChatHistory.listIndex).mockResolvedValueOnce([
-      { id: 'conv1', title: 'Test', lastTs: Date.now(), messageCount: 1 },
-    ])
-    vi.mocked(ChatHistory.get).mockResolvedValueOnce({
-      id: 'conv1',
-      title: 'Test',
-      messages: [{ id: 'msg1', role: 'user', content: 'hello world test', ts: Date.now() }],
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+    // Set up chrome.storage with conversation data for batch-read buildIndex
+    await chrome.storage.local.set({
+      [`${SK.CONV_PREFIX}conv1`]: {
+        id: 'conv1',
+        title: 'Test',
+        messages: [{ id: 'msg1', role: 'user', content: 'hello world test', ts: Date.now() }],
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      },
     })
 
     mockedStorageGet.mockResolvedValueOnce(null) // version check
@@ -116,16 +116,14 @@ describe('messageSearch BM25 integration', () => {
   })
 
   it('uses combinedScore to merge BM25 and recency', async () => {
-    const { ChatHistory } = await import('../chatHistory')
-    vi.mocked(ChatHistory.listIndex).mockResolvedValueOnce([
-      { id: 'conv1', title: 'Test', lastTs: Date.now(), messageCount: 1 },
-    ])
-    vi.mocked(ChatHistory.get).mockResolvedValueOnce({
-      id: 'conv1',
-      title: 'Test',
-      messages: [{ id: 'msg1', role: 'user', content: 'hello world test', ts: Date.now() }],
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+    await chrome.storage.local.set({
+      [`${SK.CONV_PREFIX}conv1`]: {
+        id: 'conv1',
+        title: 'Test',
+        messages: [{ id: 'msg1', role: 'user', content: 'hello world test', ts: Date.now() }],
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      },
     })
 
     mockedStorageGet.mockResolvedValueOnce(null)
@@ -335,16 +333,14 @@ describe('messageSearch BM25 integration', () => {
   })
 
   it('calculateScore uses BM25 formula not old TF', async () => {
-    const { ChatHistory } = await import('../chatHistory')
-    vi.mocked(ChatHistory.listIndex).mockResolvedValueOnce([
-      { id: 'conv1', title: 'Conv', lastTs: Date.now(), messageCount: 1 },
-    ])
-    vi.mocked(ChatHistory.get).mockResolvedValueOnce({
-      id: 'conv1',
-      title: 'Conv',
-      messages: [{ id: 'msg1', role: 'user', content: 'test message for BM25 scoring', ts: Date.now() }],
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+    await chrome.storage.local.set({
+      [`${SK.CONV_PREFIX}conv1`]: {
+        id: 'conv1',
+        title: 'Conv',
+        messages: [{ id: 'msg1', role: 'user', content: 'test message for BM25 scoring', ts: Date.now() }],
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      },
     })
 
     mockedStorageGet.mockResolvedValueOnce(null)

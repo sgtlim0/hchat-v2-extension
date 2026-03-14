@@ -2,14 +2,15 @@ import { useEffect, useState } from 'react'
 import '../styles/global.css'
 import { useLocale } from '../i18n'
 import { PROVIDER_COLORS } from '../lib/providers/types'
+import { SK } from '../lib/storageKeys'
 
 export function PopupApp() {
   const { t } = useLocale()
   const [hasCredentials, setHasCredentials] = useState(false)
 
   useEffect(() => {
-    chrome.storage.local.get('hchat:config', (r) => {
-      const cfg = r['hchat:config']
+    chrome.storage.local.get(SK.CONFIG, (r) => {
+      const cfg = r[SK.CONFIG]
       setHasCredentials(!!cfg?.aws?.accessKeyId && !!cfg?.aws?.secretAccessKey)
     })
   }, [])

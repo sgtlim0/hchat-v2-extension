@@ -1,6 +1,8 @@
 // providers/gemini-provider.ts — Google Gemini provider (direct fetch, no SDK)
 
 import type { AIProvider, ModelDef, SendParams, ContentPart, ProviderType } from './types'
+import { readSSEStream } from './sse-parser'
+import { throwProviderError } from './error-parser'
 
 export const GEMINI_MODELS: ModelDef[] = [
   {
@@ -88,78 +90,44 @@ export class GeminiProvider implements AIProvider {
       body.systemInstruction = { parts: [{ text: systemPrompt }] }
     }
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${this.apiKey}`
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse`
 
     const res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': this.apiKey,
+      },
       body: JSON.stringify(body),
       signal: params.signal,
     })
 
-    if (!res.ok) {
-      const errText = await res.text()
-      let errMsg = `HTTP ${res.status}`
-      try {
-        const errJson = JSON.parse(errText)
-        errMsg = errJson.error?.message ?? errMsg
-      } catch {
-        errMsg = errText || errMsg
-      }
-      throw new Error(errMsg)
-    }
+    if (!res.ok) await throwProviderError(res)
 
     if (!res.body) throw new Error('응답 스트림이 없습니다')
 
-    return yield* this.readSSEStream(res.body)
-  }
-
-  private async *readSSEStream(body: ReadableStream<Uint8Array>): AsyncGenerator<string, string> {
-    const reader = body.getReader()
-    const decoder = new TextDecoder()
-    let fullText = ''
-    let buffer = ''
-
-    try {
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n')
-        buffer = lines.pop() ?? ''
-
-        for (const line of lines) {
-          const trimmed = line.trim()
-          if (!trimmed || !trimmed.startsWith('data: ')) continue
-          const data = trimmed.slice(6)
-
-          try {
-            const parsed = JSON.parse(data)
-            const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text
-            if (text) {
-              fullText += text
-              yield text
-            }
-          } catch {
-            // Invalid JSON line, skip
-          }
-        }
+    return yield* readSSEStream(
+      res.body,
+      (p: unknown) => {
+        const obj = p as Record<string, unknown>
+        const candidates = obj?.candidates as Array<Record<string, unknown>> | undefined
+        const content = candidates?.[0]?.content as Record<string, unknown> | undefined
+        const parts = content?.parts as Array<Record<string, unknown>> | undefined
+        return parts?.[0]?.text as string | undefined
       }
-    } finally {
-      reader.releaseLock()
-    }
-
-    return fullText
+    )
   }
 
   async testConnection(): Promise<boolean> {
     if (!this.isConfigured()) return false
     try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${this.apiKey}`
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`
       const res = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': this.apiKey,
+        },
         body: JSON.stringify({
           contents: [{ role: 'user', parts: [{ text: 'Hi' }] }],
           generationConfig: { maxOutputTokens: 5 },

@@ -4,6 +4,7 @@ import type { Message } from './providers/types'
 import { BedrockProvider } from './providers/bedrock-provider'
 import type { AwsCredentials } from '../hooks/useConfig'
 import type { Conversation } from './chatHistory'
+import { SK } from './storageKeys'
 
 export interface Summary {
   convId: string
@@ -12,7 +13,7 @@ export interface Summary {
   messageCount: number
 }
 
-const STORAGE_KEY = 'hchat:summaries'
+const STORAGE_KEY = SK.SUMMARIES
 
 /** Generate a summary for a conversation using the cheapest available model */
 export async function generateSummary(

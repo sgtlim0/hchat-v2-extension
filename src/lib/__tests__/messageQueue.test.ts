@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { MessageQueue, type QueuedMessage } from '../messageQueue'
 import { Storage } from '../storage'
+import { SK } from '../storageKeys'
 
 describe('MessageQueue', () => {
   describe('enqueue', () => {
@@ -173,13 +174,13 @@ describe('MessageQueue', () => {
       await MessageQueue.enqueue({ convId: 'c1', text: 'persisted', model: 'm1' })
 
       // Verify data is in storage
-      const stored = await Storage.get<QueuedMessage[]>('hchat:message-queue')
+      const stored = await Storage.get<QueuedMessage[]>(SK.MESSAGE_QUEUE)
       expect(stored).toHaveLength(1)
       expect(stored![0].text).toBe('persisted')
 
       // Process and verify storage is updated
       await MessageQueue.processQueue(async () => {})
-      const afterProcess = await Storage.get<QueuedMessage[]>('hchat:message-queue')
+      const afterProcess = await Storage.get<QueuedMessage[]>(SK.MESSAGE_QUEUE)
       expect(afterProcess).toHaveLength(0)
     })
   })

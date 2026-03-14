@@ -1,6 +1,7 @@
 import { Storage } from './storage'
+import { SK } from './storageKeys'
 
-const QUEUE_KEY = 'hchat:message-queue'
+const QUEUE_KEY = SK.MESSAGE_QUEUE
 
 export interface QueuedMessage {
   readonly id: string

@@ -1,6 +1,7 @@
 /** Conversation folder management */
 
 import { Storage } from './storage'
+import { SK } from './storageKeys'
 
 export interface Folder {
   id: string
@@ -9,7 +10,7 @@ export interface Folder {
   createdAt: number
 }
 
-const KEY = 'hchat:folders'
+const KEY = SK.FOLDERS
 
 const DEFAULT_COLORS = ['#34d399', '#60a5fa', '#fbbf24', '#f472b6', '#a78bfa', '#fb923c']
 

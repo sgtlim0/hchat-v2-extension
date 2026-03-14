@@ -153,7 +153,8 @@ describe('webSearch', () => {
       expect(results[0].title).toBe('Google Result 1')
       expect(results[0].url).toBe('https://example.com/google1')
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('googleapis.com/customsearch')
+        expect.stringContaining('googleapis.com/customsearch'),
+        undefined,
       )
     })
 

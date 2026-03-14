@@ -77,24 +77,19 @@ export async function executeAgentMode(params: ExecuteAgentParams): Promise<void
     },
   })
 
-  // Finalize agent message
-  setMessages((prev) => {
-    const final = prev.find((m) => m.id === placeholderId)
-    if (final) {
-      ChatHistory.addMessage(convId, {
-        role: 'assistant',
-        content: finalText,
-        model,
-        agentSteps: steps,
-      })
-    }
-    return prev.map((m) => m.id === placeholderId
-      ? { ...m, content: finalText, streaming: false, agentSteps: steps }
-      : m)
+  // Side effects (outside state updater)
+  ChatHistory.addMessage(convId, {
+    role: 'assistant',
+    content: finalText,
+    model,
+    agentSteps: steps,
   })
-
-  // Track usage
   Usage.track(model, providerType, text, finalText, 'agent').catch(() => {})
+
+  // Pure state update
+  setMessages((prev) => prev.map((m) => m.id === placeholderId
+    ? { ...m, content: finalText, streaming: false, agentSteps: steps }
+    : m))
   trackUsage('model', model).catch(() => {})
   if (assistantId !== 'ast-default') {
     trackUsage('assistant', assistantId).catch(() => {})

@@ -177,8 +177,12 @@ const chromeMock = {
 Object.defineProperty(globalThis, 'chrome', { value: chromeMock, writable: true })
 
 // Reset storage between tests
-beforeEach(() => {
+beforeEach(async () => {
   storageData = {}
   changeListeners.length = 0
   vi.clearAllMocks()
+  // Clear in-memory Storage cache to prevent stale reads
+  // Use optional chaining because some tests mock the storage module
+  const { Storage } = await import('../lib/storage')
+  Storage.invalidateCache?.()
 })

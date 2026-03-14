@@ -128,11 +128,10 @@ async function buildIndex(): Promise<InvertedIndex> {
 
 /** Build BM25 index from inverted index documents */
 function buildBM25FromInverted(index: InvertedIndex): BM25Index {
-  const docs: BM25Document[] = Object.entries(index.docs).map(([docId, doc]) => ({
-    id: docId,
-    tokens: tokenize(doc.content),
-    length: tokenize(doc.content).length,
-  }))
+  const docs: BM25Document[] = Object.entries(index.docs).map(([docId, doc]) => {
+    const tokens = tokenize(doc.content)
+    return { id: docId, tokens, length: tokens.length }
+  })
   return buildBM25Index(docs)
 }
 
@@ -236,10 +235,11 @@ export async function rebuildIndex(): Promise<void> {
 
 /** Calculate relevance score using BM25 + recency */
 function calculateScore(doc: IndexedDocument, queryTokens: string[], _matchCount: number, bm25Index: BM25Index): number {
+  const tokens = tokenize(doc.content)
   const bm25Doc: BM25Document = {
     id: `${doc.convId}:${doc.msgId}`,
-    tokens: tokenize(doc.content),
-    length: tokenize(doc.content).length,
+    tokens,
+    length: tokens.length,
   }
   const bm25Score = scoreBM25(bm25Doc, queryTokens, bm25Index)
   return combinedScore(bm25Score, doc.ts)
@@ -349,6 +349,6 @@ function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
-function escapeRegex(s: string): string {
+export function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }

@@ -6,6 +6,13 @@ let sandboxFrame: HTMLIFrameElement | null = null
 let sandboxReady = false
 const pendingRequests = new Map<string, { resolve: (v: string) => void; timer: ReturnType<typeof setTimeout> }>()
 
+/** Get the extension origin for secure postMessage targeting */
+function getExtensionOrigin(): string {
+  const url = chrome.runtime.getURL('')
+  // Remove trailing slash: "chrome-extension://id/" → "chrome-extension://id"
+  return url.replace(/\/$/, '')
+}
+
 function getSandboxFrame(): HTMLIFrameElement {
   if (sandboxFrame && document.body.contains(sandboxFrame)) return sandboxFrame
 
@@ -20,7 +27,11 @@ function getSandboxFrame(): HTMLIFrameElement {
   return sandboxFrame
 }
 
-function handleSandboxMessage(event: MessageEvent) {
+export function handleSandboxMessage(event: MessageEvent): void {
+  // Origin check: only accept messages from the sandbox (null origin) or extension itself
+  const expectedOrigin = getExtensionOrigin()
+  if (event.origin !== 'null' && event.origin !== expectedOrigin) return
+
   const { id, result, error } = event.data ?? {}
   if (!id || !pendingRequests.has(id)) return
 
@@ -49,6 +60,8 @@ export function executeSandboxCode(code: string, input: string): Promise<string>
     pendingRequests.set(id, { resolve, timer })
 
     const sendMessage = () => {
+      // Use '*' for sandbox target because sandboxed pages have null origin
+      // and cannot receive messages targeted to a specific origin
       frame.contentWindow?.postMessage({ id, code, input }, '*')
     }
 

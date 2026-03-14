@@ -1,6 +1,15 @@
-import { useState, useEffect, useRef } from 'react'
-import { searchMessages, highlightMatch, type SearchResult } from '../lib/messageSearch'
+import React, { useState, useEffect, useRef } from 'react'
+import { searchMessages, escapeRegex, type SearchResult } from '../lib/messageSearch'
 import { useLocale } from '../i18n'
+
+function highlightMatchElements(snippet: string, query: string): React.ReactNode[] {
+  if (!query.trim()) return [snippet]
+  const regex = new RegExp(`(${escapeRegex(query)})`, 'gi')
+  const parts = snippet.split(regex)
+  return parts.map((part, i) =>
+    regex.test(part) ? React.createElement('mark', { key: i }, part) : part
+  )
+}
 
 interface Props {
   open: boolean
@@ -91,10 +100,9 @@ export function MessageSearchModal({ open, onClose, onSelect }: Props) {
                 <span className="search-result-conv">{r.convTitle}</span>
                 <span className="search-result-time">{rel(r.message.ts)}</span>
               </div>
-              <div
-                className="search-result-snippet"
-                dangerouslySetInnerHTML={{ __html: highlightMatch(r.matchSnippet, query) }}
-              />
+              <div className="search-result-snippet">
+                {highlightMatchElements(r.matchSnippet, query)}
+              </div>
             </div>
           ))}
         </div>

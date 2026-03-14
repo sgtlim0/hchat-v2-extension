@@ -70,6 +70,7 @@ const mockProvider = {
 
 vi.mock('../../lib/providers/provider-factory', () => ({
   createAllProviders: () => [mockProvider],
+  getAllModels: () => [{ id: 'us.anthropic.claude-sonnet-4-6', name: 'Claude Sonnet', provider: 'bedrock' }],
   getProviderForModel: () => mockProvider,
   getModelDef: () => ({ provider: 'bedrock' }),
 }))

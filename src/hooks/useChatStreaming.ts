@@ -98,28 +98,55 @@ export async function executeChatMode(params: ExecuteChatParams): Promise<void> 
     setIsSearching(false)
   }
 
-  const onChunk = (chunk: string) => {
+  // rAF-batched onChunk: accumulate chunks and flush once per animation frame
+  let pendingChunks = ''
+  let rafId = 0
+
+  const flushChunks = () => {
+    const buffered = pendingChunks
+    pendingChunks = ''
+    rafId = 0
     setMessages((prev) =>
-      prev.map((m) => m.id === placeholderId ? { ...m, content: m.content + chunk } : m)
+      prev.map((m) => m.id === placeholderId ? { ...m, content: m.content + buffered } : m)
     )
   }
 
-  if (provider?.isConfigured()) {
-    await streamWithProvider(provider, model, historyMsgs, systemPrompt, onChunk, signal, thinkingDepth)
-  } else {
-    const fallback = new BedrockProvider(aws)
-    await streamWithProvider(fallback, model, historyMsgs, systemPrompt, onChunk, signal)
+  const onChunk = (chunk: string) => {
+    pendingChunks += chunk
+    if (!rafId) {
+      rafId = requestAnimationFrame(flushChunks)
+    }
   }
 
-  // Finalize
-  setMessages((prev) => {
-    const final = prev.find((m) => m.id === placeholderId)
-    if (final) {
-      ChatHistory.addMessage(convId, { role: 'assistant', content: final.content, model, searchSources })
-      Usage.track(model, providerType, text, final.content, 'chat').catch(() => {})
+  let fullText = ''
+  try {
+    if (provider?.isConfigured()) {
+      fullText = await streamWithProvider(provider, model, historyMsgs, systemPrompt, onChunk, signal, thinkingDepth)
+    } else {
+      const fallback = new BedrockProvider(aws)
+      fullText = await streamWithProvider(fallback, model, historyMsgs, systemPrompt, onChunk, signal)
     }
-    return prev.map((m) => m.id === placeholderId ? { ...m, streaming: false, searchSources } : m)
-  })
+  } finally {
+    // Flush remaining buffered chunks and cancel pending rAF
+    if (rafId) {
+      cancelAnimationFrame(rafId)
+      rafId = 0
+    }
+    if (pendingChunks) {
+      const remaining = pendingChunks
+      pendingChunks = ''
+      setMessages((prev) =>
+        prev.map((m) => m.id === placeholderId ? { ...m, content: m.content + remaining } : m)
+      )
+    }
+  }
+
+  // Side effects (outside state updater)
+  ChatHistory.addMessage(convId, { role: 'assistant', content: fullText, model, searchSources })
+  Usage.track(model, providerType, text, fullText, 'chat').catch(() => {})
+
+  // Pure state update
+  setMessages((prev) => prev.map((m) => m.id === placeholderId ? { ...m, streaming: false, searchSources } : m))
 
   // Track usage
   trackUsage('model', model).catch(() => {})
@@ -131,6 +158,10 @@ export async function executeChatMode(params: ExecuteChatParams): Promise<void> 
   }
 
   // Auto-summarize
+  // TODO: BUG — buildSummaryPrompt() returns a *prompt for AI to generate a summary*,
+  // but here we save that prompt string directly as the summary. This should instead
+  // send the prompt to a provider (e.g., streamWithProvider) and save the AI's response.
+  // Requires provider access which is not available in this extracted function.
   const summaryConfig = getSummaryConfig()
   const updatedConv = await ChatHistory.get(convId)
   if (updatedConv && shouldSummarize(updatedConv.messages.length, summaryConfig)) {

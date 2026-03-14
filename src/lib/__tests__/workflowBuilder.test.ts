@@ -539,4 +539,145 @@ describe('importWorkflows', () => {
     expect(list).toHaveLength(1)
     expect(list[0].name).toBe('Round Trip')
   })
+
+  it('stops importing when max workflows reached', async () => {
+    for (let i = 0; i < 19; i++) {
+      await saveWorkflow(makeWorkflow({ name: `Existing ${i}` }))
+    }
+
+    const exportData = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      workflows: [
+        { ...makeWorkflow({ name: 'Import 1' }), id: 'wf-i1', createdAt: 0, updatedAt: 0 },
+        { ...makeWorkflow({ name: 'Import 2' }), id: 'wf-i2', createdAt: 0, updatedAt: 0 },
+      ],
+    }
+
+    const count = await importWorkflows(JSON.stringify(exportData))
+    expect(count).toBe(1) // only 1 fits (19 + 1 = 20 max)
+  })
+})
+
+// --- validateWorkflow with condition branches ---
+
+describe('validateWorkflow condition branch reachability', () => {
+  it('validates workflow with condition node and all branches reachable', () => {
+    const condNode: WorkflowNode = {
+      id: 'cond',
+      type: 'condition',
+      label: 'Condition',
+      config: {
+        pattern: 'test',
+        mode: 'contains',
+        trueBranch: 'true-node',
+        falseBranch: 'false-node',
+      },
+    }
+    const trueNode = makeNode({ id: 'true-node', label: 'True' })
+    const falseNode = makeNode({ id: 'false-node', label: 'False' })
+    const wf: Workflow = {
+      id: 'wf-1',
+      name: 'Cond Valid',
+      nodes: [condNode, trueNode, falseNode],
+      startNodeId: 'cond',
+      createdAt: 0,
+      updatedAt: 0,
+    }
+
+    const result = validateWorkflow(wf)
+    expect(result.valid).toBe(true)
+  })
+
+  it('detects disconnected nodes with condition having only trueBranch used', () => {
+    const condNode: WorkflowNode = {
+      id: 'cond',
+      type: 'condition',
+      label: 'Condition',
+      config: {
+        pattern: 'test',
+        mode: 'contains',
+        trueBranch: 'true-node',
+        falseBranch: 'false-node',
+      },
+    }
+    const trueNode = makeNode({ id: 'true-node', label: 'True' })
+    const falseNode = makeNode({ id: 'false-node', label: 'False' })
+    const orphanNode = makeNode({ id: 'orphan', label: 'Orphan' })
+    const wf: Workflow = {
+      id: 'wf-1',
+      name: 'Disconnected',
+      nodes: [condNode, trueNode, falseNode, orphanNode],
+      startNodeId: 'cond',
+      createdAt: 0,
+      updatedAt: 0,
+    }
+
+    const result = validateWorkflow(wf)
+    expect(result.valid).toBe(false)
+    expect(result.errors.some((e) => e.includes('orphan'))).toBe(true)
+  })
+
+  it('detects cycle in condition branches', () => {
+    const condNode: WorkflowNode = {
+      id: 'cond',
+      type: 'condition',
+      label: 'Condition',
+      config: {
+        pattern: 'test',
+        mode: 'contains',
+        trueBranch: 'n1',
+        falseBranch: 'n2',
+      },
+    }
+    const n1 = makeNode({ id: 'n1', label: 'N1', nextNodeId: 'cond' }) // cycle back
+    const n2 = makeNode({ id: 'n2', label: 'N2' })
+    const wf: Workflow = {
+      id: 'wf-1',
+      name: 'Cycle Cond',
+      nodes: [condNode, n1, n2],
+      startNodeId: 'cond',
+      createdAt: 0,
+      updatedAt: 0,
+    }
+
+    const result = validateWorkflow(wf)
+    expect(result.valid).toBe(false)
+    expect(result.errors.some((e) => e.includes('순환'))).toBe(true)
+  })
+})
+
+// --- executeWorkflow with invalid regex ---
+
+describe('executeWorkflow condition regex edge cases', () => {
+  const mockExecutor: NodeExecutor = vi.fn(async (_node, input) => input)
+
+  it('handles invalid regex pattern gracefully (evaluates to false)', async () => {
+    const condNode: WorkflowNode = {
+      id: 'cond',
+      type: 'condition',
+      label: 'Bad Regex',
+      config: {
+        pattern: '[invalid',
+        mode: 'regex',
+        trueBranch: 'true-node',
+        falseBranch: 'false-node',
+      },
+    }
+    const trueNode = makeNode({ id: 'true-node', label: 'True' })
+    const falseNode = makeNode({ id: 'false-node', label: 'False' })
+    const wf: Workflow = {
+      id: 'wf-1',
+      name: 'Bad Regex',
+      nodes: [condNode, trueNode, falseNode],
+      startNodeId: 'cond',
+      createdAt: 0,
+      updatedAt: 0,
+    }
+
+    const result = await executeWorkflow(wf, 'input', mockExecutor)
+    expect(result.success).toBe(true)
+    // Invalid regex should fallback to false
+    expect(result.steps[0].output).toBe('false')
+  })
 })

@@ -8,19 +8,35 @@ import { SK } from '../lib/storageKeys'
 // Initial context capture (after page loads)
 setTimeout(updatePageContext, 1500)
 
-// SPA navigation detection
+// SPA navigation detection via History API interception (more efficient than MutationObserver)
 let lastUrl = location.href
-const observer = new MutationObserver(() => {
+
+function onNavigate() {
   if (location.href !== lastUrl) {
     lastUrl = location.href
     setTimeout(updatePageContext, 800)
   }
-})
-observer.observe(document.documentElement, { childList: true, subtree: true })
+}
 
-// Cleanup observer on page unload to prevent memory leaks
+// Handle popstate (back/forward)
+window.addEventListener('popstate', onNavigate)
+
+// Intercept pushState/replaceState for SPA frameworks
+const originalPushState = history.pushState.bind(history)
+const originalReplaceState = history.replaceState.bind(history)
+
+history.pushState = function(...args: Parameters<typeof history.pushState>) {
+  originalPushState(...args)
+  onNavigate()
+}
+
+history.replaceState = function(...args: Parameters<typeof history.replaceState>) {
+  originalReplaceState(...args)
+  onNavigate()
+}
+
+// Cleanup on page unload
 window.addEventListener('beforeunload', () => {
-  observer.disconnect()
   if (selTimer) clearTimeout(selTimer)
 })
 

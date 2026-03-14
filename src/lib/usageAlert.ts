@@ -4,6 +4,7 @@ import { Usage } from './usage'
 import { Storage } from './storage'
 import type { BudgetConfig } from '../hooks/useConfig'
 import { SK } from './storageKeys'
+import { safeFetch } from './safeFetch'
 
 export interface UsageAlertState {
   level: 'none' | 'warn' | 'critical'
@@ -110,7 +111,7 @@ export async function sendWebhookAlert(
   const payload = buildWebhookPayload(type, alert)
 
   try {
-    const res = await fetch(webhookUrl, {
+    const res = await safeFetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),

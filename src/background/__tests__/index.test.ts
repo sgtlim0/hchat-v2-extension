@@ -8,13 +8,35 @@ import type { AIProvider } from '../../lib/providers/types'
 import { SK } from '../../lib/storageKeys'
 
 // ── Provider mocks ──────────────────────────────────────
-// Mock all provider modules so importing background/index doesn't attempt real network
+// Mock all provider modules so importing background/index doesn't attempt real network.
+// Each mock provider includes its real model IDs so getProviderForModel works.
 
-function createMockProvider(type: string): AIProvider {
+import type { ModelDef } from '../../lib/providers/types'
+
+const bedrockModels: ModelDef[] = [
+  { id: 'us.anthropic.claude-sonnet-4-6', provider: 'bedrock', label: 'Sonnet', shortLabel: 'S', emoji: '🟣', capabilities: ['chat'], cost: { input: 0, output: 0 } },
+  { id: 'us.anthropic.claude-opus-4-6-v1', provider: 'bedrock', label: 'Opus', shortLabel: 'O', emoji: '🟣', capabilities: ['chat'], cost: { input: 0, output: 0 } },
+  { id: 'us.anthropic.claude-haiku-4-5-20251001-v1:0', provider: 'bedrock', label: 'Haiku', shortLabel: 'H', emoji: '🟣', capabilities: ['chat'], cost: { input: 0, output: 0 } },
+]
+const openaiModels: ModelDef[] = [
+  { id: 'gpt-4o', provider: 'openai', label: 'GPT-4o', shortLabel: 'GPT', emoji: '🟢', capabilities: ['chat'], cost: { input: 0, output: 0 } },
+  { id: 'gpt-4o-mini', provider: 'openai', label: 'GPT-4o mini', shortLabel: 'mini', emoji: '🟢', capabilities: ['chat'], cost: { input: 0, output: 0 } },
+]
+const geminiModels: ModelDef[] = [
+  { id: 'gemini-2.0-flash', provider: 'gemini', label: 'Flash', shortLabel: 'F', emoji: '🔵', capabilities: ['chat'], cost: { input: 0, output: 0 } },
+]
+const ollamaModels: ModelDef[] = [
+  { id: 'llama3', provider: 'ollama', label: 'Llama3', shortLabel: 'L', emoji: '🧠', capabilities: ['chat'], cost: { input: 0, output: 0 } },
+]
+const openrouterModels: ModelDef[] = [
+  { id: 'meta-llama/llama-3-70b', provider: 'openrouter', label: 'Llama 70B', shortLabel: 'L70', emoji: '🦙', capabilities: ['chat'], cost: { input: 0, output: 0 } },
+]
+
+function createMockProvider(type: string, models: ModelDef[]): AIProvider {
   return {
     type: type as AIProvider['type'],
-    models: [],
-    isConfigured: () => true,
+    models,
+    isConfigured: vi.fn(() => true),
     testConnection: vi.fn().mockResolvedValue(true),
     stream: vi.fn(async function* () {
       yield 'chunk1'
@@ -24,26 +46,30 @@ function createMockProvider(type: string): AIProvider {
   }
 }
 
-const mockBedrockInstance = createMockProvider('bedrock')
-const mockOpenAIInstance = createMockProvider('openai')
-const mockGeminiInstance = createMockProvider('gemini')
-const mockOllamaInstance = createMockProvider('ollama')
-const mockOpenRouterInstance = createMockProvider('openrouter')
+const mockBedrockInstance = createMockProvider('bedrock', bedrockModels)
+const mockOpenAIInstance = createMockProvider('openai', openaiModels)
+const mockGeminiInstance = createMockProvider('gemini', geminiModels)
+const mockOllamaInstance = createMockProvider('ollama', ollamaModels)
+const mockOpenRouterInstance = createMockProvider('openrouter', openrouterModels)
 
 vi.mock('../../lib/providers/bedrock-provider', () => ({
   BedrockProvider: vi.fn(function () { return mockBedrockInstance }),
+  BEDROCK_MODELS: bedrockModels,
 }))
 vi.mock('../../lib/providers/openai-provider', () => ({
   OpenAIProvider: vi.fn(function () { return mockOpenAIInstance }),
+  OPENAI_MODELS: openaiModels,
 }))
 vi.mock('../../lib/providers/gemini-provider', () => ({
   GeminiProvider: vi.fn(function () { return mockGeminiInstance }),
+  GEMINI_MODELS: geminiModels,
 }))
 vi.mock('../../lib/providers/ollama-provider', () => ({
   OllamaProvider: vi.fn(function () { return mockOllamaInstance }),
 }))
 vi.mock('../../lib/providers/openrouter-provider', () => ({
   OpenRouterProvider: vi.fn(function () { return mockOpenRouterInstance }),
+  OPENROUTER_MODELS: openrouterModels,
 }))
 
 // ── Chrome API mock with listener capture ──────────────
@@ -137,17 +163,15 @@ async function resetChromeMocks() {
   ;(OllamaProvider as ReturnType<typeof vi.fn>).mockClear()
   ;(OpenRouterProvider as ReturnType<typeof vi.fn>).mockClear()
 
-  // Reset mock provider stream
-  mockBedrockInstance.stream = vi.fn(async function* () {
-    yield 'chunk1'
-    yield 'chunk2'
-    return 'chunk1chunk2'
-  }) as unknown as AIProvider['stream']
-  mockOpenAIInstance.stream = vi.fn(async function* () {
-    yield 'chunk1'
-    yield 'chunk2'
-    return 'chunk1chunk2'
-  }) as unknown as AIProvider['stream']
+  // Reset mock provider isConfigured + stream
+  for (const inst of [mockBedrockInstance, mockOpenAIInstance, mockGeminiInstance, mockOllamaInstance, mockOpenRouterInstance]) {
+    ;(inst.isConfigured as ReturnType<typeof vi.fn>).mockReturnValue(true)
+    inst.stream = vi.fn(async function* () {
+      yield 'chunk1'
+      yield 'chunk2'
+      return 'chunk1chunk2'
+    }) as unknown as AIProvider['stream']
+  }
 }
 
 // ══════════════════════════════════════════════════════════
@@ -761,6 +785,11 @@ describe('background/index', () => {
     })
 
     it('should post error when no API key is configured', async () => {
+      // Mark all providers as not configured
+      for (const inst of [mockBedrockInstance, mockOpenAIInstance, mockGeminiInstance, mockOllamaInstance, mockOpenRouterInstance]) {
+        ;(inst.isConfigured as ReturnType<typeof vi.fn>).mockReturnValue(false)
+      }
+
       const handler = getListener('runtime.onConnect')
       const port = createPortMock()
       handler(port)
@@ -782,6 +811,11 @@ describe('background/index', () => {
     })
 
     it('should return null provider when no credentials at all', async () => {
+      // Mark all providers as not configured
+      for (const inst of [mockBedrockInstance, mockOpenAIInstance, mockGeminiInstance, mockOllamaInstance, mockOpenRouterInstance]) {
+        ;(inst.isConfigured as ReturnType<typeof vi.fn>).mockReturnValue(false)
+      }
+
       const handler = getListener('runtime.onConnect')
       const port = createPortMock()
       handler(port)

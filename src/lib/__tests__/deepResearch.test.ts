@@ -167,6 +167,46 @@ describe('runDeepResearch', () => {
     const genStep = steps.find((s) => s.step === 'generating_queries')
     expect(genStep?.detail).toContain('Generating')
   })
+
+  it('소스 최대 15개로 제한', async () => {
+    const provider = createMockProvider([
+      '["q1", "q2", "q3", "q4", "q5"]',
+      '# Report',
+    ])
+    // 각 쿼리에 4개 결과 = 20개 (중복 제거 후 최대 15개)
+    const uniqueResults = Array.from({ length: 4 }, (_, i) => ({
+      title: `Result ${i}`,
+      url: `https://example.com/${i}`,
+      snippet: `Snippet ${i}`,
+    }))
+    mockWebSearch.mockImplementation(async (opts) => {
+      const idx = parseInt(opts.query.replace('q', '')) - 1
+      return uniqueResults.map((r) => ({
+        ...r,
+        url: `${r.url}-${idx}`,
+      }))
+    })
+
+    const result = await runDeepResearch('test', provider, 'model', () => {})
+    expect(result.sources.length).toBeLessThanOrEqual(15)
+  })
+
+  it('Google API 키와 엔진 ID를 webSearch에 전달', async () => {
+    const provider = createMockProvider([
+      '["query1"]',
+      '# Report',
+    ])
+    mockSearchResults([])
+
+    await runDeepResearch('test', provider, 'model', () => {}, undefined, 'ko', 'api-key', 'engine-id')
+
+    expect(mockWebSearch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        googleApiKey: 'api-key',
+        googleEngineId: 'engine-id',
+      })
+    )
+  })
 })
 
 describe('streamDeepResearch', () => {

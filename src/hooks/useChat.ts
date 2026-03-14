@@ -1,6 +1,6 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import type { AIProvider, Message, ProviderType, ThinkingDepth } from '../lib/providers/types'
-import { createAllProviders, getProviderForModel, getModelDef } from '../lib/providers/provider-factory'
+import { getProviderForModel, getModelDef } from '../lib/providers/provider-factory'
 import { routeModel } from '../lib/providers/model-router'
 import { ChatHistory } from '../lib/chatHistory'
 import { AssistantRegistry } from '../lib/assistantBuilder'
@@ -11,6 +11,7 @@ import { useChatStreaming, executeChatMode } from './useChatStreaming'
 import { useChatAgent, executeAgentMode } from './useChatAgent'
 import { usePIIGuardrail } from './usePIIGuardrail'
 import { useChatActions } from './useChatActions'
+import { useProvider } from './useProvider'
 
 function resolveProviderType(modelId: string, providers: AIProvider[]): ProviderType {
   const def = getModelDef(modelId, providers)
@@ -21,21 +22,45 @@ export function useChat(config: Config) {
   const { conv, messages, setMessages, currentModel, setCurrentModel, error, setError, startNew, loadConv } = useChatConversation(config.defaultModel)
   const { isLoading, setIsLoading, isSearching, setIsSearching, abortRef, stop: streamStop } = useChatStreaming()
   const { agentMode, setAgentMode } = useChatAgent()
+  const { providers } = useProvider(config)
   const [personaId, setPersonaId] = useState('default')
   const [assistantId, setAssistantId] = useState('ast-default')
+
+  // Refs for frequently-changing values to stabilize sendMessage
+  const convRef = useRef(conv)
+  const currentModelRef = useRef(currentModel)
+  const configRef = useRef(config)
+  const providersRef = useRef(providers)
+  const isLoadingRef = useRef(isLoading)
+  const agentModeRef = useRef(agentMode)
+  const personaIdRef = useRef(personaId)
+  const assistantIdRef = useRef(assistantId)
+
+  useEffect(() => { convRef.current = conv }, [conv])
+  useEffect(() => { currentModelRef.current = currentModel }, [currentModel])
+  useEffect(() => { configRef.current = config }, [config])
+  useEffect(() => { providersRef.current = providers }, [providers])
+  useEffect(() => { isLoadingRef.current = isLoading }, [isLoading])
+  useEffect(() => { agentModeRef.current = agentMode }, [agentMode])
+  useEffect(() => { personaIdRef.current = personaId }, [personaId])
+  useEffect(() => { assistantIdRef.current = assistantId }, [assistantId])
 
   const sendMessage = useCallback(async (
     text: string,
     opts?: { imageBase64?: string; systemPrompt?: string; forcedModel?: string; thinkingDepth?: ThinkingDepth }
   ) => {
-    if (!text.trim() || isLoading) return
+    if (!text.trim() || isLoadingRef.current) return
+
+    const cfg = configRef.current
+    const curModel = currentModelRef.current
+    const curProviders = providersRef.current
 
     setError('')
     setIsLoading(true)
 
-    let activeConv = conv
+    let activeConv = convRef.current
     if (!activeConv) {
-      activeConv = await startNew(opts?.forcedModel ?? currentModel)
+      activeConv = await startNew(opts?.forcedModel ?? curModel)
     }
 
     if (!navigator.onLine) {
@@ -44,28 +69,22 @@ export function useChat(config: Config) {
         imageUrl: opts?.imageBase64?.startsWith('data:') ? opts.imageBase64 : undefined,
       })
       setMessages((prev) => [...prev, userMsg])
-      await MessageQueue.enqueue({ convId: activeConv.id, text, model: opts?.forcedModel ?? currentModel, opts: opts as Record<string, unknown> | undefined })
-      setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: 'assistant', content: '(오프라인 — 연결 후 전송됩니다)', ts: Date.now(), streaming: false, model: opts?.forcedModel ?? currentModel }])
+      await MessageQueue.enqueue({ convId: activeConv.id, text, model: opts?.forcedModel ?? curModel, opts: opts as Record<string, unknown> | undefined })
+      setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: 'assistant', content: '(오프라인 — 연결 후 전송됩니다)', ts: Date.now(), streaming: false, model: opts?.forcedModel ?? curModel }])
       setIsLoading(false)
       return
     }
 
-    const providers = createAllProviders({
-      bedrock: config.aws, openai: config.openai, gemini: config.gemini,
-      ollama: config.ollama.baseUrl ? config.ollama : undefined,
-      openrouter: config.openrouter.apiKey ? config.openrouter : undefined,
-    })
-
-    let model = opts?.forcedModel ?? currentModel
-    if (!opts?.forcedModel && config.autoRouting) {
-      const routed = routeModel(text, providers, !!opts?.imageBase64)
+    let model = opts?.forcedModel ?? curModel
+    if (!opts?.forcedModel && cfg.autoRouting) {
+      const routed = routeModel(text, curProviders, !!opts?.imageBase64)
       if (routed) model = routed
     }
 
-    const providerType = resolveProviderType(model, providers)
-    const provider = getProviderForModel(model, providers)
+    const providerType = resolveProviderType(model, curProviders)
+    const provider = getProviderForModel(model, curProviders)
 
-    if (!provider?.isConfigured() && (!config.aws.accessKeyId || !config.aws.secretAccessKey)) {
+    if (!provider?.isConfigured() && (!cfg.aws.accessKeyId || !cfg.aws.secretAccessKey)) {
       setError('선택한 모델의 API 키를 설정해주세요')
       setIsLoading(false)
       return
@@ -93,13 +112,14 @@ export function useChat(config: Config) {
       }
 
       abortRef.current = new AbortController()
-      const assistant = await AssistantRegistry.getById(assistantId)
+      const curAssistantId = assistantIdRef.current
+      const assistant = await AssistantRegistry.getById(curAssistantId)
 
-      if (agentMode) {
+      if (agentModeRef.current) {
         await executeAgentMode({
-          aws: config.aws, model, providerType, text, convId: activeConv.id,
+          aws: cfg.aws, model, providerType, text, convId: activeConv.id,
           historyMsgs, placeholderId, setMessages, signal: abortRef.current.signal,
-          assistantId,
+          assistantId: curAssistantId,
           assistantSystemPrompt: opts?.systemPrompt ?? assistant?.systemPrompt ?? undefined,
           assistantTools: assistant?.tools,
           assistantIsBuiltIn: assistant?.isBuiltIn,
@@ -108,12 +128,12 @@ export function useChat(config: Config) {
         await executeChatMode({
           convId: activeConv.id, model, providerType, text, historyMsgs, placeholderId,
           setMessages, setIsSearching, signal: abortRef.current.signal,
-          provider, aws: config.aws, personaId, assistantId,
+          provider, aws: cfg.aws, personaId: personaIdRef.current, assistantId: curAssistantId,
           assistantSystemPrompt: assistant?.systemPrompt,
           assistantIsBuiltIn: assistant?.isBuiltIn,
-          enableWebSearch: config.enableWebSearch,
-          googleSearchApiKey: config.googleSearchApiKey,
-          googleSearchEngineId: config.googleSearchEngineId,
+          enableWebSearch: cfg.enableWebSearch,
+          googleSearchApiKey: cfg.googleSearchApiKey,
+          googleSearchEngineId: cfg.googleSearchEngineId,
           thinkingDepth: opts?.thinkingDepth,
           explicitSystemPrompt: opts?.systemPrompt,
         })
@@ -125,7 +145,7 @@ export function useChat(config: Config) {
     } finally {
       setIsLoading(false)
     }
-  }, [conv, isLoading, agentMode, currentModel, personaId, assistantId, config, startNew, abortRef, setMessages, setError, setIsLoading, setIsSearching])
+  }, [startNew, abortRef, setMessages, setError, setIsLoading, setIsSearching])
 
   const stop = useCallback(() => {
     streamStop(setMessages)

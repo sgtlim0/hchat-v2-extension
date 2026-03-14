@@ -1,5 +1,6 @@
 import { Storage } from './storage'
 import { SK } from './storageKeys'
+import { safeFetch } from './safeFetch'
 
 const STORAGE_KEY = SK.MCP_SERVERS
 const MAX_SERVERS = 10
@@ -102,7 +103,7 @@ export async function listTools(serverId: string): Promise<McpTool[]> {
   const server = await resolveServer(serverId)
   const headers = buildHeaders(server)
 
-  const response = await fetch(`${server.baseUrl}/tools`, {
+  const response = await safeFetch(`${server.baseUrl}/tools`, {
     method: 'GET',
     headers,
   })
@@ -120,7 +121,7 @@ export async function executeTool(
   const headers = buildHeaders(server)
 
   try {
-    const response = await fetch(`${server.baseUrl}/tools/${toolName}`, {
+    const response = await safeFetch(`${server.baseUrl}/tools/${toolName}`, {
       method: 'POST',
       headers,
       body: JSON.stringify(params),
@@ -151,7 +152,7 @@ export async function listResources(serverId: string): Promise<McpResource[]> {
   const server = await resolveServer(serverId)
   const headers = buildHeaders(server)
 
-  const response = await fetch(`${server.baseUrl}/resources`, {
+  const response = await safeFetch(`${server.baseUrl}/resources`, {
     method: 'GET',
     headers,
   })
@@ -165,7 +166,7 @@ export async function getResource(serverId: string, uri: string): Promise<string
   const headers = buildHeaders(server)
   const encodedUri = encodeURIComponent(uri)
 
-  const response = await fetch(`${server.baseUrl}/resources?uri=${encodedUri}`, {
+  const response = await safeFetch(`${server.baseUrl}/resources?uri=${encodedUri}`, {
     method: 'GET',
     headers,
   })
@@ -182,7 +183,7 @@ export async function getResource(serverId: string, uri: string): Promise<string
 export async function testConnection(config: McpServerConfig): Promise<boolean> {
   try {
     const headers = buildHeaders(config)
-    const response = await fetch(`${config.baseUrl}/health`, {
+    const response = await safeFetch(`${config.baseUrl}/health`, {
       method: 'GET',
       headers,
     })

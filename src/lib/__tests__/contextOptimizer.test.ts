@@ -237,4 +237,32 @@ describe('edge cases', () => {
     const result = compressMessages(messages, 10)
     expect(result).toHaveLength(2)
   })
+
+  it('compressMessages returns only pinned when budget exhausted by pinned', () => {
+    const messages = [
+      makeMessage({ content: 'a'.repeat(400), ts: 1, pinned: true }), // 100 tokens
+      makeMessage({ content: 'b'.repeat(40), ts: 2 }), // 10 tokens
+    ]
+    // Budget = 100 → pinned takes all budget, remainingBudget = 0
+    const result = compressMessages(messages, 100)
+    expect(result).toHaveLength(1)
+    expect(result[0].pinned).toBe(true)
+  })
+
+  it('getContextUsage returns 0 percentage when contextWindow is 0', () => {
+    const messages = [makeMessage({ content: 'hello' })]
+    const usage = getContextUsage(messages, 0)
+    expect(usage.percentage).toBe(0)
+    expect(usage.warning).toBe(false)
+  })
+
+  it('estimateTokens handles text with only Korean characters', () => {
+    const text = '가나다라' // 4 Korean chars → 2 tokens
+    expect(estimateTokens(text)).toBe(2)
+  })
+
+  it('estimateTokens handles single character', () => {
+    expect(estimateTokens('a')).toBe(1) // 1 / 4 = ceil = 1
+    expect(estimateTokens('가')).toBe(1) // 1 / 2 = ceil = 1
+  })
 })

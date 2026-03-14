@@ -3,7 +3,7 @@
  * Tests: sandbox frame lifecycle, message handling, timeout, request management
  */
 
-import { executeSandboxCode } from '../sandboxExecutor'
+import { executeSandboxCode, handleSandboxMessage } from '../sandboxExecutor'
 
 // Mock the sandbox iframe and postMessage
 let mockIframe: { contentWindow: { postMessage: ReturnType<typeof vi.fn> } | null; src: string; style: { display: string }; addEventListener: ReturnType<typeof vi.fn> }
@@ -49,13 +49,11 @@ describe('sandboxExecutor', () => {
       // Wait for iframe creation
       await new Promise((r) => setTimeout(r, 10))
 
-      // Simulate sandbox response
+      // Simulate sandbox response with null origin (sandbox pages have null origin)
       const calls = mockIframe.contentWindow!.postMessage.mock.calls
       if (calls.length > 0) {
         const { id } = calls[0][0]
-        window.dispatchEvent(new MessageEvent('message', {
-          data: { id, result: '2' },
-        }))
+        handleSandboxMessage({ origin: 'null', data: { id, result: '2' } } as MessageEvent)
       }
 
       const result = await promise
@@ -84,9 +82,7 @@ describe('sandboxExecutor', () => {
       const calls = mockIframe.contentWindow!.postMessage.mock.calls
       if (calls.length > 0) {
         const { id } = calls[0][0]
-        window.dispatchEvent(new MessageEvent('message', {
-          data: { id, error: 'Error: fail' },
-        }))
+        handleSandboxMessage({ origin: 'null', data: { id, error: 'Error: fail' } } as MessageEvent)
       }
 
       const result = await promise
@@ -140,6 +136,59 @@ describe('sandboxExecutor', () => {
     it('should ignore messages with null data', () => {
       const event = new MessageEvent('message', { data: null })
       expect(() => window.dispatchEvent(event)).not.toThrow()
+    })
+  })
+
+  describe('origin verification', () => {
+    it('should accept messages with null origin (sandbox)', async () => {
+      const promise = executeSandboxCode('1+1', '')
+      await new Promise((r) => setTimeout(r, 10))
+
+      const calls = mockIframe.contentWindow!.postMessage.mock.calls
+      if (calls.length > 0) {
+        const { id } = calls[0][0]
+        // Simulate message from sandbox (null origin)
+        handleSandboxMessage({ origin: 'null', data: { id, result: '2' } } as MessageEvent)
+      }
+
+      const result = await promise
+      expect(result).toBe('2')
+    })
+
+    it('should accept messages from extension origin', async () => {
+      const promise = executeSandboxCode('1+2', '')
+      await new Promise((r) => setTimeout(r, 10))
+
+      const calls = mockIframe.contentWindow!.postMessage.mock.calls
+      if (calls.length > 0) {
+        const { id } = calls[0][0]
+        const extensionOrigin = chrome.runtime.getURL('').replace(/\/$/, '')
+        handleSandboxMessage({ origin: extensionOrigin, data: { id, result: '3' } } as MessageEvent)
+      }
+
+      const result = await promise
+      expect(result).toBe('3')
+    })
+
+    it('should reject messages from untrusted origins', async () => {
+      vi.useFakeTimers()
+      const promise = executeSandboxCode('1+3', '')
+
+      // Advance past iframe load
+      vi.advanceTimersByTime(10)
+
+      const calls = mockIframe.contentWindow!.postMessage.mock.calls
+      if (calls.length > 0) {
+        const { id } = calls[0][0]
+        // Simulate message from malicious origin — should be ignored
+        handleSandboxMessage({ origin: 'https://evil.com', data: { id, result: 'hacked' } } as MessageEvent)
+      }
+
+      // Should timeout since the message was rejected
+      vi.advanceTimersByTime(5100)
+      const result = await promise
+      expect(result).toContain('timed out')
+      vi.useRealTimers()
     })
   })
 })

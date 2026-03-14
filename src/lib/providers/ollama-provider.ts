@@ -3,6 +3,7 @@
 import type { AIProvider, ModelDef, SendParams, ProviderType } from './types'
 import { throwProviderError } from './error-parser'
 import { convertToOpenAIMessages } from './message-converter'
+import { safeFetch } from '../safeFetch'
 
 const DEFAULT_BASE_URL = 'http://localhost:11434'
 
@@ -46,7 +47,7 @@ export class OllamaProvider implements AIProvider {
 
   async loadModels(): Promise<ModelDef[]> {
     try {
-      const res = await fetch(`${this.baseUrl}/api/tags`)
+      const res = await safeFetch(`${this.baseUrl}/api/tags`, undefined, { allowLocalhost: true })
       if (!res.ok) return []
 
       const data: OllamaTagsResponse = await res.json()
@@ -77,12 +78,12 @@ export class OllamaProvider implements AIProvider {
       stream: true,
     })
 
-    const res = await fetch(`${this.baseUrl}/api/chat`, {
+    const res = await safeFetch(`${this.baseUrl}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body,
       signal,
-    })
+    }, { allowLocalhost: true })
 
     if (!res.ok) await throwProviderError(res)
 
@@ -136,7 +137,7 @@ export class OllamaProvider implements AIProvider {
   async testConnection(): Promise<boolean> {
     if (!this.isConfigured()) return false
     try {
-      const res = await fetch(`${this.baseUrl}/api/tags`)
+      const res = await safeFetch(`${this.baseUrl}/api/tags`, undefined, { allowLocalhost: true })
       return res.ok
     } catch {
       return false

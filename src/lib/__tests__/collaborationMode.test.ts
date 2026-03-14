@@ -333,5 +333,112 @@ describe('collaborationMode', () => {
 
       s2.close()
     })
+
+    it('should deduplicate convIds when multiple sessions on same conv', () => {
+      const s1 = createCollabSession('conv-1')
+      const s2 = createCollabSession('conv-1')
+
+      const active = getActiveSessions()
+      const convOccurrences = active.filter((id) => id === 'conv-1')
+      expect(convOccurrences).toHaveLength(1)
+
+      s1.close()
+      s2.close()
+    })
+  })
+
+  // ── sendUpdate after close ──
+  describe('sendUpdate after close', () => {
+    it('should not send messages after session is closed', () => {
+      const s1 = createCollabSession('conv-1')
+      const s2 = createCollabSession('conv-1')
+      const cb = vi.fn()
+      s2.onUpdate(cb)
+
+      s1.close()
+      s1.sendUpdate('message_added', { text: 'should not arrive' })
+
+      expect(cb).not.toHaveBeenCalled()
+
+      s2.close()
+    })
+  })
+
+  // ── heartbeat stops after close ──
+  describe('heartbeat stops after close', () => {
+    it('should stop heartbeat interval after close', () => {
+      const s1 = createCollabSession('conv-1')
+      const s2 = createCollabSession('conv-1')
+      const cb = vi.fn()
+      s2.onUpdate(cb)
+
+      s1.close()
+      cb.mockClear()
+
+      vi.advanceTimersByTime(10000)
+      // No heartbeats from s1 after close
+      const heartbeats = cb.mock.calls.filter(
+        (c: [SyncMessage]) => c[0].tabId === s1.tabId && c[0].type === 'heartbeat'
+      )
+      expect(heartbeats).toHaveLength(0)
+
+      s2.close()
+    })
+  })
+
+  // ── sendUpdate without payload ──
+  describe('sendUpdate without payload', () => {
+    it('should not include payload field when no payload given', () => {
+      const s1 = createCollabSession('conv-1')
+      const s2 = createCollabSession('conv-1')
+      const cb = vi.fn()
+      s2.onUpdate(cb)
+
+      s1.sendUpdate('typing')
+
+      expect(cb.mock.calls[0][0]).not.toHaveProperty('payload')
+
+      s1.close()
+      s2.close()
+    })
+  })
+
+  // ── multiple listeners ──
+  describe('multiple listeners', () => {
+    it('should notify all registered listeners', () => {
+      const s1 = createCollabSession('conv-1')
+      const s2 = createCollabSession('conv-1')
+
+      const cb1 = vi.fn()
+      const cb2 = vi.fn()
+      s2.onUpdate(cb1)
+      s2.onUpdate(cb2)
+
+      s1.sendUpdate('message_added', { id: 'm1' })
+
+      expect(cb1).toHaveBeenCalledTimes(1)
+      expect(cb2).toHaveBeenCalledTimes(1)
+
+      s1.close()
+      s2.close()
+    })
+  })
+
+  // ── different conversations don't interfere ──
+  describe('conversation isolation', () => {
+    it('should not receive messages from different conversations', () => {
+      const s1 = createCollabSession('conv-1')
+      const s2 = createCollabSession('conv-2')
+
+      const cb = vi.fn()
+      s2.onUpdate(cb)
+
+      s1.sendUpdate('message_added')
+
+      expect(cb).not.toHaveBeenCalled()
+
+      s1.close()
+      s2.close()
+    })
   })
 })

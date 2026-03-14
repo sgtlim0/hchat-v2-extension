@@ -2,6 +2,7 @@
 
 import { t } from '../i18n'
 import { SK } from './storageKeys'
+import { safeFetch } from './safeFetch'
 
 export interface SearchResult {
   title: string
@@ -29,7 +30,7 @@ function hashQuery(query: string): string {
 async function searchDuckDuckGo(query: string, max: number): Promise<SearchResult[]> {
   const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`
 
-  const res = await fetch(url, {
+  const res = await safeFetch(url, {
     headers: { 'User-Agent': 'Mozilla/5.0 (compatible; HChatBot/2.0)' },
   })
 
@@ -70,7 +71,7 @@ async function searchDuckDuckGo(query: string, max: number): Promise<SearchResul
 async function searchGoogle(query: string, apiKey: string, engineId: string, max: number): Promise<SearchResult[]> {
   const url = `https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${engineId}&q=${encodeURIComponent(query)}&num=${max}&hl=ko`
 
-  const res = await fetch(url)
+  const res = await safeFetch(url)
   if (!res.ok) return []
 
   const data = await res.json()

@@ -7,6 +7,10 @@
 // This page is listed in manifest.json "sandbox" so it can use eval/new Function
 // while being isolated from the extension's origin (no access to chrome.* APIs).
 window.addEventListener('message', function(event) {
+  // Origin check: only accept messages from the parent extension
+  // In sandbox context, the parent is a chrome-extension:// origin
+  if (event.origin && event.origin !== 'null' && event.origin.indexOf('chrome-extension://') !== 0) return;
+
   var id = event.data && event.data.id;
   var code = event.data && event.data.code;
   var input = event.data && event.data.input;
@@ -16,9 +20,9 @@ window.addEventListener('message', function(event) {
   try {
     var fn = new Function('input', '"use strict"; ' + code);
     var result = fn(input);
-    event.source.postMessage({ id: id, result: String(result != null ? result : '') }, '*');
+    event.source.postMessage({ id: id, result: String(result != null ? result : '') }, event.origin);
   } catch (err) {
-    event.source.postMessage({ id: id, error: 'JavaScript error: ' + String(err) }, '*');
+    event.source.postMessage({ id: id, error: 'JavaScript error: ' + String(err) }, event.origin);
   }
 });
 </script>

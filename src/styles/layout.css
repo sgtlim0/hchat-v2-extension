@@ -1,0 +1,82 @@
+/* ═══════════════════════════════════════════════
+   LAYOUT
+   ═══════════════════════════════════════════════ */
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg0);
+}
+
+/* ── Top Bar ─────────────────────────────────── */
+.topbar {
+  display: flex;
+  align-items: center;
+  height: 46px;
+  padding: 0 6px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg1);
+  flex-shrink: 0;
+  gap: 4px;
+}
+
+.logo {
+  width: 30px;
+  height: 30px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 13px;
+  color: #061210;
+  flex-shrink: 0;
+  letter-spacing: -0.03em;
+}
+
+.tab-bar {
+  display: flex;
+  flex: 1;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+.tab-bar::-webkit-scrollbar { display: none; }
+
+.tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 10px;
+  background: none;
+  border: none;
+  color: var(--text2);
+  font-size: 11.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  height: 100%;
+  border-bottom: 2px solid transparent;
+  transition: color 0.12s, border-color 0.12s;
+}
+.tab-btn:hover { color: var(--text1); }
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab-icon { font-size: 13px; }
+
+.topbar-actions { display: flex; gap: 4px; flex-shrink: 0; }
+
+/* ── Content ─────────────────────────────────── */
+.content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.content.flex-col {
+  display: flex;
+  flex-direction: column;
+}

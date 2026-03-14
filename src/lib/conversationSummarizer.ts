@@ -1,8 +1,9 @@
 /** 컨텍스트 자동 요약 — 대화 내용을 자동으로 요약하여 캐시 관리 */
 
 import { Storage } from './storage'
+import { SK } from './storageKeys'
 
-const SUMMARIES_KEY = 'hchat:conv-summaries'
+const SUMMARIES_KEY = SK.CONV_SUMMARIES
 const MAX_CACHE = 5
 const MAX_MESSAGES = 30
 const MAX_CONTENT_LENGTH = 500

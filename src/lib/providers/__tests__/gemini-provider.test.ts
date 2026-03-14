@@ -293,6 +293,29 @@ describe('GeminiProvider', () => {
       expect(parsed.contents[0].role).toBe('user')
     })
 
+    it('sends API key in header, not in URL', async () => {
+      const provider = new GeminiProvider('secret-key-123')
+      const body = makeSSEStream(geminiSSE(['OK']))
+      let capturedUrl = ''
+      let capturedHeaders: Record<string, string> = {}
+
+      vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, init) => {
+        capturedUrl = url as string
+        capturedHeaders = (init?.headers ?? {}) as Record<string, string>
+        return { ok: true, body, text: async () => '' } as unknown as Response
+      })
+
+      const gen = provider.stream({
+        model: 'gemini-2.0-flash',
+        messages: [{ role: 'user', content: 'Hi' }],
+      })
+      while (!(await gen.next()).done) {}
+
+      expect(capturedUrl).not.toContain('key=')
+      expect(capturedUrl).not.toContain('secret-key-123')
+      expect(capturedHeaders['x-goog-api-key']).toBe('secret-key-123')
+    })
+
     it('handles invalid JSON in SSE stream', async () => {
       const provider = new GeminiProvider('key')
       const body = makeSSEStream([

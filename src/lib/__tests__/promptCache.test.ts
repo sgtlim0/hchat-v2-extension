@@ -1,6 +1,7 @@
 // lib/__tests__/promptCache.test.ts — Tests for prompt cache module
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { SK } from '../storageKeys'
 
 vi.mock('../bm25', () => ({
   buildBM25Index: vi.fn(),
@@ -26,7 +27,7 @@ describe('promptCache', () => {
   // ── Constants ──
   describe('constants', () => {
     it('should have correct defaults', () => {
-      expect(STORAGE_KEY).toBe('hchat:prompt-cache')
+      expect(STORAGE_KEY).toBe(SK.PROMPT_CACHE)
       expect(DEFAULT_TTL).toBe(24 * 60 * 60 * 1000)
       expect(MAX_ENTRIES).toBe(100)
     })

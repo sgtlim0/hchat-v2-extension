@@ -1,6 +1,7 @@
 // lib/tags.ts — Conversation tag management
 
 import { Storage } from './storage'
+import { SK } from './storageKeys'
 
 export interface TagDef {
   name: string
@@ -8,7 +9,7 @@ export interface TagDef {
   count: number
 }
 
-const TAGS_KEY = 'hchat:tags'
+const TAGS_KEY = SK.TAGS
 
 const DEFAULT_COLORS = ['#34d399', '#60a5fa', '#a78bfa', '#fbbf24', '#f87171', '#fb923c', '#e879f9', '#22d3ee']
 

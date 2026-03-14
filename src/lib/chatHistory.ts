@@ -2,6 +2,7 @@ import { Storage } from './storage'
 import { t } from '../i18n'
 import type { AgentStep } from './agent'
 import { updateIndexForMessage, removeFromIndex } from './messageSearch'
+import { SK } from './storageKeys'
 
 export interface ChatMessage {
   id: string
@@ -30,8 +31,8 @@ export interface Conversation {
   folderId?: string
 }
 
-const PREFIX = 'hchat:conv:'
-const INDEX_KEY = 'hchat:conv-index'
+const PREFIX = SK.CONV_PREFIX
+const INDEX_KEY = SK.CONV_INDEX
 
 export const ChatHistory = {
   async listIndex(): Promise<{ id: string; title: string; updatedAt: number; pinned?: boolean; model: string; tags?: string[]; folderId?: string }[]> {
@@ -60,15 +61,16 @@ export const ChatHistory = {
     const conv = await this.get(convId)
     if (!conv) throw new Error('Conversation not found')
     const m: ChatMessage = { ...msg, id: crypto.randomUUID(), ts: Date.now() }
-    conv.messages.push(m)
-    conv.updatedAt = Date.now()
-    if (conv.messages.length === 2 && (conv.title === '새 대화' || conv.title === 'New conversation')) {
-      conv.title = conv.messages[0].content.slice(0, 40)
-    }
-    await Storage.set(PREFIX + convId, conv)
-    await this._updateIndex(conv)
+    const now = Date.now()
+    const messages = [...conv.messages, m]
+    const title = (messages.length === 2 && (conv.title === '새 대화' || conv.title === 'New conversation'))
+      ? messages[0].content.slice(0, 40)
+      : conv.title
+    const updated = { ...conv, messages, updatedAt: now, title }
+    await Storage.set(PREFIX + convId, updated)
+    await this._updateIndex(updated)
     // Update search index incrementally
-    await updateIndexForMessage(conv.id, conv.title, m).catch((err) => console.error('Failed to update search index:', err))
+    await updateIndexForMessage(updated.id, updated.title, m).catch((err) => console.error('Failed to update search index:', err))
     return m
   },
 
@@ -76,8 +78,8 @@ export const ChatHistory = {
     const conv = await this.get(convId)
     if (!conv || !conv.messages.length) return
     const last = conv.messages[conv.messages.length - 1]
-    conv.messages[conv.messages.length - 1] = { ...last, ...patch }
-    await Storage.set(PREFIX + convId, conv)
+    const messages = [...conv.messages.slice(0, -1), { ...last, ...patch }]
+    await Storage.set(PREFIX + convId, { ...conv, messages })
   },
 
   async delete(id: string): Promise<void> {
@@ -91,17 +93,16 @@ export const ChatHistory = {
   async pin(id: string, pinned: boolean): Promise<void> {
     const idx = await this.listIndex()
     const i = idx.findIndex((c) => c.id === id)
-    if (i !== -1) { idx[i].pinned = pinned; await Storage.set(INDEX_KEY, idx) }
+    if (i !== -1) { await Storage.set(INDEX_KEY, idx.map((c, j) => j === i ? { ...c, pinned } : c)) }
   },
 
   async setTags(id: string, tags: string[]): Promise<void> {
     const conv = await this.get(id)
     if (!conv) return
-    conv.tags = tags
-    await Storage.set(PREFIX + id, conv)
+    await Storage.set(PREFIX + id, { ...conv, tags })
     const idx = await this.listIndex()
     const i = idx.findIndex((c) => c.id === id)
-    if (i !== -1) { idx[i].tags = tags; await Storage.set(INDEX_KEY, idx) }
+    if (i !== -1) { await Storage.set(INDEX_KEY, idx.map((c, j) => j === i ? { ...c, tags } : c)) }
   },
 
   async addTag(id: string, tag: string): Promise<void> {
@@ -123,41 +124,37 @@ export const ChatHistory = {
   async setFolder(id: string, folderId: string | undefined): Promise<void> {
     const conv = await this.get(id)
     if (!conv) return
-    conv.folderId = folderId
-    await Storage.set(PREFIX + id, conv)
+    await Storage.set(PREFIX + id, { ...conv, folderId })
     const idx = await this.listIndex()
     const i = idx.findIndex((c) => c.id === id)
-    if (i !== -1) { idx[i] = { ...idx[i], folderId }; await Storage.set(INDEX_KEY, idx) }
+    if (i !== -1) { await Storage.set(INDEX_KEY, idx.map((c, j) => j === i ? { ...c, folderId } : c)) }
   },
 
   async setPersona(id: string, personaId: string): Promise<void> {
     const conv = await this.get(id)
     if (!conv) return
-    conv.personaId = personaId
-    await Storage.set(PREFIX + id, conv)
+    await Storage.set(PREFIX + id, { ...conv, personaId })
   },
 
   /** Update a specific message's content */
   async updateMessage(convId: string, msgId: string, content: string): Promise<void> {
     const conv = await this.get(convId)
     if (!conv) return
-    const idx = conv.messages.findIndex((m) => m.id === msgId)
-    if (idx === -1) return
-    conv.messages[idx] = { ...conv.messages[idx], content }
-    conv.updatedAt = Date.now()
-    await Storage.set(PREFIX + convId, conv)
+    const msgIdx = conv.messages.findIndex((m) => m.id === msgId)
+    if (msgIdx === -1) return
+    const messages = conv.messages.map((m, i) => i === msgIdx ? { ...m, content } : m)
+    await Storage.set(PREFIX + convId, { ...conv, messages, updatedAt: Date.now() })
   },
 
   /** Remove all messages after (and including) a given message ID */
   async truncateAfter(convId: string, msgId: string): Promise<ChatMessage[]> {
     const conv = await this.get(convId)
     if (!conv) return []
-    const idx = conv.messages.findIndex((m) => m.id === msgId)
-    if (idx === -1) return conv.messages
-    conv.messages = conv.messages.slice(0, idx)
-    conv.updatedAt = Date.now()
-    await Storage.set(PREFIX + convId, conv)
-    return conv.messages
+    const msgIdx = conv.messages.findIndex((m) => m.id === msgId)
+    if (msgIdx === -1) return conv.messages
+    const messages = conv.messages.slice(0, msgIdx)
+    await Storage.set(PREFIX + convId, { ...conv, messages, updatedAt: Date.now() })
+    return messages
   },
 
   /** Fork conversation from a specific message — creates a new conversation with messages up to that point */
@@ -190,11 +187,11 @@ export const ChatHistory = {
   async toggleMessagePin(convId: string, msgId: string): Promise<boolean> {
     const conv = await this.get(convId)
     if (!conv) return false
-    const idx = conv.messages.findIndex((m) => m.id === msgId)
-    if (idx === -1) return false
-    const newPinned = !conv.messages[idx].pinned
-    conv.messages[idx] = { ...conv.messages[idx], pinned: newPinned }
-    await Storage.set(PREFIX + convId, conv)
+    const msgIdx = conv.messages.findIndex((m) => m.id === msgId)
+    if (msgIdx === -1) return false
+    const newPinned = !conv.messages[msgIdx].pinned
+    const messages = conv.messages.map((m, i) => i === msgIdx ? { ...m, pinned: newPinned } : m)
+    await Storage.set(PREFIX + convId, { ...conv, messages })
     return newPinned
   },
 
@@ -207,14 +204,14 @@ export const ChatHistory = {
 
   async _addToIndex(conv: Conversation): Promise<void> {
     const idx = await this.listIndex()
-    idx.unshift({ id: conv.id, title: conv.title, updatedAt: conv.updatedAt, model: conv.model, tags: conv.tags, folderId: conv.folderId })
-    await Storage.set(INDEX_KEY, idx.slice(0, 200))
+    const newIdx = [{ id: conv.id, title: conv.title, updatedAt: conv.updatedAt, model: conv.model, tags: conv.tags, folderId: conv.folderId }, ...idx]
+    await Storage.set(INDEX_KEY, newIdx.slice(0, 200))
   },
 
   async _updateIndex(conv: Conversation): Promise<void> {
     const idx = await this.listIndex()
     const i = idx.findIndex((c) => c.id === conv.id)
-    if (i !== -1) { idx[i] = { ...idx[i], title: conv.title, updatedAt: conv.updatedAt } }
-    await Storage.set(INDEX_KEY, idx)
+    const updatedIdx = i !== -1 ? idx.map((c, j) => j === i ? { ...c, title: conv.title, updatedAt: conv.updatedAt } : c) : idx
+    await Storage.set(INDEX_KEY, updatedIdx)
   },
 }

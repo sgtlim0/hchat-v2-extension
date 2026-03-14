@@ -1,6 +1,7 @@
 import { Storage } from './storage'
+import { SK } from './storageKeys'
 
-const STORAGE_KEY = 'hchat:chat-templates'
+const STORAGE_KEY = SK.CHAT_TEMPLATES
 const MAX_TEMPLATES = 20
 
 export interface ChatTemplateStep {

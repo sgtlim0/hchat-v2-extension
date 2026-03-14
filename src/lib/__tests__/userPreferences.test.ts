@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { SK } from '../storageKeys'
 import {
   trackUsage,
   getTopUsed,
@@ -460,7 +461,7 @@ describe('Edge cases', () => {
   })
 
   it('handles corrupted storage data', async () => {
-    await Storage.set('hchat:user-prefs', { broken: true })
+    await Storage.set(SK.USER_PREFS, { broken: true })
     const prefs = await getPreferences()
     expect(prefs.assistantFreq).toEqual([])
     expect(prefs.modelFreq).toEqual([])

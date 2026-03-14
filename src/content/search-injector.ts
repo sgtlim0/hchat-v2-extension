@@ -1,6 +1,7 @@
 // content/search-injector.ts — Inject AI summary card into search engine results
 
 import { getLocale, tSync, type Locale } from '../i18n'
+import { SK } from '../lib/storageKeys'
 
 const SEARCH_CONFIGS: Record<string, { querySelector: string; insertBefore: string; queryParam: string }> = {
   'www.google.com': { querySelector: '#search', insertBefore: '#search', queryParam: 'q' },
@@ -100,8 +101,8 @@ function injectCard() {
   if (document.getElementById('hchat-search-card')) return
 
   // Check if feature enabled via storage
-  chrome.storage.local.get('hchat:config', async (result) => {
-    const cfg = result['hchat:config']
+  chrome.storage.local.get(SK.CONFIG, async (result) => {
+    const cfg = result[SK.CONFIG]
     if (cfg && cfg.enableSearchEnhance === false) return
 
     const locale = await getLocale()

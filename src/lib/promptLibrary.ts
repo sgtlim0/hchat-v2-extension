@@ -1,5 +1,6 @@
 import { Storage } from './storage'
 import { t } from '../i18n'
+import { SK } from './storageKeys'
 
 export interface Prompt {
   id: string
@@ -11,7 +12,7 @@ export interface Prompt {
   createdAt: number
 }
 
-const KEY = 'hchat:prompts'
+const KEY = SK.PROMPTS
 
 const DEFAULT_PROMPT_KEYS = [
   { id: 'p1', key: 'pageSummary', shortcut: 'sum', category: '읽기' },

@@ -1,6 +1,7 @@
 /** Storage usage analysis and cleanup utilities */
 
 import { Storage } from './storage'
+import { SK } from './storageKeys'
 
 export interface StorageBreakdown {
   total: number
@@ -42,20 +43,20 @@ export async function analyzeStorage(): Promise<StorageBreakdown> {
     const size = JSON.stringify(value).length * 2 // UTF-16 estimate
     breakdown.total += size
 
-    if (key.startsWith('hchat:conv:') || key === 'hchat:conv-index') {
+    if (key.startsWith(SK.CONV_PREFIX) || key === SK.CONV_INDEX) {
       breakdown.conversations += size
-      if (key.startsWith('hchat:conv:') && key !== 'hchat:conv-index') {
+      if (key.startsWith(SK.CONV_PREFIX) && key !== SK.CONV_INDEX) {
         breakdown.conversationCount++
       }
-    } else if (key === 'hchat:bookmarks' || key.startsWith('hchat:highlights')) {
+    } else if (key === SK.BOOKMARKS || key.startsWith(SK.HIGHLIGHTS)) {
       breakdown.bookmarks += size
-    } else if (key.startsWith('hchat:usage')) {
+    } else if (key.startsWith(SK.USAGE)) {
       breakdown.usage += size
-    } else if (key === 'hchat:config') {
+    } else if (key === SK.CONFIG) {
       breakdown.config += size
-    } else if (key === 'hchat:doc-projects' || key.startsWith('hchat:doc-project:')) {
+    } else if (key === SK.DOC_PROJECTS || key.startsWith(SK.DOC_PROJECT_PREFIX)) {
       breakdown.docProjects += size
-    } else if (key === 'hchat:doc-templates') {
+    } else if (key === SK.DOC_TEMPLATES) {
       breakdown.docTemplates += size
     } else {
       breakdown.other += size
@@ -71,7 +72,7 @@ export async function findOldConversations(
 ): Promise<{ id: string; title: string; updatedAt: number; messageCount: number; sizeBytes: number }[]> {
   const cutoff = Date.now() - olderThanDays * 24 * 60 * 60 * 1000
   const index =
-    (await Storage.get<{ id: string; title: string; updatedAt: number; pinned?: boolean }[]>('hchat:conv-index')) ?? []
+    (await Storage.get<{ id: string; title: string; updatedAt: number; pinned?: boolean }[]>(SK.CONV_INDEX)) ?? []
 
   const candidates = index.filter((item) => !item.pinned && item.updatedAt < cutoff)
   const results: { id: string; title: string; updatedAt: number; messageCount: number; sizeBytes: number }[] = []
@@ -99,10 +100,10 @@ export async function deleteConversations(ids: string[]): Promise<number> {
   const idSet = new Set(ids)
   const index =
     (await Storage.get<{ id: string; title: string; updatedAt: number; pinned?: boolean; model: string }[]>(
-      'hchat:conv-index',
+      SK.CONV_INDEX,
     )) ?? []
   const newIndex = index.filter((item) => !idSet.has(item.id))
-  await Storage.set('hchat:conv-index', newIndex)
+  await Storage.set(SK.CONV_INDEX, newIndex)
 
   const removeKeys = ids.map((id) => `hchat:conv:${id}`)
   await chrome.storage.local.remove(removeKeys)
@@ -113,13 +114,13 @@ export async function deleteConversations(ids: string[]): Promise<number> {
 /** Clean up orphaned conversation data (keys without index entries) */
 export async function cleanupOrphans(): Promise<number> {
   const index =
-    (await Storage.get<{ id: string }[]>('hchat:conv-index')) ?? []
+    (await Storage.get<{ id: string }[]>(SK.CONV_INDEX)) ?? []
   const indexIds = new Set(index.map((item) => item.id))
 
   const all = await chrome.storage.local.get(null)
   const orphanKeys = Object.keys(all).filter((key) => {
-    if (!key.startsWith('hchat:conv:')) return false
-    const id = key.replace('hchat:conv:', '')
+    if (!key.startsWith(SK.CONV_PREFIX)) return false
+    const id = key.replace(SK.CONV_PREFIX, '')
     return !indexIds.has(id)
   })
 

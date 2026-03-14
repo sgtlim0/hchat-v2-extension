@@ -1,8 +1,9 @@
 // lib/auditLog.ts — 감사 로그 시스템 (액션 기록, 조회, 내보내기, 통계, 정리)
 
 import { Storage } from './storage'
+import { SK } from './storageKeys'
 
-const STORAGE_KEY = 'hchat:audit-log'
+const STORAGE_KEY = SK.AUDIT_LOG
 const MAX_ENTRIES = 1000
 const DEFAULT_RETENTION_DAYS = 90
 

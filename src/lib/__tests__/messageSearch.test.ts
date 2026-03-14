@@ -2,12 +2,13 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { searchMessages, highlightMatch, rebuildIndex, updateIndexForMessage, removeFromIndex } from '../messageSearch'
 import { ChatHistory } from '../chatHistory'
 import { Storage } from '../storage'
+import { SK } from '../storageKeys'
 
 describe('searchMessages', () => {
   beforeEach(async () => {
     // Clear storage before each test
-    await Storage.remove('hchat:search-index')
-    await Storage.remove('hchat:search-index-version')
+    await Storage.remove(SK.SEARCH_INDEX)
+    await Storage.remove(SK.SEARCH_INDEX_VERSION)
   })
 
   it('returns empty for blank query', async () => {
@@ -117,8 +118,8 @@ describe('searchMessages', () => {
 
 describe('updateIndexForMessage', () => {
   beforeEach(async () => {
-    await Storage.remove('hchat:search-index')
-    await Storage.remove('hchat:search-index-version')
+    await Storage.remove(SK.SEARCH_INDEX)
+    await Storage.remove(SK.SEARCH_INDEX_VERSION)
   })
 
   it('incrementally updates index for new messages', async () => {
@@ -136,8 +137,8 @@ describe('updateIndexForMessage', () => {
 
 describe('removeFromIndex', () => {
   beforeEach(async () => {
-    await Storage.remove('hchat:search-index')
-    await Storage.remove('hchat:search-index-version')
+    await Storage.remove(SK.SEARCH_INDEX)
+    await Storage.remove(SK.SEARCH_INDEX_VERSION)
   })
 
   it('removes conversation from index', async () => {
@@ -161,8 +162,8 @@ describe('removeFromIndex', () => {
 
 describe('rebuildIndex', () => {
   beforeEach(async () => {
-    await Storage.remove('hchat:search-index')
-    await Storage.remove('hchat:search-index-version')
+    await Storage.remove(SK.SEARCH_INDEX)
+    await Storage.remove(SK.SEARCH_INDEX_VERSION)
   })
 
   it('rebuilds entire index', async () => {

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import ko from './ko'
 import en from './en'
 import ja from './ja'
+import { SK } from '../lib/storageKeys'
 
 export type Locale = 'ko' | 'en' | 'ja'
 
@@ -49,8 +50,8 @@ export function tSync(locale: Locale, key: string, params?: Record<string, strin
 /** Get locale from chrome.storage (for content scripts that can't use React hooks). */
 export async function getLocale(): Promise<Locale> {
   try {
-    const result = await chrome.storage.local.get('hchat:config')
-    const lang = result['hchat:config']?.language
+    const result = await chrome.storage.local.get(SK.CONFIG)
+    const lang = result[SK.CONFIG]?.language
     if (lang === 'en') return 'en'
     if (lang === 'ja') return 'ja'
     return 'ko'
@@ -75,8 +76,8 @@ export function useLocale() {
 
   // Sync with config's language on mount
   useEffect(() => {
-    chrome.storage.local.get('hchat:config', (result) => {
-      const lang = result['hchat:config']?.language
+    chrome.storage.local.get(SK.CONFIG, (result) => {
+      const lang = result[SK.CONFIG]?.language
       let resolved: Locale = 'ko'
       if (lang === 'en') resolved = 'en'
       else if (lang === 'ja') resolved = 'ja'
@@ -86,8 +87,8 @@ export function useLocale() {
 
     // Listen for config changes (language switch)
     const handler = (changes: Record<string, chrome.storage.StorageChange>) => {
-      if (changes['hchat:config']) {
-        const lang = changes['hchat:config'].newValue?.language
+      if (changes[SK.CONFIG]) {
+        const lang = changes[SK.CONFIG].newValue?.language
         let resolved: Locale = 'ko'
         if (lang === 'en') resolved = 'en'
         else if (lang === 'ja') resolved = 'ja'

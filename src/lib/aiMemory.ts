@@ -1,8 +1,9 @@
 // lib/aiMemory.ts — AI memory system for persistent user context
 
 import { Storage } from './storage'
+import { SK } from './storageKeys'
 
-const STORAGE_KEY = 'hchat:ai-memories'
+const STORAGE_KEY = SK.AI_MEMORIES
 const MAX_MEMORIES = 100
 
 // ── Types ──

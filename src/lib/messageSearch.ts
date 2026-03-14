@@ -1,8 +1,9 @@
 /** Full-text search across all conversation messages with optimized indexing */
 
-import { ChatHistory, type ChatMessage } from './chatHistory'
+import type { ChatMessage } from './chatHistory'
 import { Storage } from './storage'
 import { scoreBM25, buildBM25Index, combinedScore, type BM25Document, type BM25Index } from './bm25'
+import { SK } from './storageKeys'
 
 export interface SearchResult {
   convId: string
@@ -31,8 +32,8 @@ interface IndexedDocument {
   ts: number
 }
 
-const INDEX_KEY = 'hchat:search-index'
-const INDEX_VERSION_KEY = 'hchat:search-index-version'
+const INDEX_KEY = SK.SEARCH_INDEX
+const INDEX_VERSION_KEY = SK.SEARCH_INDEX_VERSION
 const CURRENT_VERSION = 1
 
 let memoryIndex: InvertedIndex | null = null
@@ -68,7 +69,7 @@ function tokenize(text: string): string[] {
   return Array.from(tokens)
 }
 
-/** Build inverted index from all conversations */
+/** Build inverted index from all conversations (batch read for performance) */
 async function buildIndex(): Promise<InvertedIndex> {
   const index: InvertedIndex = {
     tokens: {},
@@ -76,8 +77,15 @@ async function buildIndex(): Promise<InvertedIndex> {
     builtAt: Date.now(),
   }
 
-  const convIndex = await ChatHistory.listIndex()
-  const convs = await Promise.all(convIndex.map((item) => ChatHistory.get(item.id)))
+  // Batch read: single chrome.storage.local.get(null) instead of N individual gets
+  const allData = await new Promise<Record<string, unknown>>((resolve) => {
+    chrome.storage.local.get(null, (result) => resolve(result as Record<string, unknown>))
+  })
+
+  const convs = Object.entries(allData)
+    .filter(([key]) => key.startsWith(SK.CONV_PREFIX) && !key.endsWith('-index'))
+    .map(([, value]) => value as { id: string; title: string; messages: Array<{ id: string; content: string; role: 'user' | 'assistant'; ts: number }> })
+    .filter((conv) => conv && conv.messages)
 
   for (const conv of convs) {
     if (!conv) continue

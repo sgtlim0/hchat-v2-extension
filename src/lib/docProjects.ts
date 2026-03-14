@@ -2,9 +2,10 @@
 
 import { Storage } from './storage'
 import type { DocType, DocSection } from './docGenerator'
+import { SK } from './storageKeys'
 
-const INDEX_KEY = 'hchat:doc-projects'
-const PROJECT_PREFIX = 'hchat:doc-project:'
+const INDEX_KEY = SK.DOC_PROJECTS
+const PROJECT_PREFIX = SK.DOC_PROJECT_PREFIX
 const MAX_VERSIONS = 10
 
 export interface DocProjectVersion {

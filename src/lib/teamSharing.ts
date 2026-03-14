@@ -1,9 +1,10 @@
 // lib/teamSharing.ts — 팀 공유 패키지 (비서, 프롬프트, 템플릿, 체인, 워크플로우)
 
 import { Storage } from './storage'
+import { SK } from './storageKeys'
 
-const HISTORY_KEY = 'hchat:share-history'
-const SHARED_ITEMS_KEY = 'hchat:shared-items'
+const HISTORY_KEY = SK.SHARE_HISTORY
+const SHARED_ITEMS_KEY = SK.SHARED_ITEMS
 const MAX_HISTORY = 50
 const MAX_SIZE_BYTES = 5 * 1024 * 1024 // 5MB
 

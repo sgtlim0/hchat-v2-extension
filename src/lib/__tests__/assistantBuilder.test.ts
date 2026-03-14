@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { AssistantRegistry, getBuiltinAssistants, type CustomAssistant } from '../assistantBuilder'
+import { SK } from '../storageKeys'
 
 describe('assistantBuilder', () => {
   describe('getBuiltinAssistants', () => {
@@ -126,8 +127,8 @@ describe('assistantBuilder', () => {
         category: 'General',
       })
 
-      const raw = await chrome.storage.local.get('hchat:assistants')
-      const stored = raw['hchat:assistants'] as CustomAssistant[]
+      const raw = await chrome.storage.local.get(SK.ASSISTANTS)
+      const stored = raw[SK.ASSISTANTS] as CustomAssistant[]
       expect(stored).toHaveLength(1)
       expect(stored[0].name).toBe('Persisted')
     })

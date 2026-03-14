@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
+import { SK } from '../storageKeys'
 
 vi.mock('../../i18n', () => ({
   t: vi.fn((key: string) => {
@@ -37,7 +38,7 @@ describe('ChatHistory branch coverage', () => {
     it('is no-op when conv exists but not in index', async () => {
       const conv = await ChatHistory.create('m')
       // Clear index manually
-      await chrome.storage.local.set({ 'hchat:conv-index': [] })
+      await chrome.storage.local.set({ [SK.CONV_INDEX]: [] })
       await ChatHistory.setTags(conv.id, ['tag'])
       const fetched = await ChatHistory.get(conv.id)
       expect(fetched!.tags).toEqual(['tag'])
@@ -91,7 +92,7 @@ describe('ChatHistory branch coverage', () => {
 
     it('is no-op when conv exists but not in index', async () => {
       const conv = await ChatHistory.create('m')
-      await chrome.storage.local.set({ 'hchat:conv-index': [] })
+      await chrome.storage.local.set({ [SK.CONV_INDEX]: [] })
       await ChatHistory.setFolder(conv.id, 'f1')
       const fetched = await ChatHistory.get(conv.id)
       expect(fetched!.folderId).toBe('f1')
@@ -196,7 +197,7 @@ describe('ChatHistory branch coverage', () => {
     it('handles conversation not in index gracefully', async () => {
       const conv = await ChatHistory.create('m')
       // Clear index
-      await chrome.storage.local.set({ 'hchat:conv-index': [] })
+      await chrome.storage.local.set({ [SK.CONV_INDEX]: [] })
       // Add message triggers _updateIndex
       await ChatHistory.addMessage(conv.id, { role: 'user', content: 'test' })
       // Should not throw

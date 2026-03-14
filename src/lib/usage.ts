@@ -2,6 +2,7 @@
 
 import { Storage } from './storage'
 import type { ProviderType } from './providers/types'
+import { SK } from './storageKeys'
 
 export type UsageFeature = 'chat' | 'group' | 'tool' | 'agent' | 'debate' | 'report'
 
@@ -25,7 +26,7 @@ export interface UsageSummary {
   byDate: { date: string; requests: number; cost: number }[]
 }
 
-const USAGE_KEY = 'hchat:usage'
+const USAGE_KEY = SK.USAGE
 
 // Approximate pricing per 1M tokens (input/output) in USD
 const PRICING: Record<string, { input: number; output: number }> = {

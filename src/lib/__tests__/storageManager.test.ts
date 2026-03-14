@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { analyzeStorage, formatBytes, cleanupOrphans, findOldConversations, deleteConversations } from '../storageManager'
+import { SK } from '../storageKeys'
 
 beforeEach(() => {
   // Clear all storage before each test
@@ -37,11 +38,11 @@ describe('analyzeStorage', () => {
 
   it('categorizes storage by key prefix', async () => {
     const mockData: Record<string, unknown> = {
-      'hchat:conv:abc': { messages: [{ content: 'hello' }] },
-      'hchat:conv-index': [{ id: 'abc' }],
-      'hchat:bookmarks': [{ text: 'test' }],
-      'hchat:usage:2026-03': [{ requests: 1 }],
-      'hchat:config': { theme: 'dark' },
+      [`${SK.CONV_PREFIX}abc`]: { messages: [{ content: 'hello' }] },
+      [SK.CONV_INDEX]: [{ id: 'abc' }],
+      [SK.BOOKMARKS]: [{ text: 'test' }],
+      [`${SK.USAGE}:2026-03`]: [{ requests: 1 }],
+      [SK.CONFIG]: { theme: 'dark' },
       'other-key': { data: 'something' },
     }
     chrome.storage.local.get = async () => mockData
@@ -61,14 +62,14 @@ describe('findOldConversations', () => {
   it('finds conversations older than specified days', async () => {
     const oldDate = Date.now() - 100 * 24 * 60 * 60 * 1000 // 100 days ago
     const mockData: Record<string, unknown> = {
-      'hchat:conv-index': [
+      [SK.CONV_INDEX]: [
         { id: 'old1', title: 'Old conv', updatedAt: oldDate, model: 'test' },
         { id: 'new1', title: 'New conv', updatedAt: Date.now(), model: 'test' },
         { id: 'pinned1', title: 'Pinned', updatedAt: oldDate, pinned: true, model: 'test' },
       ],
-      'hchat:conv:old1': { messages: [{ content: 'a' }, { content: 'b' }] },
-      'hchat:conv:new1': { messages: [{ content: 'c' }] },
-      'hchat:conv:pinned1': { messages: [{ content: 'd' }] },
+      [`${SK.CONV_PREFIX}old1`]: { messages: [{ content: 'a' }, { content: 'b' }] },
+      [`${SK.CONV_PREFIX}new1`]: { messages: [{ content: 'c' }] },
+      [`${SK.CONV_PREFIX}pinned1`]: { messages: [{ content: 'd' }] },
     }
     chrome.storage.local.get = async (key) => {
       if (key === null) return mockData
@@ -88,7 +89,7 @@ describe('deleteConversations', () => {
     const removed: string[] = []
     const stored: Record<string, unknown> = {}
     const mockData: Record<string, unknown> = {
-      'hchat:conv-index': [
+      [SK.CONV_INDEX]: [
         { id: 'a', title: 'A', updatedAt: 1, model: 'test' },
         { id: 'b', title: 'B', updatedAt: 2, model: 'test' },
       ],
@@ -106,8 +107,8 @@ describe('deleteConversations', () => {
 
     const count = await deleteConversations(['a'])
     expect(count).toBe(1)
-    expect(removed).toContain('hchat:conv:a')
-    const newIndex = stored['hchat:conv-index'] as { id: string }[]
+    expect(removed).toContain(`${SK.CONV_PREFIX}a`)
+    const newIndex = stored[SK.CONV_INDEX] as { id: string }[]
     expect(newIndex).toHaveLength(1)
     expect(newIndex[0].id).toBe('b')
   })
@@ -122,10 +123,10 @@ describe('cleanupOrphans', () => {
   it('removes orphaned conversation keys', async () => {
     const removed: string[] = []
     const mockData: Record<string, unknown> = {
-      'hchat:conv-index': [{ id: 'a' }],
-      'hchat:conv:a': { messages: [] },
-      'hchat:conv:orphan1': { messages: [] },
-      'hchat:conv:orphan2': { messages: [] },
+      [SK.CONV_INDEX]: [{ id: 'a' }],
+      [`${SK.CONV_PREFIX}a`]: { messages: [] },
+      [`${SK.CONV_PREFIX}orphan1`]: { messages: [] },
+      [`${SK.CONV_PREFIX}orphan2`]: { messages: [] },
     }
 
     chrome.storage.local.get = async (key) => {
@@ -140,15 +141,15 @@ describe('cleanupOrphans', () => {
 
     const count = await cleanupOrphans()
     expect(count).toBe(2)
-    expect(removed).toContain('hchat:conv:orphan1')
-    expect(removed).toContain('hchat:conv:orphan2')
-    expect(removed).not.toContain('hchat:conv:a')
+    expect(removed).toContain(`${SK.CONV_PREFIX}orphan1`)
+    expect(removed).toContain(`${SK.CONV_PREFIX}orphan2`)
+    expect(removed).not.toContain(`${SK.CONV_PREFIX}a`)
   })
 
   it('returns 0 when no orphans', async () => {
     const mockData: Record<string, unknown> = {
-      'hchat:conv-index': [{ id: 'a' }],
-      'hchat:conv:a': { messages: [] },
+      [SK.CONV_INDEX]: [{ id: 'a' }],
+      [`${SK.CONV_PREFIX}a`]: { messages: [] },
     }
 
     chrome.storage.local.get = async (key) => {

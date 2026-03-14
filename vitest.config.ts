@@ -10,8 +10,13 @@ export default defineConfig({
     include: ['src/**/*.test.{ts,tsx}'],
     coverage: {
       provider: 'v8',
-      include: ['src/lib/**/*.ts'],
-      exclude: ['src/lib/providers/aws-sigv4.ts', 'src/**/*.test.ts'],
+      include: [
+        'src/lib/**/*.ts',
+        'src/components/**/*.tsx',
+        'src/hooks/**/*.ts',
+        'src/background/**/*.ts',
+      ],
+      exclude: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
     },
   },
 })

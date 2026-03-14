@@ -1,3 +1,4 @@
+import { SK } from './storageKeys'
 // lib/shortcuts.ts — Keyboard shortcut system
 
 export type ShortcutAction =
@@ -28,7 +29,7 @@ export const DEFAULT_SHORTCUTS: Shortcut[] = [
   { id: 'prev-tab',       keys: 'Ctrl+[',          action: 'prev-tab',        description: 'shortcuts.prevTab',       customizable: false },
 ]
 
-const STORAGE_KEY = 'hchat:shortcuts'
+const STORAGE_KEY = SK.SHORTCUTS
 
 export function parseKeyCombo(e: KeyboardEvent): string {
   const parts: string[] = []

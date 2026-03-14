@@ -1,9 +1,10 @@
 // lib/policyManager.ts — Policy management system for enforcing usage rules
 
 import { Storage } from './storage'
+import { SK } from './storageKeys'
 
-const STORAGE_KEY = 'hchat:policies'
-const STATUS_KEY = 'hchat:policy-status'
+const STORAGE_KEY = SK.POLICIES
+const STATUS_KEY = SK.POLICY_STATUS
 const MAX_POLICIES = 20
 
 // ── Types ──

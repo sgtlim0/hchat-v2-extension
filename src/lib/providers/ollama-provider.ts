@@ -1,6 +1,8 @@
 // providers/ollama-provider.ts — Ollama local LLM provider (direct fetch, no SDK)
 
 import type { AIProvider, ModelDef, SendParams, ProviderType } from './types'
+import { throwProviderError } from './error-parser'
+import { convertToOpenAIMessages } from './message-converter'
 
 const DEFAULT_BASE_URL = 'http://localhost:11434'
 
@@ -24,24 +26,6 @@ function toModelDef(model: { name: string }): ModelDef {
     capabilities: ['chat'],
     cost: { input: 0, output: 0 },
   }
-}
-
-function convertMessages(messages: SendParams['messages'], systemPrompt?: string) {
-  const result: Array<{ role: string; content: string }> = []
-
-  if (systemPrompt) {
-    result.push({ role: 'system', content: systemPrompt })
-  }
-
-  for (const msg of messages) {
-    if (msg.role === 'system') continue
-    const content = typeof msg.content === 'string'
-      ? msg.content
-      : msg.content.map((p) => p.text ?? '').join('')
-    result.push({ role: msg.role, content })
-  }
-
-  return result
 }
 
 export class OllamaProvider implements AIProvider {
@@ -89,7 +73,7 @@ export class OllamaProvider implements AIProvider {
 
     const body = JSON.stringify({
       model,
-      messages: convertMessages(messages, systemPrompt),
+      messages: convertToOpenAIMessages(messages, systemPrompt, { textOnly: true }),
       stream: true,
     })
 
@@ -100,10 +84,7 @@ export class OllamaProvider implements AIProvider {
       signal,
     })
 
-    if (!res.ok) {
-      const errText = await res.text()
-      throw new Error(errText || `HTTP ${res.status}`)
-    }
+    if (!res.ok) await throwProviderError(res)
 
     if (!res.body) throw new Error('응답 스트림이 없습니다')
 

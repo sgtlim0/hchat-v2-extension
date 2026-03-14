@@ -336,3 +336,8 @@ const observer = new MutationObserver((mutations) => {
 })
 
 observer.observe(document.body, { childList: true, subtree: true })
+
+// Cleanup observer on page unload to prevent memory leaks
+window.addEventListener('beforeunload', () => {
+  observer.disconnect()
+})

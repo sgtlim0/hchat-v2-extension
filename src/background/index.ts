@@ -1,12 +1,7 @@
 // Background Service Worker
 // Handles: icon click, context menus, alarms, streaming via providers
 
-import { BedrockProvider } from '../lib/providers/bedrock-provider'
-import { OpenAIProvider } from '../lib/providers/openai-provider'
-import { GeminiProvider } from '../lib/providers/gemini-provider'
-import { OllamaProvider } from '../lib/providers/ollama-provider'
-import { OpenRouterProvider } from '../lib/providers/openrouter-provider'
-import type { AIProvider } from '../lib/providers/types'
+import { createAllProviders, getProviderForModel } from '../lib/providers/provider-factory'
 import { SK } from '../lib/storageKeys'
 
 chrome.runtime.onInstalled.addListener(() => {
@@ -132,43 +127,28 @@ async function getStoredConfig() {
   return result[SK.CONFIG] ?? {}
 }
 
-// ── Helper: create provider from stored config ──
-function createProviderForModel(modelId: string, config: Record<string, unknown>): AIProvider | null {
-  const aws = config.aws as { accessKeyId?: string; secretAccessKey?: string; region?: string } | undefined
-  const openai = config.openai as { apiKey?: string } | undefined
-  const gemini = config.gemini as { apiKey?: string } | undefined
+// ── Helper: resolve provider from stored config via provider-factory ──
+function resolveProvider(modelId: string, config: Record<string, unknown>) {
+  const aws = (config.aws ?? {}) as { accessKeyId?: string; secretAccessKey?: string; region?: string }
+  const openai = (config.openai ?? {}) as { apiKey?: string }
+  const gemini = (config.gemini ?? {}) as { apiKey?: string }
   const ollama = config.ollama as { baseUrl?: string; modelFilter?: string[] } | undefined
   const openrouter = config.openrouter as { apiKey?: string; siteUrl?: string; siteName?: string } | undefined
 
-  // Determine provider type from model ID
-  if (modelId.startsWith('us.anthropic') || modelId.startsWith('anthropic')) {
-    if (aws?.accessKeyId && aws.secretAccessKey) {
-      return new BedrockProvider({
-        accessKeyId: aws.accessKeyId,
-        secretAccessKey: aws.secretAccessKey,
-        region: aws.region ?? 'us-east-1',
-      })
-    }
-  } else if (modelId.startsWith('gpt-')) {
-    if (openai?.apiKey) return new OpenAIProvider(openai.apiKey)
-  } else if (modelId.startsWith('gemini-')) {
-    if (gemini?.apiKey) return new GeminiProvider(gemini.apiKey)
-  } else if (openrouter?.apiKey && (modelId.includes('/') || modelId.startsWith('anthropic/'))) {
-    return new OpenRouterProvider({ apiKey: openrouter.apiKey, siteUrl: openrouter.siteUrl, siteName: openrouter.siteName })
-  } else if (ollama?.baseUrl) {
-    return new OllamaProvider({ baseUrl: ollama.baseUrl, modelFilter: ollama.modelFilter })
-  }
+  const providers = createAllProviders({
+    bedrock: { accessKeyId: aws.accessKeyId ?? '', secretAccessKey: aws.secretAccessKey ?? '', region: aws.region ?? 'us-east-1' },
+    openai: { apiKey: openai.apiKey ?? '' },
+    gemini: { apiKey: gemini.apiKey ?? '' },
+    ollama: ollama?.baseUrl ? ollama : undefined,
+    openrouter: openrouter?.apiKey ? openrouter : undefined,
+  })
 
-  // Fallback to bedrock
-  if (aws?.accessKeyId && aws.secretAccessKey) {
-    return new BedrockProvider({
-      accessKeyId: aws.accessKeyId,
-      secretAccessKey: aws.secretAccessKey,
-      region: aws.region ?? 'us-east-1',
-    })
-  }
+  const provider = getProviderForModel(modelId, providers)
+  if (provider?.isConfigured()) return provider
 
-  return null
+  // Fallback: first configured provider (typically bedrock)
+  const fallback = providers.find((p) => p.isConfigured())
+  return fallback ?? null
 }
 
 // ── Streaming via providers (toolbar-stream and inline-stream) ──
@@ -192,7 +172,7 @@ chrome.runtime.onConnect.addListener((port) => {
       }
 
       const modelId = model || (config as { defaultModel?: string }).defaultModel || 'us.anthropic.claude-sonnet-4-6'
-      const provider = createProviderForModel(modelId, config)
+      const provider = resolveProvider(modelId, config)
 
       if (!provider) {
         port.postMessage({ type: 'error', message: 'API 키가 설정되지 않았습니다' })

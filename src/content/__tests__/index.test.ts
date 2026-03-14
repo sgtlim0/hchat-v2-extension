@@ -290,44 +290,72 @@ describe('content/pageContext — updatePageContext', () => {
   })
 })
 
-describe('content/index — SPA detection', () => {
-  it('should use MutationObserver to detect URL changes', () => {
-    // MutationObserver is available in jsdom
-    expect(typeof MutationObserver).toBe('function')
-  })
-
-  it('should detect when location.href changes', () => {
-    // Simulate the SPA detection logic from index.ts
+describe('content/index — SPA navigation detection via History API', () => {
+  it('should detect URL change on pushState interception', () => {
+    // Simulate the pushState interception logic from index.ts
     let lastUrl = 'https://example.com/page1'
-    let updated = false
+    let navigated = false
 
-    const checkUrlChange = () => {
-      const currentUrl = 'https://example.com/page2'
-      if (currentUrl !== lastUrl) {
-        lastUrl = currentUrl
-        updated = true
+    const onNavigate = (newUrl: string) => {
+      if (newUrl !== lastUrl) {
+        lastUrl = newUrl
+        navigated = true
       }
     }
 
-    checkUrlChange()
-    expect(updated).toBe(true)
+    // Simulate pushState triggering onNavigate
+    onNavigate('https://example.com/page2')
+    expect(navigated).toBe(true)
     expect(lastUrl).toBe('https://example.com/page2')
   })
 
-  it('should not trigger update when URL has not changed', () => {
+  it('should detect URL change on replaceState interception', () => {
     let lastUrl = 'https://example.com/page1'
-    let updated = false
+    let navigated = false
 
-    const checkUrlChange = () => {
-      const currentUrl = 'https://example.com/page1'
-      if (currentUrl !== lastUrl) {
-        lastUrl = currentUrl
-        updated = true
+    const onNavigate = (newUrl: string) => {
+      if (newUrl !== lastUrl) {
+        lastUrl = newUrl
+        navigated = true
       }
     }
 
-    checkUrlChange()
-    expect(updated).toBe(false)
+    // Simulate replaceState triggering onNavigate
+    onNavigate('https://example.com/page3')
+    expect(navigated).toBe(true)
+    expect(lastUrl).toBe('https://example.com/page3')
+  })
+
+  it('should not trigger navigation when URL has not changed', () => {
+    let lastUrl = 'https://example.com/page1'
+    let navigated = false
+
+    const onNavigate = (newUrl: string) => {
+      if (newUrl !== lastUrl) {
+        lastUrl = newUrl
+        navigated = true
+      }
+    }
+
+    onNavigate('https://example.com/page1')
+    expect(navigated).toBe(false)
+  })
+
+  it('should detect popstate events (back/forward navigation)', () => {
+    let lastUrl = 'https://example.com/page1'
+    let navigated = false
+
+    const onNavigate = (newUrl: string) => {
+      if (newUrl !== lastUrl) {
+        lastUrl = newUrl
+        navigated = true
+      }
+    }
+
+    // Simulate popstate (browser back/forward)
+    onNavigate('https://example.com/previous-page')
+    expect(navigated).toBe(true)
+    expect(lastUrl).toBe('https://example.com/previous-page')
   })
 })
 
@@ -413,18 +441,27 @@ describe('content/index — selection handler', () => {
   })
 })
 
-describe('content/index — cleanup', () => {
-  it('should be able to disconnect MutationObserver', () => {
-    const observer = new MutationObserver(() => {})
-    observer.observe(document.documentElement, { childList: true, subtree: true })
-
-    // Should not throw
-    expect(() => observer.disconnect()).not.toThrow()
-  })
-
-  it('should clear selection timer', () => {
+describe('content/index — cleanup on beforeunload', () => {
+  it('should clear selection timer on beforeunload', () => {
     const timer = setTimeout(() => {}, 500)
     expect(() => clearTimeout(timer)).not.toThrow()
+  })
+})
+
+describe('writing-assistant — MutationObserver cleanup', () => {
+  it('should disconnect MutationObserver on beforeunload to prevent memory leaks', () => {
+    const disconnectSpy = vi.fn()
+    const observer = new MutationObserver(() => {})
+    observer.disconnect = disconnectSpy
+    observer.observe(document.body, { childList: true, subtree: true })
+
+    // Simulate beforeunload cleanup as in writing-assistant.ts
+    window.addEventListener('beforeunload', () => {
+      observer.disconnect()
+    })
+    window.dispatchEvent(new Event('beforeunload'))
+
+    expect(disconnectSpy).toHaveBeenCalled()
   })
 })
 

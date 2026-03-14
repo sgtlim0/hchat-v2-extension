@@ -302,3 +302,65 @@ describe('disabled server', () => {
     await expect(listTools('srv-1')).rejects.toThrow('disabled')
   })
 })
+
+// --- server not found ---
+
+describe('server not found', () => {
+  it('throws when listing tools for non-existent server', async () => {
+    await expect(listTools('nonexistent')).rejects.toThrow('Server not found')
+  })
+
+  it('throws when executing tool on non-existent server', async () => {
+    await expect(executeTool('nonexistent', 'tool', {})).rejects.toThrow('Server not found')
+  })
+
+  it('throws when listing resources from non-existent server', async () => {
+    await expect(listResources('nonexistent')).rejects.toThrow('Server not found')
+  })
+
+  it('throws when getting resource from non-existent server', async () => {
+    await expect(getResource('nonexistent', 'uri')).rejects.toThrow('Server not found')
+  })
+})
+
+// --- executeTool edge cases ---
+
+describe('executeTool edge cases', () => {
+  it('handles non-Error thrown exception', async () => {
+    vi.mocked(global.fetch).mockRejectedValueOnce('string error')
+    await registerServer(makeConfig())
+    const result = await executeTool('srv-1', 'tool', {})
+    expect(result.success).toBe(false)
+    expect(result.error).toBe('Unknown error')
+  })
+})
+
+// --- listTools null tools response ---
+
+describe('listTools null response', () => {
+  it('returns empty array when tools field is missing', async () => {
+    vi.mocked(global.fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({}),
+    } as Response)
+
+    await registerServer(makeConfig())
+    const result = await listTools('srv-1')
+    expect(result).toEqual([])
+  })
+})
+
+// --- listResources null response ---
+
+describe('listResources null response', () => {
+  it('returns empty array when resources field is missing', async () => {
+    vi.mocked(global.fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({}),
+    } as Response)
+
+    await registerServer(makeConfig())
+    const result = await listResources('srv-1')
+    expect(result).toEqual([])
+  })
+})

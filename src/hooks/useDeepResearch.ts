@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { streamDeepResearch, type ResearchProgress, type SourceRef } from '../lib/deepResearch'
 import { createAllProviders, getProviderForModel } from '../lib/providers/provider-factory'
 import type { Config } from './useConfig'
@@ -15,8 +15,13 @@ export function useDeepResearch(
   const [researchProgress, setResearchProgress] = useState<ResearchProgress | null>(null)
   const [researchSources, setResearchSources] = useState<SourceRef[]>([])
   const [researchReport, setResearchReport] = useState('')
+  const abortRef = useRef<AbortController | null>(null)
 
   const handleDeepResearch = useCallback(async (question: string) => {
+    // Cancel any in-progress research
+    abortRef.current?.abort()
+    abortRef.current = new AbortController()
+
     const providers = createAllProviders({
       bedrock: config.aws,
       openai: config.openai,
@@ -39,6 +44,7 @@ export function useDeepResearch(
         provider,
         model: currentModel,
         locale,
+        signal: abortRef.current.signal,
         googleApiKey: config.googleSearchApiKey || undefined,
         googleEngineId: config.googleSearchEngineId || undefined,
       })
